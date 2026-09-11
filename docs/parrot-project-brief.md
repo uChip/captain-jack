@@ -127,6 +127,28 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
   is an open, deliberately deferred decision. It doesn't block designing either
   persona's software — same wake-word/gating logic (if needed at all) works either
   way.
+- **Speaker ID for Captain Jack**: deferred, not rejected. Considered while
+  designing his memory model (per-person preferences like dad-joke tolerance
+  surfaced the question). Hardware supports it — a Pi-side voice-embedding
+  model (e.g. ECAPA-TDNN-style, one-time per-person enrollment) run against
+  the XVF3800's AEC-cleaned audio, compared to per-user wake words which
+  don't scale to guests/kids. If added, it should be a soft personalization
+  signal only ("probably Kath, dial back the dad jokes"), not a security
+  gate — that would reopen the Alexa-like trust decision above, which stays
+  as-is. Nothing in the current memory design (`memory/memory.md`'s
+  per-person grouping) blocks adding this later.
+- **Conversational privacy (oversharing risk)**: noted, not addressed.
+  Jack's action boundary (tools limited to the home-automation allowlist)
+  doesn't limit what he can *say* — he has no sense of who's in the room,
+  so a fact told to him by one household member could surface in front of
+  a guest or another family member at an inconvenient moment. The memory
+  category allowlist already keeps most genuinely sensitive info (health
+  specifics, financial details) out of storage by construction, but
+  doesn't stop innocuous-seeming facts from being repeated at the wrong
+  time. Explicitly low-priority for now — revisit only if it becomes a
+  real annoyance in practice; the household applying the same "assume it
+  repeats things" norm people already use with smart speakers may be
+  enough without any technical fix.
 - Cost approach: Jarvis on a flat subscription (predictability matters more than
   minimizing cost for the "always available" piece); Captain Jack on metered
   Haiku API calls (usage is naturally light and cheap — modeled at roughly $1–2/mo
