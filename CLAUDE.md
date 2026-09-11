@@ -98,6 +98,14 @@ separate stack:
    link are still open — each blocked on something not yet available
    (allowlist undefined, hardware not arrived, serial framing TBD).
 3. Define the home-automation intent allowlist explicitly before wiring up
-   any tool calls for it.
+   any tool calls for it. **Done** —
+   `docs/home-automation-allowlist.md`, one section per device category
+   (lights, fans, outlets, thermostat, irrigation, scenes) against the real
+   device inventory (ecobee/Govee/SmartLife/Minoston/Rachio/Reolink), each
+   with bounded actions and per-vendor bridge status. Locks excluded (no
+   hardware); cameras excluded (no display + security-bypass risk). Not yet
+   wired to any tool schema or vendor API — that's still open, and several
+   vendor bridges (Minoston in particular) need API research before they can
+   be.
 4. Once the XVF3800 arrives: validate AEC quality against the bird's own
    speaker, and validate reading DoA from Pi-side code.

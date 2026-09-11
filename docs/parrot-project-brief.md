@@ -149,6 +149,34 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
   real annoyance in practice; the household applying the same "assume it
   repeats things" norm people already use with smart speakers may be
   enough without any technical fix.
+- **Automation/rules authoring (not just firing existing scenes)**:
+  deferred, not rejected. Surfaced while defining the home-automation
+  allowlist (`docs/home-automation-allowlist.md`) via two test cases: "turn
+  all lights off at midnight" (a schedule) and "if you hear me call in the
+  dark, turn on a light" (a Jack-sensed condition). These are different
+  problems and shouldn't be conflated into one "can Jack create
+  automations" question:
+  - **Jack-authored, vendor-executed** (the midnight-lights case): Jack
+    doesn't need to run this himself. If a vendor's API supports creating a
+    schedule/automation (not just flipping device state), Jack pushing a
+    rule to the vendor on request is still worth doing even though the
+    vendor app could technically do it — these apps are frequently not
+    user-friendly, so a natural-language front end for authoring is a real
+    win on its own. Lower engineering cost than it first looks: execution
+    stays vendor-side, Jack only needs a one-shot "create this rule" API
+    call at authoring time, no new always-on component in Jack's own stack.
+  - **Jack-sensed, Jack-executed** (the call-in-the-dark case): can't be
+    delegated to any vendor — only Jack's own mic/wake-word pipeline can
+    sense that trigger. This needs a persistent background loop inside
+    Jack's own stack, running independent of any conversation, plus a real
+    decision about autonomy (Jack silently acting with nobody in a
+    conversation is a bigger step than anything built so far, including the
+    model-proposes/code-decides caution already applied to memory writes).
+  Neither is in the current allowlist, which only covers firing
+  already-existing scenes and direct device state changes. If pursued,
+  each needs its own bounded-allowlist pass — the same "write it down
+  before implementing" treatment the current allowlist got — not a
+  blanket "Jack can create automations" grant.
 - Cost approach: Jarvis on a flat subscription (predictability matters more than
   minimizing cost for the "always available" piece); Captain Jack on metered
   Haiku API calls (usage is naturally light and cheap — modeled at roughly $1–2/mo
