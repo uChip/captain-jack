@@ -20,34 +20,59 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
 - Peripherals on that board:
   - An MY1690-based audio player. Its SD card holds many short stereo audio clips —
     left channel is the actual audio, right channel encodes a beak-movement level,
-    skewed so the beak syncs to the pre-recorded audio.
+    skewed so the beak syncs to the pre-recorded audio. (Slated for removal — see
+    "Planned hardware upgrade" below.)
   - Two electret microphones on ADC inputs, used for crude sound-direction
-    triangulation so the head turns toward a sound.
+    triangulation so the head turns toward a sound. (Slated for removal — see
+    "Planned hardware upgrade" below.)
   - Head gestures are predefined in Arduino memory and play more or less randomly.
 
 ## Planned hardware upgrade
 
 - Add a Raspberry Pi 5 as the "brain," with an audio I/O board, so the bird can hold
   an interactive spoken conversation.
-- Arduino's role shrinks to: real-time servo execution from Pi commands, plus
-  relaying the electret-mic triangulation angle upstream. Keep this loop on the
-  Arduino, not the Pi — it needs to stay fast and shouldn't depend on the Pi's
-  scheduling/serial round-trip.
-- Audio board: leaning toward Seeed's **ReSpeaker Lite** (XMOS XU316, onboard
-  acoustic echo cancellation + noise suppression, USB). This matters because the
-  bird will be talking through its own speaker inches from its own mics — a board
-  without real AEC will hear itself. The older ReSpeaker 2-Mic HAT (WM8960) is
-  cheaper but is an older GPIO HAT design — verify Pi 5 HAT+ compatibility before
-  committing to it instead.
-- The MY1690's beak-sync trick (dual-channel clips) only works for pre-rendered
-  audio. For live AI-generated speech, extract a real-time amplitude envelope
-  (simple RMS over a short window) from the outgoing TTS audio and stream it to the
-  Arduino at ~30–50Hz as the beak-position value. Keep the MY1690 + its clip library
-  wired to the Arduino as a separate, low-power idle/ambient-sound-effects layer
-  that doesn't require waking the AI pipeline.
-- Simple Pi→Arduino / Arduino→Pi serial protocol (exact framing still TBD):
-  `HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>` downstream;
-  `MIC_ANGLE <deg>` upstream.
+- Audio in: **Seeed reSpeaker XVF3800** USB 4-mic array (newer-gen XMOS XVF3800
+  chip; onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
+  dynamic noise suppression) — on order. Chosen over the ReSpeaker Lite (XU316,
+  2-mic) and the older 2-Mic HAT (WM8960, no onboard AEC, GPIO HAT) specifically
+  because the bird talks through its own speaker inches from its own mics; the
+  XVF3800's newer-generation AEC and 4-mic beamforming is the most robust answer
+  to that self-echo problem, at roughly 2x the Lite's cost and a larger footprint
+  to fit inside the bird body.
+- Audio out: speaker wired directly to the XVF3800's own output (its 5W-amp
+  speaker terminal or 3.5mm jack) — **not** a separate board such as the Waveshare
+  WM8960 Audio HAT (considered, rejected). The XVF3800's AEC uses its own playback
+  stream as the echo-cancellation reference signal; routing the bird's speaker
+  through a different sound card would give the AEC nothing to cancel against and
+  defeat the reason the board was chosen. The XVF3800's onboard amp is reportedly
+  mediocre — acceptable for now, with room to add an external amp fed from its
+  output later if voice quality needs it.
+- Electret mics + Arduino sound-triangulation: **removed**. The XVF3800 exposes
+  direction-of-arrival straight to the Pi over USB (`xvf_host AEC_AZIMUTH_VALUES`,
+  per-beam azimuth in degrees), so the Pi reads sound direction from the mic array
+  itself instead of from Arduino-relayed electret-mic ADC readings. Arduino no
+  longer needs any mic input.
+- MY1690 idle-sound player: **removed**. Idle/ambient sounds become local audio
+  files played by Pi-side code through the XVF3800's output, using the same
+  real-time RMS-envelope extraction built for live TTS beak-sync (below) — one
+  code path drives the beak for both idle clips and live speech, instead of a
+  separate pre-encoded dual-channel format on a second piece of hardware.
+  Tradeoff worth remembering: idle sounds now depend on the Pi being up, where the
+  MY1690-on-Arduino design let ambient noise run independent of Pi health. Not a
+  blocker, but revisit if a flaky Pi ever makes "the bird goes completely silent
+  when it reboots" a real annoyance.
+- Arduino's role shrinks to real-time servo execution only — head position, beak
+  position, and canned gestures, all commanded from the Pi. It no longer owns any
+  sensor input or audio hardware, and this loop should stay on the Arduino, not
+  the Pi, so it stays fast and doesn't depend on the Pi's scheduling/serial
+  round-trip.
+- The MY1690's beak-sync trick (dual-channel clips) only worked for pre-rendered
+  audio; it's replaced entirely by the RMS-envelope approach above — extracted
+  from whatever the Pi is currently playing (idle clip or live TTS) and streamed
+  to the Arduino at ~30–50Hz as the beak-position value.
+- Simple Pi→Arduino serial protocol (exact framing still TBD), now one-directional
+  since Arduino no longer relays mic data upstream:
+  `HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>`.
 
 ## Software architecture: two personas, separate hardware/stacks
 
@@ -119,14 +144,18 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
    and write out the explicit, simple save/skip ruleset.
 2. Write the orchestration script (Python is a natural fit given the Pi ecosystem)
    that: loads Captain Jack's system prompt + memory context, calls the Haiku API
-   with the home-automation tool schema, extracts the TTS amplitude envelope for
-   beak-sync, and manages the Pi↔Arduino serial link.
+   with the home-automation tool schema, extracts a real-time RMS amplitude
+   envelope from whatever audio is playing (idle clips or live TTS) for beak-sync,
+   reads direction-of-arrival from the reSpeaker for head-turn cues, plays local
+   idle/ambient audio files through the reSpeaker output, and manages the
+   Pi→Arduino serial link.
 3. Define the home-automation intent allowlist explicitly before wiring up tool
    calls for it.
 4. Set up jaredrhod's `ai-memory-vault` + `backtalk` for Jarvis if not already
    running, per the fullstack-agent installer.
-5. Pick and test the audio I/O board (ReSpeaker Lite vs. 2-Mic HAT) against the
-   Pi 5 specifically.
+5. Once the reSpeaker XVF3800 arrives: confirm AEC quality against the bird's own
+   speaker live, and validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from
+   Pi-side code.
 6. Revisit the one-bird-vs-two-birds hardware question once the software side is
    further along and real constraints (cost, complexity, how it actually feels to
    use) are clearer.
