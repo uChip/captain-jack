@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
+This Claude Code session runs directly on the bird's own Raspberry Pi 5
+(headless, accessed via SSH from Chip's desktop) — not a separate dev
+machine. Hardware-facing checks (USB devices, serial ports, audio devices)
+can be run directly from a session in this repo; there's no "deploy to the
+Pi" step to account for.
+
 Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
@@ -114,9 +120,15 @@ XVF3800, still on order.
    unknown.
 3. Design the Pi↔Arduino serial protocol precisely — framing is still TBD
    per the brief; pure spec work, no audio board needed.
-4. **Worth confirming first**: is the Arduino currently reachable from this
-   Pi over USB/serial? If so, basic HEAD/BEAK/GESTURE send/receive code
-   against it can be written and tested now, well ahead of any audio work.
+4. **Confirmed 2026-09-11**: the Arduino is not yet connected to this Pi.
+   Before that changes, the old audio hardware (MY1690 + electret mics)
+   needs to come out of the existing board, or a new Arduino is used
+   instead — Chip's call, still open, and a physical/offline task. The
+   sketch also needs rewriting for servo-only control (no more mic/audio
+   duties) to match the serial protocol from item 3 above — that part
+   doesn't need the physical connection to write, only to test, and Chip
+   may hand the sketch itself to a future session rather than write it
+   solo.
 5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's
