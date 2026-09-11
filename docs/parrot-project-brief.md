@@ -74,18 +74,13 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
   since Arduino no longer relays mic data upstream:
   `HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>`.
 
-## Software architecture: two personas, separate hardware/stacks
+## Software architecture: Captain Jack's stack
 
-**Jarvis** — the primary desktop assistant.
-- Personality: companionable but more formal, "major domo" — butlerish.
-- Broad task responsibility and system access (this is the "full agentic" instance).
-- Runs on **Claude Code**, voice-bridged using jaredrhod's **backtalk** pattern
-  (push-to-talk voice I/O into a live Claude Code session, local STT, real-voice
-  TTS output, full tool access preserved).
-- Memory: jaredrhod's **ai-memory-vault** ("Jarvis" stack), full install — a folder
-  of plain markdown files (`CLAUDE.md` boot/identity doc, profile, daily notes,
-  "Jobs") that the agent reads/writes each session.
-- Billing: Claude **Pro plan** ($17–20/mo flat), which includes Claude Code.
+Jarvis (the primary desktop assistant) is now a separate project on
+separate hardware — see the "two birds" decision below. Its implementation
+details have moved to `docs/jarvis-handoff-notes.md` rather than living in
+this brief; the cost/billing considerations that still cross-cut both
+projects (same Anthropic account) stay in "Decisions already made" below.
 
 **Captain Jack** — the parrot's persona.
 - Personality: light, humorous social companion, available to the whole household
@@ -123,10 +118,10 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
   assumption behind most smart speakers. This is *why* Captain Jack doesn't need
   a hard mode-switching/security mechanism between "social" and "task" use — his
   capability set is simply bounded by design instead.
-- One bird (dual-persona) vs. **two physically separate birds** (one per persona)
-  is an open, deliberately deferred decision. It doesn't block designing either
-  persona's software — same wake-word/gating logic (if needed at all) works either
-  way.
+- **Two physically separate birds** (one per persona), not one dual-persona
+  bird — decided 2026-09-11. Jarvis is accordingly a separate project on
+  separate hardware; its implementation details have moved to
+  `docs/jarvis-handoff-notes.md`, out of this brief.
 - **Speaker ID for Captain Jack**: deferred, not rejected. Considered while
   designing his memory model (per-person preferences like dad-joke tolerance
   surfaced the question). Hardware supports it — a Pi-side voice-embedding
@@ -201,11 +196,6 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
    Pi→Arduino serial link.
 3. Define the home-automation intent allowlist explicitly before wiring up tool
    calls for it.
-4. Set up jaredrhod's `ai-memory-vault` + `backtalk` for Jarvis if not already
-   running, per the fullstack-agent installer.
-5. Once the reSpeaker XVF3800 arrives: confirm AEC quality against the bird's own
+4. Once the reSpeaker XVF3800 arrives: confirm AEC quality against the bird's own
    speaker live, and validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from
    Pi-side code.
-6. Revisit the one-bird-vs-two-birds hardware question once the software side is
-   further along and real constraints (cost, complexity, how it actually feels to
-   use) are clearer.

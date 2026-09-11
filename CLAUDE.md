@@ -76,36 +76,66 @@ separate stack:
 - Trust model is deliberately Alexa-like: no voice-ID firewall between
   household members; Captain Jack's capabilities are bounded by a small
   explicit intent allowlist instead of a security/mode-switching layer.
-- One bird (dual-persona) vs. two physically separate birds is an open,
-  deliberately deferred decision — doesn't block software design either way.
+- **Two physically separate birds** (one per persona) — decided. Jarvis is
+  a separate project on separate hardware; its implementation details live
+  in `docs/jarvis-handoff-notes.md`, not tracked in this repo.
 - Electret mics + Arduino-side sound triangulation, and the MY1690 audio
   player, are both removed — superseded by the reSpeaker's onboard DoA and
   Pi-side idle-clip playback, respectively.
 
-## Suggested next steps (from the brief, still open)
+## Done so far
 
-1. Scaffold Captain Jack's memory files (identity/boot doc + log format) and
-   write the explicit save/skip ruleset. **Done** — `memory/identity.md` +
+1. Memory scaffold + save/skip ruleset — `memory/identity.md` +
    `memory/memory.md`, design + ruleset in
-   `docs/captain-jack-memory-design.md`. Not yet implemented in code (that's
-   next-step #2, below).
-2. Write the orchestration script (Python) covering: system prompt + memory
-   loading, Haiku API calls with the home-automation tool schema, RMS
-   beak-sync extraction, reSpeaker DoA reads, idle-audio playback, and the
-   Pi→Arduino serial link. **Partly done** — `orchestrate.py` has the
+   `docs/captain-jack-memory-design.md`.
+2. Orchestration script's conversation loop — `orchestrate.py` has the
    system-prompt/memory-loading and Haiku call/response loop (text-only,
-   no tools yet). Tool schema, RMS extraction, DoA, idle-audio, and serial
-   link are still open — each blocked on something not yet available
-   (allowlist undefined, hardware not arrived, serial framing TBD).
-3. Define the home-automation intent allowlist explicitly before wiring up
-   any tool calls for it. **Done** —
-   `docs/home-automation-allowlist.md`, one section per device category
-   (lights, fans, outlets, thermostat, irrigation, scenes) against the real
-   device inventory (ecobee/Govee/SmartLife/Minoston/Rachio/Reolink), each
-   with bounded actions and per-vendor bridge status. Locks excluded (no
-   hardware); cameras excluded (no display + security-bypass risk). Not yet
-   wired to any tool schema or vendor API — that's still open, and several
-   vendor bridges (Minoston in particular) need API research before they can
-   be.
-4. Once the XVF3800 arrives: validate AEC quality against the bird's own
-   speaker, and validate reading DoA from Pi-side code.
+   no tools yet), live-tested end to end including several bugs found and
+   fixed (see git log).
+3. Home-automation intent allowlist — `docs/home-automation-allowlist.md`,
+   one section per device category against the real device inventory, with
+   bounded actions and per-vendor bridge status. Not yet wired to any tool
+   schema or vendor API.
+
+## Work list — split by hardware dependency
+
+Everything below "doable now" needs nothing that isn't already on hand —
+including the smart-home devices themselves, which already exist and are
+controllable today. Everything under "blocked" specifically needs the
+XVF3800, still on order.
+
+### Doable now
+
+1. Wire orchestrate.py's tool calls for the vendors with known APIs (Govee,
+   Tuya/SmartLife, ecobee, Rachio) per the allowlist, and test live against
+   the real devices — none of this touches the parrot's own audio hardware.
+2. Research Minoston's actual integration path (direct API vs. needs a
+   hub) — the one bridge status the allowlist doc flags as genuinely
+   unknown.
+3. Design the Pi↔Arduino serial protocol precisely — framing is still TBD
+   per the brief; pure spec work, no audio board needed.
+4. **Worth confirming first**: is the Arduino currently reachable from this
+   Pi over USB/serial? If so, basic HEAD/BEAK/GESTURE send/receive code
+   against it can be written and tested now, well ahead of any audio work.
+5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
+   against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
+   the software approach even though real accuracy needs the XVF3800's
+   cleaned audio eventually (see the deferred decision in the brief).
+6. Flesh out the vendor-executed automation-authoring idea (the "lights off
+   at midnight" case from the brief's deferred decision) as a small design
+   spec — doesn't need new hardware either.
+7. More conversational/memory test vectors as they come up — continuing the
+   joke/automation/NONE-case testing from this session.
+
+### Blocked until the XVF3800 arrives
+
+1. Validate AEC quality against the bird's own speaker — can't test
+   self-echo cancellation without the real board.
+2. Validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from Pi-side code.
+3. Real-time RMS beak-sync extraction from live audio playback/TTS through
+   the reSpeaker's output.
+4. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
+   tested for real.
+5. Speaker-ID accuracy validation against real household voices — a
+   stand-in mic won't fairly test what the AEC-cleaned audio actually buys.
+6. Idle/ambient audio playback tuning through the reSpeaker's own output.
