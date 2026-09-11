@@ -37,18 +37,46 @@ def load_system_prompt(memory_dir: Path = MEMORY_DIR) -> str:
     return f"{identity}\n\n---\n\n{memory}"
 
 
+FENCE_RE = re.compile(r"^```\w*$")
+
+
 def split_memory_line(reply: str) -> tuple[str, str | None]:
-    """Split Jack's trailing `MEMORY: ...` line off the spoken reply."""
+    """Split Jack's trailing `MEMORY: ...` line off the spoken reply.
+
+    Tolerates Haiku wrapping the line in a ``` code fence (observed in
+    practice, inconsistently) - otherwise the fenced block leaks into the
+    spoken reply verbatim and the memory proposal is silently lost.
+    """
     lines = reply.rstrip().splitlines()
-    for i in range(len(lines) - 1, -1, -1):
-        if not lines[i].strip():
+    i = len(lines) - 1
+    saw_closing_fence = False
+    while i >= 0:
+        stripped = lines[i].strip()
+        if stripped == "":
+            i -= 1
             continue
-        match = MEMORY_LINE_RE.match(lines[i].strip())
-        if match:
-            spoken = "\n".join(lines[:i]).rstrip()
-            return spoken, match.group(1).strip()
+        if FENCE_RE.match(stripped):
+            saw_closing_fence = True
+            i -= 1
+            continue
         break
-    return reply.strip(), None
+    if i < 0:
+        return reply.strip(), None
+
+    match = MEMORY_LINE_RE.match(lines[i].strip())
+    if not match:
+        return reply.strip(), None
+
+    cut = i
+    if saw_closing_fence:
+        j = i - 1
+        while j >= 0 and lines[j].strip() == "":
+            j -= 1
+        if j >= 0 and FENCE_RE.match(lines[j].strip()):
+            cut = j
+
+    spoken = "\n".join(lines[:cut]).rstrip()
+    return spoken, match.group(1).strip()
 
 
 def parse_memory_proposal(raw: str):
