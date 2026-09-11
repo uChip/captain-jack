@@ -83,6 +83,20 @@ but once each save carries a tag, the tag *is* the filing decision — a
 separate log would only duplicate entries that already live under their
 category, dated. Dropped from `memory.md`.
 
+## Confirmed via live testing
+
+- **Joke and automation tags work correctly** when Haiku decides to propose
+  them - validated end to end (parse, allowlist check, dedup, correct
+  section) against the real API.
+- **The proposal itself is non-deterministic.** A clean, on-target
+  automation-preference statement got `NONE` once, then `[automation]
+  ...` on an identical retry. Confirmed as model variance, not a wording or
+  logic problem - not worth chasing with more prompt tuning; a lightweight
+  model occasionally missing a save-worthy moment on first mention is the
+  accepted tradeoff, not a regression if seen again. `temperature=0` on the
+  API call would reduce (not eliminate) this, at the cost of making Jack's
+  in-character responses more repetitive too, since both share one call.
+
 ## Open / TBD
 
 - **Growth**: with the tag-routed design, growth is naturally bounded by
