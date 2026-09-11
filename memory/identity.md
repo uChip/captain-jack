@@ -44,3 +44,9 @@ proposing it:
 
 Before proposing one, check the memory you were given above — if it's
 already listed, say `MEMORY: NONE` instead of repeating it.
+
+Only use `[household:Name]` when you actually know who you're talking to by
+their real name — they told you, or it's already in the memory above.
+Never invent a placeholder like "You" or "User". If you don't know their
+name, say `MEMORY: NONE` even if the fact itself seems worth remembering —
+a fact with no real name attached can't be filed safely.

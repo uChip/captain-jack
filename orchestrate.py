@@ -118,31 +118,35 @@ def _normalize_blank_lines(lines: list[str]) -> list[str]:
 def save_memory(
     section: str, name: str | None, fact: str, memory_path: Path = MEMORY_PATH
 ) -> bool:
-    """Append fact to memory.md. Returns False if skipped as a duplicate."""
+    """Append fact to memory.md. Returns False if skipped as a duplicate, or
+    (for household facts) if `name` has no existing "### Name" subsection."""
     lines = memory_path.read_text().splitlines()
     entry = f"- {date.today().isoformat()}: {fact}"
 
     if section == "household":
         start, end = _section_bounds(lines, SECTION_HEADINGS["household"])
-        sub_heading = f"### {name}"
         sub_start = next(
-            (i + 1 for i in range(start, end) if lines[i].strip() == sub_heading),
+            (
+                i + 1
+                for i in range(start, end)
+                if lines[i].strip().lower() == f"### {name}".lower()
+            ),
             None,
         )
         if sub_start is None:
-            if _is_duplicate(lines[start:end], fact):
-                return False
-            at = _insertion_point(lines, start, end)
-            lines[at:at] = ["", sub_heading, entry]
-        else:
-            sub_end = next(
-                (i for i in range(sub_start, end) if lines[i].startswith("### ")),
-                end,
-            )
-            if _is_duplicate(lines[sub_start:sub_end], fact):
-                return False
-            at = _insertion_point(lines, sub_start, sub_end)
-            lines[at:at] = [entry]
+            # No existing subsection for this name - discard rather than
+            # auto-create. A model-proposed name isn't trustworthy enough to
+            # mint a new household member; that's a human-only decision
+            # (add the "### Name" heading once, by hand).
+            return False
+        sub_end = next(
+            (i for i in range(sub_start, end) if lines[i].startswith("### ")),
+            end,
+        )
+        if _is_duplicate(lines[sub_start:sub_end], fact):
+            return False
+        at = _insertion_point(lines, sub_start, sub_end)
+        lines[at:at] = [entry]
     else:
         start, end = _section_bounds(lines, SECTION_HEADINGS[section])
         if _is_duplicate(lines[start:end], fact):

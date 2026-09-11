@@ -48,7 +48,7 @@ tuned against a more capable model than Haiku:
 
 | Tag | Destination | Qualifies |
 |---|---|---|
-| `household:<Name>` | that person's `###` subsection under Household, auto-created on first mention | durable fact about a family member |
+| `household:<Name>` | that person's existing `###` subsection under Household | durable fact about a family member |
 | `joke` | Running jokes & preferences | recurring bit, nickname, callback |
 | `automation` | Home automation preferences | stated preference re: lights/thermostat/scenes/etc |
 
@@ -68,6 +68,15 @@ Two enforcement layers:
    matching, no semantic dedup — accepted imprecision for a lightweight
    model, matching the brief's own caveat about not replicating the full
    vault's nuance here.
+   - **`household:<Name>` never auto-creates a subsection.** Live testing
+     showed Haiku will invent a placeholder name ("You", or even a random
+     noun from the sentence) rather than reliably recognizing "I don't
+     actually know who this is" — a prompt instruction alone didn't fix it
+     (tried; it just changed the placeholder). Code only accepts a name
+     that already has a `### Name` heading in `memory.md`; anything else is
+     discarded, same as an unrecognized tag. Adding a new household member
+     is a one-time human edit (add the heading by hand), not something
+     inferred from model output.
 
 No standalone chronological log: earlier drafts had a "Recent log" section,
 but once each save carries a tag, the tag *is* the filing decision — a

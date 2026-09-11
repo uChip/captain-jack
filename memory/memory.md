@@ -10,7 +10,15 @@
 
 ## Household
 
-<!-- one ### subsection per person, auto-created on first [household:Name] save -->
+<!-- one ### subsection per person, added by hand - Jack can only file facts
+     under a name that already has a heading here, never create one himself -->
+
+### Chip
+- 2026-09-11: lactose intolerant
+
+### Kath
+
+### Liz
 
 ## Running jokes & preferences
 
