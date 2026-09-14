@@ -54,9 +54,14 @@ manufacturing, life, or certification testing, no multi-unit concerns.
   expression, driven by STT → chat model → TTS, triggered by a wake
   word/phrase, with movement produced in concert with speech and personality.
   Home automation is a defined secondary capability (see
-  [Home Automation](#26-home-automation)); further secondary capabilities are
-  open-ended ("anything Haiku can do") and explicitly undefined — see
-  [Open Issues](#5-open-issues).
+  [Home Automation](#26-home-automation)). **Decided 2026-09-14** (former
+  [Open Issue](#5-open-issues) 19): further secondary capabilities are
+  **not** open-ended ("anything Haiku can do") — that framing is dropped.
+  Email, calendar, and financial access in particular are explicitly out
+  of scope for now, deferred until much later, Chip's call. Candidate
+  ideas for eventual secondary capabilities are brainstormed, not
+  designed, in
+  [Possible Future Enhancements](#6-possible-future-enhancements).
 
 **Testing philosophy**: at least one test per use case and per hardware/
 software functional block, developed alongside each block as it's
@@ -926,10 +931,20 @@ this sketch himself rather than hand it to a future session.
   mischaracterized a decision as undecided. Not reopened by the `home`
   memory category or persona work added since, per Chip's call — flagged
   and considered, but left as the brief decided it.
-19. The scope of "anything Haiku can do" beyond home automation is explicitly
-  undefined in the goals document — including whether Haiku can be
-  proactive within a session, and what (if anything) carries over between
-  sessions outside of Jack's own `memory.md`.
+19. ~~The scope of "anything Haiku can do" beyond home automation is
+  explicitly undefined in the goals document — including whether Haiku
+  can be proactive within a session, and what (if anything) carries over
+  between sessions outside of Jack's own `memory.md`.~~ **Resolved
+  2026-09-14**: the open-ended framing is dropped — see
+  [Goals and Objectives](#1-goals-and-objectives). Secondary capabilities
+  beyond home automation are deliberately scoped, not "anything"; email/
+  calendar/finance access deferred until much later. "Whether Haiku can
+  be proactive within a session" is now a brainstormed candidate in
+  [Possible Future Enhancements](#6-possible-future-enhancements), not an
+  open design question. "What carries over between sessions outside
+  memory.md" has a plain answer, not a gap: **nothing** — each API call
+  is stateless; `orchestrate.py` re-sends `identity.md`/`memory.md` fresh
+  every turn, and that's the only persistence there is.
 20. Speculative scenarios (Alexa flirtation, community-lecture demo — see
   [Deferred and Speculative Scenarios](#28-deferred-and-speculative-scenarios))
   are recorded but unscoped, including the lecture scenario's own
@@ -976,3 +991,18 @@ gaps or conflicts that need resolving, not optional extras.
    append-and-dedup one in `orchestrate.py` — worth designing as a general
    "current value" mechanism rather than a location-only special case,
    since other future volatile facts would hit the same problem.
+2. **Secondary capabilities beyond home automation.** A brainstorm list,
+   not a design — per
+   [Goals and Objectives](#1-goals-and-objectives)/former
+   [Open Issue](#5-open-issues) 19, none of this is scoped or scheduled:
+   - Email reminders/notifications, given appropriate permissions —
+     **deferred until much later, Chip's call 2026-09-14**, along with
+     any calendar or financial account access/interaction. Not rejected
+     outright, just far enough out that they're not worth designing
+     against yet.
+   - Appointment/calendar awareness — related to, but broader than, the
+     memory-category gap in [Open Issues](#5-open-issues) issue 23; same
+     deferral as above.
+   - Proactive mid-session behavior — Jack bringing up something on his
+     own (a reminder, a follow-up) rather than only ever responding. Not
+     deferred the same way as the above — just unscoped.
