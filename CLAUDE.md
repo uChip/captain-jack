@@ -102,6 +102,10 @@ separate stack:
    one section per device category against the real device inventory, with
    bounded actions and per-vendor bridge status. Not yet wired to any tool
    schema or vendor API.
+4. **Confirmed 2026-09-13**: `arduino-cli` toolchain installed and tested
+   against an Arduino Uno connected to the Pi — `arduino/TestBlink`
+   compiles and downloads successfully. Servo and ServoEasing libraries are
+   installed and ready for real sketch development.
 
 ## Work list — split by hardware dependency
 
@@ -120,15 +124,16 @@ XVF3800, still on order.
    unknown.
 3. Design the Pi↔Arduino serial protocol precisely — framing is still TBD
    per the brief; pure spec work, no audio board needed.
-4. **Confirmed 2026-09-11**: the Arduino is not yet connected to this Pi.
-   Before that changes, the old audio hardware (MY1690 + electret mics)
-   needs to come out of the existing board, or a new Arduino is used
-   instead — Chip's call, still open, and a physical/offline task. The
-   sketch also needs rewriting for servo-only control (no more mic/audio
-   duties) to match the serial protocol from item 3 above — that part
-   doesn't need the physical connection to write, only to test, and Chip
-   may hand the sketch itself to a future session rather than write it
-   solo.
+4. **Updated 2026-09-13**: the Arduino Uno used for toolchain testing is
+   now connected to the Pi, and `arduino-cli` compile/download is
+   confirmed working (see "Done so far" above). Still open: whether this
+   is (or replaces) the board that has the old MY1690 + electret mics on
+   it — that old audio hardware needs to come out of the existing board,
+   or a new Arduino is used instead, Chip's call, still a physical/offline
+   task. The real sketch also still needs writing for servo-only control
+   (no more mic/audio duties), using the now-installed Servo/ServoEasing
+   libraries, to match the serial protocol from item 3 above — Chip may
+   write this himself rather than hand it to a future session.
 5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's

@@ -292,14 +292,18 @@ no reference signal to cancel against, defeating the reason it was chosen.
 
 ### 3.4 Arduino Servo Controller
 
-**Description**: the original build's Arduino-style board. **Status:
-on hand but not yet connected to the Pi** (confirmed 2026-09-11, per
-CLAUDE.md). Previously owned all "intelligence," peripherals, and sensor
-input in the pre-Pi design; those roles are removed (see
-[Removed and Legacy Hardware](#37-removed-and-legacy-hardware)) and it
-shrinks to real-time servo execution only. This loop deliberately stays on
-the Arduino rather than the Pi, so it stays fast and independent of the
-Pi's scheduling/serial round-trip.
+**Description**: the original build's Arduino-style board. **Status: an
+Arduino Uno is now connected to the Pi and confirmed working via
+`arduino-cli`** (compile + download tested successfully against
+`arduino/TestBlink`, 2026-09-13); Servo and ServoEasing libraries are
+installed. Not yet confirmed whether this Uno is (or replaces) the
+original board carrying the MY1690 + electret mics — see
+[Open Issues](#5-open-issues). Previously owned all "intelligence,"
+peripherals, and sensor input in the pre-Pi design; those roles are
+removed (see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware))
+and it shrinks to real-time servo execution only. This loop deliberately
+stays on the Arduino rather than the Pi, so it stays fast and independent
+of the Pi's scheduling/serial round-trip.
 
 **Intended function**: parses incoming serial commands from the Pi and
 drives the four servos accordingly — head pitch/roll/yaw and beak position
@@ -672,10 +676,12 @@ cost, and whether the link needs ACK/timeout-retry for robustness.
 
 ### 4.14 Arduino Firmware
 
-**Status: Not started** (beyond a connectivity smoke test) —
-`arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch used
-only to confirm the Arduino CLI/IDE toolchain and download connection work;
-it implements none of the servo-control design.
+**Status: Toolchain confirmed, sketch not started.**
+`arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch,
+confirmed 2026-09-13 to compile and download successfully via `arduino-cli`
+against a connected Arduino Uno; it implements none of the servo-control
+design. Servo and ServoEasing libraries are installed and available, but
+the real servo/easing sketch itself hasn't been started.
 
 **Description**: the real-time sketch that will parse incoming serial
 commands and drive the four servos, layering an easing library over the
@@ -778,10 +784,12 @@ may write this sketch himself rather than hand it to a future session.
   are recorded but unscoped, including the lecture scenario's own
   follow-on questions about credential/network provisioning and long-form
   vs. interactive delivery.
-- The Arduino is not yet connected to the Pi; the old MY1690/electret-mic
-  hardware must be removed (or a replacement Arduino used) before real
-  serial integration, and the firmware itself needs a servo-only rewrite —
-  see [Arduino Servo Controller](#34-arduino-servo-controller).
+- An Arduino Uno is now connected to the Pi and its toolchain confirmed
+  working, but it's unconfirmed whether it is (or replaces) the original
+  board carrying the MY1690/electret mics; that old hardware must be
+  removed (or a replacement Arduino used) before real serial integration,
+  and the firmware itself still needs a servo-only rewrite — see
+  [Arduino Servo Controller](#34-arduino-servo-controller).
 - Servo real-time loop rate: whether the 20ms PWM-period floor is fast
   enough for lifelike easing once easing math cost is accounted for is
   flagged as needing more research in
