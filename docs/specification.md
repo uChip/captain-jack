@@ -383,9 +383,12 @@ current build:
   envelope extraction as live TTS (see
   [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
   Tradeoff: idle sound now depends on the Pi being up, unlike the old
-  design where ambient noise ran independent of Pi health — noted as worth
-  revisiting if a flaky Pi makes bird-goes-silent-on-reboot a real
-  annoyance, not currently a blocker.
+  design where ambient noise ran independent of Pi health.
+  **Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 17): this
+  is a special case of the Arduino-thin decision in issue 7 — the Arduino
+  has no autonomous behavior at all, so a Pi outage already means total
+  silence and stillness, not just silence. No separate mitigation for
+  idle audio specifically; accepted as correct behavior, not revisited.
 - **Electret microphones** (2x, ADC input) — used for crude sound-direction
   triangulation on the original Arduino. **Status: removed.** Superseded by
   the XVF3800's onboard direction-of-arrival output, read directly by the
@@ -906,9 +909,13 @@ this sketch himself rather than hand it to a future session.
   narrowed to a coverage gap rather than a missing file.
 16. TTS and wake-word engines are unselected; STT is only tentatively "local
   Whisper."
-17. Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
-  unlike the removed MY1690-on-Arduino design — noted, not mitigated (see
-  [Removed and Legacy Hardware](#37-removed-and-legacy-hardware)).
+17. ~~Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being
+  up, unlike the removed MY1690-on-Arduino design — noted, not mitigated
+  (see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware)).~~
+  **Resolved 2026-09-14**: subsumed by issue 7's Arduino-thin decision —
+  a Pi outage already means total stillness and silence, not just no
+  idle audio, and that's accepted behavior. No separate fix needed for
+  audio specifically.
 18. Conversational-privacy/oversharing risk (a fact told by one household
   member surfacing in front of another) is noted with no technical
   mitigation, per
