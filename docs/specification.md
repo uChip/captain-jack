@@ -959,7 +959,12 @@ this sketch himself rather than hand it to a future session.
   see [Arduino Servo Controller](#34-arduino-servo-controller)); it can be
   developed and uploaded now, but can't be validated against real
   actuation until the board is wired to the head/beak servos, which
-  hasn't happened yet.
+  hasn't happened yet. **Noted 2026-09-14**: Chip is writing this sketch
+  himself (he knows the physical wiring) — not a future-session task.
+  Plan: ship it first against the stock ServoEasing library as installed,
+  known-good; trimming that library down to just the easing algorithm(s)
+  actually used is a separate, later optimization — see
+  [Possible Future Enhancements](#6-possible-future-enhancements).
 22. Servo real-time loop rate: whether the 20ms PWM-period floor is fast
   enough for lifelike easing once easing math cost is accounted for is
   flagged as needing more research in
@@ -1046,3 +1051,15 @@ gaps or conflicts that need resolving, not optional extras.
        narrow mitigation (e.g. a blank/demo `memory.md` for public
        appearances) if this is ever actually scheduled, not a reason to
        reopen issue 18 generally.
+4. **Trim the ServoEasing library to just the algorithm(s) actually used.**
+   Noted 2026-09-14, per [Open Issues](#5-open-issues) issue 21. The
+   installed library (see
+   [Arduino Servo Controller](#34-arduino-servo-controller)) bundles
+   multiple easing algorithms (e.g. bounce) when Jack's head motion will
+   realistically only ever use one or two — carrying the rest costs
+   Arduino flash/memory for no benefit, and may slow per-update easing
+   math too. Sequencing matters here: get the sketch running against the
+   stock, known-good library first (Chip's task — see issue 21); only
+   once real use has settled which algorithm(s) to keep does trimming
+   make sense. A good task to hand to Claude: fork a local copy of the
+   ServoEasing repo and strip everything not in use.
