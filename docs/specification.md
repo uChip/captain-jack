@@ -965,10 +965,24 @@ this sketch himself rather than hand it to a future session.
   known-good; trimming that library down to just the easing algorithm(s)
   actually used is a separate, later optimization — see
   [Possible Future Enhancements](#6-possible-future-enhancements).
-22. Servo real-time loop rate: whether the 20ms PWM-period floor is fast
-  enough for lifelike easing once easing math cost is accounted for is
-  flagged as needing more research in
-  [Arduino-command-structure.md](Arduino-command-structure.md).
+22. **Downgraded 2026-09-14, low risk per analysis, not closed** (pending
+  empirical confirmation): the ATmega328P runs at 16MHz with a hardware
+  8-bit multiplier; only 3 servos need easing math per update (pitch/
+  roll/yaw — beak has none, per issue 8); a cubic-easing evaluation per
+  axis kept to integer math (already the plan, per
+  [Arduino-command-structure.md](Arduino-command-structure.md)) is on the
+  order of tens of cycles — call it 100-300 cycles for all three, roughly
+  10-20 microseconds. Even 10x pessimistic, that's under 1% of the 20ms
+  (20,000 microsecond) budget; PWM generation itself runs on a hardware
+  timer interrupt, not the main loop, and serial reception is
+  interrupt-driven rather than blocking. Separately, 20ms is a 50Hz
+  update rate — comfortably above typical human motion-smoothness
+  perception thresholds (better than standard 24-30fps video), so there's
+  good general reason to expect it reads as smooth. What this reasoning
+  can't settle: whether a specific easing curve/timing/amplitude choice
+  actually looks *lifelike* — that's a tuning judgment only real servo
+  motion can confirm, once the board is wired (see
+  [Open Issues](#5-open-issues) issue 21).
 23. **Added 2026-09-14, split from former issue 4**: no memory category
   exists for appointment/calendar facts, though
   [Use Case 2.7](#27-personalized-memory) assumes Jack tracks them — no

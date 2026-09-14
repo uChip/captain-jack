@@ -29,7 +29,7 @@ To have realistic (lifelike) movement the pitch (head nod up and down), roll (he
    - Can gestures include beak movements?
    - Are gestures layerable or blendable? **Reclassified 2026-09-14**: same as above - Pi-side gesture engine question, not Arduino/serial. See docs/specification.md, Open Issues issue 24.
    - ~~Does beak movement need easing?~~ Resolved 2026-09-14: no separate easing step on either side - smoothing happens as part of the Pi's RMS envelope extraction itself (attack/release-style shaping), and the Arduino applies the BEAK value it receives straight to PWM. See docs/specification.md, Open Issues issue 8 (former).
-   - Is 20ms update fast enough? And will easing slow head movement down too much?
+   - Is 20ms update fast enough? And will easing slow head movement down too much? **Downgraded 2026-09-14, low risk per analysis, not closed**: back-of-envelope math (16MHz AVR, hardware multiplier, integer easing, only 3 servos) puts easing computation at roughly 10-20 microseconds worst case, under 1% of the 20ms budget - see docs/specification.md Open Issues issue 22 for the full reasoning. Still needs empirical confirmation once servos are wired, and "lifelike" is a tuning question this math can't settle by itself.
    - Need the list of gesture triggers.
    - How robust is serial communications? Is an ACK or timeout retry needed?
 
