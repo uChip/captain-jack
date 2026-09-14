@@ -696,38 +696,58 @@ assuming an eyelid mechanism not present in the
 **Status: Partially specified, not implemented.**
 
 **Description**: one-directional serial protocol, Pi → Arduino only (no
-upstream sensor relay in the new design). The
-[project brief](parrot-project-brief.md) sketches it loosely —
-`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>` — but the
-`GESTURE <id>` form is superseded: gesture storage is resolved to Pi-side
-(see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog)), so the
-Arduino only ever receives `HEAD`/`BEAK`-style primitive commands, never a
-gesture id. [Arduino-command-structure.md](Arduino-command-structure.md)
-works out a
-more concrete, compact, fixed-width framing (single-character field tags
-`p`/`r`/`y`/`b`/`t`, two digits for pitch/roll/beak, three for yaw, four for
-time-to-reach in ms, no spaces, newline-terminated) aimed at fast parsing
-and short transmission time (worst case ~19 chars ≈ 1.65ms at 115200 bps,
-flagged in that doc itself as unconfirmed arithmetic). These two
-descriptions haven't been reconciled into one authoritative frame format —
-see [Open Issues](#5-open-issues).
+upstream sensor relay in the new design). **Reconciled 2026-09-14**
+(former [Open Issue](#5-open-issues) 9) into one authoritative framing,
+superseding both the [project brief](parrot-project-brief.md)'s loose,
+word-prefixed sketch (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`,
+`GESTURE <id>`) and treating
+[Arduino-command-structure.md](Arduino-command-structure.md)'s compact,
+fixed-width encoding as the winning design:
+
+- Exactly two line shapes, newline-terminated, human-readable, no spaces,
+  no literal `HEAD`/`BEAK`/`GESTURE` keyword — the leading field-tag
+  character *is* the command type, since that's strictly shorter and the
+  two shapes are already unambiguous by their fields:
+  - **Head motion**: `p<PP>r<RR>y<YYY>t<TTTT>` — pitch (2 digits), roll (2
+    digits), yaw (3 digits), time-to-reach in ms (4 digits). Always
+    carries all three axes, even if only one is actually changing — the
+    Pi fills in the others with their last-sent value — so the Arduino's
+    easing library always has a full 3-axis start/end pair to interpolate
+    over `t` ms, per
+    [Arduino Servo Controller](#34-arduino-servo-controller).
+  - **Beak position**: `b<BB>` — beak position (2 digits) only, **no
+    `t` field**. Per former [Open Issue](#5-open-issues) 8, beak motion is
+    never eased on the Arduino, so there's nothing for a time field to
+    do; the Arduino applies it to PWM immediately.
+  - Pitch/roll/beak's 2-digit fields and yaw's 3-digit field are
+    unsigned, zero-padded, offset-encoded (per
+    [Arduino-command-structure.md](Arduino-command-structure.md)'s
+    "use 2 digits and offset in Arduino code" note) — the exact offset
+    and usable angle range per axis aren't pinned down yet, just the
+    encoding shape.
+  - `GESTURE <id>` is dropped entirely, not just superseded in wording:
+    gesture storage lives on the Pi (former issue 7), so the Arduino
+    never receives anything but the two shapes above, whether a given
+    line came from a gesture sequence, DoA, or beak-sync makes no
+    difference to it.
+- Still **not** pinned down by this reconciliation, and left as-is in
+  [Arduino-command-structure.md](Arduino-command-structure.md)'s open
+  questions: exact per-axis offsets/ranges, worst-case transmission time
+  (that doc's own ~19-char/1.65ms estimate is flagged there as unconfirmed
+  arithmetic and needs re-deriving against the format above), gesture
+  interruptibility/preemption vs. queuing, layering/blending, and whether
+  the link needs ACK/timeout-retry.
 
 **Intended function**: carry all motion commands from the Pi to the
-Arduino — head orientation, beak position, and gestures — fast enough to
-support smooth, eased, ~30–50Hz beak-sync and lifelike head motion without
+Arduino — head orientation and beak position — fast enough to support
+smooth, eased, ~30–50Hz beak-sync and lifelike head motion without
 exceeding the Arduino servo loop's minimum 20ms update period.
 
 **Interfaces**: written to by
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction),
 [DoA](#49-direction-of-arrival-doa-reader)-driven head movement, and the
-[Gesture Engine](#412-gesture-engine-and-catalog); read by
-[Arduino Firmware](#414-arduino-firmware). Open questions recorded in
-[Arduino-command-structure.md](Arduino-command-structure.md) and carried
-into [Open Issues](#5-open-issues): gesture interruptibility/preemption
-vs. queuing, whether gestures can include beak movement, whether gestures
-are layerable/blendable, whether beak movement needs easing, whether 20ms
-is a fast enough update period given easing math cost, and whether the
-link needs ACK/timeout-retry for robustness.
+[Gesture Engine](#412-gesture-engine-and-catalog) (as ordinary head-motion
+lines, per above); read by [Arduino Firmware](#414-arduino-firmware).
 
 ### 4.14 Arduino Firmware
 
@@ -836,12 +856,18 @@ this sketch himself rather than hand it to a future session.
   resolves the design question, not a validated one; still blocked on the
   XVF3800 to confirm it looks smooth enough in practice, per
   [Beak-Sync](#48-beak-sync-rms-envelope-extraction)'s status.
-9. The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
-  unreconciled descriptions (the brief's loose sketch vs.
+9. ~~The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has
+  two unreconciled descriptions (the brief's loose sketch vs.
   [Arduino-command-structure.md](Arduino-command-structure.md)'s compact
   format), and that document's own open questions (ACK/retry, gesture
   interruptibility/preemption, layering/blending, its baud-rate timing
-  math) remain unanswered.
+  math) remain unanswered.~~ **Partially resolved 2026-09-14**: the two
+  framing descriptions are reconciled into one — see
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Left open,
+  narrowed to what that section explicitly leaves unpinned: exact per-axis
+  offsets/ranges, worst-case transmission time re-derived against the
+  reconciled format, gesture interruptibility/preemption vs. queuing,
+  layering/blending, and ACK/timeout-retry.
 10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.

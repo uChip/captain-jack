@@ -64,11 +64,16 @@ separate stack:
 ## Hardware/software split
 
 - **Arduino**: shrinks to real-time servo execution only (head pitch/roll/yaw,
-  beak position) via a one-directional serial protocol from the Pi
-  (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0-255>`; exact framing still
-  TBD). No sensor input, no audio hardware, and no autonomous behavior of
-  its own — gestures are composed and stored on the Pi, sent down as the
-  same primitive timed commands (**decided 2026-09-14**, see
+  beak position) via a one-directional serial protocol from the Pi —
+  two compact, fixed-width line shapes, no `HEAD`/`BEAK`/`GESTURE`
+  keywords: `p<PP>r<RR>y<YYY>t<TTTT>` for head motion (always all three
+  axes + time-to-reach, eased on the Arduino) and `b<BB>` for beak
+  position (no time field — never eased, per issue 8). Reconciled
+  2026-09-14, see `docs/specification.md` section 4.13 / Open Issues
+  issue 9 — exact per-axis offsets/ranges and timing math still TBD. No
+  sensor input, no audio hardware, and no autonomous behavior of its
+  own — gestures are composed and stored on the Pi, sent down as the
+  same primitive commands (**decided 2026-09-14**, see
   `docs/specification.md` Open Issues issue 7); the Arduino never sees a
   `GESTURE <id>`. If the Pi is down, the Arduino does nothing and Jack is
   motionless — accepted behavior.
