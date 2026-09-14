@@ -25,9 +25,9 @@ To have realistic (lifelike) movement the pitch (head nod up and down), roll (he
  - **Reconciled 2026-09-14** (docs/specification.md Open Issues issue 9): this compact syntax is the authoritative wire format, superseding the brief's `HEAD`/`BEAK`/`GESTURE` word-prefixed sketch entirely - see specification.md section 4.13 for the two exact line shapes (head-motion carries p/r/y/t together; beak carries only b, no t, per issue 8's no-easing resolution). The char-count/timing math above still needs re-deriving against that exact format.
  - Open questions:
    - ~~Are gestures stored on the Arduino or the Pi?~~ Resolved 2026-09-14: the Pi, to keep the Arduino as thin as possible. Arduino takes only basic timed servo move commands, never interprets a gesture id. See docs/specification.md, Open Issues issue 7. Accepted implication: if the Pi is down, the Arduino has nothing to fall back on and Jack goes still.
-   - Are gestures interruptable? Does arrival or trigger of a new command before the current command finishes preempt or wait?
+   - Are gestures interruptable? Does arrival or trigger of a new command before the current command finishes preempt or wait? **Reclassified 2026-09-14**: not an Arduino/serial question - the Arduino has no queue and just acts on whatever line arrives, immediately. This is entirely up to the Pi-side gesture engine to decide. See docs/specification.md, Open Issues issue 24.
    - Can gestures include beak movements?
-   - Are gestures layerable or blendable?
+   - Are gestures layerable or blendable? **Reclassified 2026-09-14**: same as above - Pi-side gesture engine question, not Arduino/serial. See docs/specification.md, Open Issues issue 24.
    - ~~Does beak movement need easing?~~ Resolved 2026-09-14: no separate easing step on either side - smoothing happens as part of the Pi's RMS envelope extraction itself (attack/release-style shaping), and the Arduino applies the BEAK value it receives straight to PWM. See docs/specification.md, Open Issues issue 8 (former).
    - Is 20ms update fast enough? And will easing slow head movement down too much?
    - Need the list of gesture triggers.

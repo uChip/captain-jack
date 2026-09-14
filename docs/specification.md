@@ -672,7 +672,12 @@ are stored and composed on the **Pi**, not the Arduino, to keep the
 Arduino as thin as possible — the catalog lives in
 `gesture-library.md`/its eventual code form, entirely Pi-side. The
 Arduino never sees a gesture as a named unit, only the same primitive
-timed servo commands it always takes.
+timed servo commands it always takes. A consequence, noted 2026-09-14:
+since the Arduino has no queue and acts on each command immediately as it
+arrives, gesture **interruptibility/preemption and layering/blending are
+entirely this engine's problem to solve, Pi-side** — not something the
+serial link or firmware need any awareness of. Undesigned — see
+[Open Issues](#5-open-issues) issue 24.
 
 **Intended function**: provide reusable, named gesture sequences triggered
 by DoA, text content/tags, random idle selection, or explicit request; the
@@ -730,13 +735,20 @@ fixed-width encoding as the winning design:
     never receives anything but the two shapes above, whether a given
     line came from a gesture sequence, DoA, or beak-sync makes no
     difference to it.
-- Still **not** pinned down by this reconciliation, and left as-is in
-  [Arduino-command-structure.md](Arduino-command-structure.md)'s open
-  questions: exact per-axis offsets/ranges, worst-case transmission time
-  (that doc's own ~19-char/1.65ms estimate is flagged there as unconfirmed
-  arithmetic and needs re-deriving against the format above), gesture
-  interruptibility/preemption vs. queuing, layering/blending, and whether
-  the link needs ACK/timeout-retry.
+- Still **not** pinned down by this reconciliation: exact per-axis
+  offsets/ranges, worst-case transmission time (that doc's own
+  ~19-char/1.65ms estimate is flagged there as unconfirmed arithmetic and
+  needs re-deriving against the format above), and whether the link needs
+  ACK/timeout-retry.
+- **Reclassified 2026-09-14**: gesture interruptibility/preemption vs.
+  queuing and layering/blending are **not** link-level or Arduino-level
+  concerns. Each line the Arduino receives is acted on immediately, as
+  soon as it arrives — the Arduino has no queue, no concept of "gesture"
+  as a unit, and nothing to preempt (per former
+  [Open Issues](#5-open-issues) issue 7). Whatever "interruptibility"
+  means is entirely a question of what the Pi chooses to send and when —
+  see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog) and
+  [Open Issues](#5-open-issues) issue 24.
 
 **Intended function**: carry all motion commands from the Pi to the
 Arduino — head orientation and beak position — fast enough to support
@@ -866,8 +878,9 @@ this sketch himself rather than hand it to a future session.
   [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Left open,
   narrowed to what that section explicitly leaves unpinned: exact per-axis
   offsets/ranges, worst-case transmission time re-derived against the
-  reconciled format, gesture interruptibility/preemption vs. queuing,
-  layering/blending, and ACK/timeout-retry.
+  reconciled format, and ACK/timeout-retry. Gesture interruptibility and
+  layering were dropped from this issue's scope — see issue 24: they're
+  not a link-level concern.
 10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.
@@ -923,6 +936,14 @@ this sketch himself rather than hand it to a future session.
   exists for appointment/calendar facts, though
   [Use Case 2.7](#27-personalized-memory) assumes Jack tracks them — no
   allowlist tag, no schema, not scoped.
+24. **Added 2026-09-14, reclassified out of former issue 9's scope**:
+  gesture interruptibility/preemption vs. queuing, and layering/blending,
+  are undesigned. Since the Arduino has no queue and acts on each command
+  immediately on arrival (former issue 7), these are purely questions for
+  the Pi-side [Gesture Engine](#412-gesture-engine-and-catalog) to answer
+  — e.g. whether a new gesture request cuts off one in progress or waits,
+  and whether two gestures can run on different axes at once — not
+  anything the serial link or firmware need to know about.
 
 ## 6. Possible Future Enhancements
 
