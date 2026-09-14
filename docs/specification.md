@@ -61,10 +61,11 @@ manufacturing, life, or certification testing, no multi-unit concerns.
 **Testing philosophy**: at least one test per use case and per hardware/
 software functional block, developed alongside each block as it's
 implemented — not an exhaustive or product-grade test suite. Tests, their
-procedures, and any needed test data/scripts are meant to be recorded in a
-`tests.md` (with per-test input files named after the test) as functional
-blocks come online; this document does not yet exist — see
-[Open Issues](#5-open-issues).
+procedures, and any needed test data/scripts are recorded in
+[tests.md](tests.md) (per-test scripts and input files live in
+[`tests/`](../tests), named after the test) as functional blocks come
+online. **Added 2026-09-14** with its first entry (the `home` memory tag);
+still only one test recorded — see [Open Issues](#5-open-issues).
 
 ## 2. Use Cases and Scenarios
 
@@ -796,8 +797,14 @@ this sketch himself rather than hand it to a future session.
 14. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.
-15. No `tests.md` exists yet, despite the goals document requiring at least
-  one test per use case and per hardware/software functional block.
+15. ~~No `tests.md` exists yet, despite the goals document requiring at
+  least one test per use case and per hardware/software functional
+  block.~~ **Partially resolved 2026-09-14**: [tests.md](tests.md) now
+  exists, with its first test (the `home` memory tag). Coverage is still
+  far short of "one test per use case and per functional block" — most
+  implemented blocks (memory save/dedup beyond `home`, the orchestrator's
+  conversation loop, persona/identity behavior) have none yet. Left open,
+  narrowed to a coverage gap rather than a missing file.
 16. TTS and wake-word engines are unselected; STT is only tentatively "local
   Whisper."
 17. Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
