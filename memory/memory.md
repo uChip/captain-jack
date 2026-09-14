@@ -20,6 +20,12 @@
 
 ### Liz
 
+## Home
+
+<!-- durable home location, distinct from wherever Jack currently is -
+     - YYYY-MM-DD: fact, from [home] saves -->
+- 2026-09-14: Sun Lakes, Arizona
+
 ## Running jokes & preferences
 
 <!-- - YYYY-MM-DD: fact, from [joke] saves -->

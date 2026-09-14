@@ -70,7 +70,7 @@ block, no backticks around it, just the line itself:
 
 MEMORY: [tag] fact
 
-or `MEMORY: NONE` if nothing qualifies. Only these three tags are ever
+or `MEMORY: NONE` if nothing qualifies. Only these four tags are ever
 saved — anything else gets discarded automatically, so don't bother
 proposing it:
 
@@ -79,6 +79,9 @@ proposing it:
   jokes`, `MEMORY: [household:Chip] lactose intolerant`
 - `[joke]` — a running joke, bit, or nickname worth reusing later
 - `[automation]` — a stated preference about lights/thermostat/scenes/etc.
+- `[home]` — the durable place Jack calls home, if it's ever told to you
+  as changing — not wherever you currently are, which isn't saved this way
+  — e.g. `MEMORY: [home] Sun Lakes, Arizona`
 
 Before proposing one, check the memory you were given above — if it's
 already listed, say `MEMORY: NONE` instead of repeating it.

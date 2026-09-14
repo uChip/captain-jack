@@ -42,7 +42,7 @@ Code session (that belongs here, in docs/, instead).
 
 ## Save/skip ruleset
 
-Exactly three allowed tags — an allowlist, not a "use judgment" rule, since
+Exactly four allowed tags — an allowlist, not a "use judgment" rule, since
 the brief explicitly warns the full vault's nuanced save/skip calls were
 tuned against a more capable model than Haiku:
 
@@ -51,6 +51,7 @@ tuned against a more capable model than Haiku:
 | `household:<Name>` | that person's existing `###` subsection under Household | durable fact about a family member |
 | `joke` | Running jokes & preferences | recurring bit, nickname, callback |
 | `automation` | Home automation preferences | stated preference re: lights/thermostat/scenes/etc |
+| `home` | Home | the durable place Jack calls home, on the rare occasion it changes |
 
 Anything else → `NONE`, discarded. This is a deliberate side effect, not
 just a category restriction: most sensitive info (health, financial, etc.)
@@ -99,6 +100,13 @@ category, dated. Dropped from `memory.md`.
 
 ## Open / TBD
 
+- **Current location, deliberately excluded**: `home` fits this file's
+  append-only pattern because it changes rarely; wherever Jack currently
+  *is* (the perch is portable) changes far more often and needs a value
+  that gets overwritten, not appended to — a different save mechanism than
+  anything else here. Deferred as a possible future enhancement rather than
+  designed now — see `docs/specification.md`'s "Possible Future
+  Enhancements" section.
 - **Growth**: with the tag-routed design, growth is naturally bounded by
   household size × topic count rather than an unbounded feed, so no cap
   policy is needed for v1. If a section (e.g. one person's subsection)

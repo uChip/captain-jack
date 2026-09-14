@@ -127,10 +127,12 @@ can acknowledge he's mechanical/servo-driven/3D-printed and talk about
 Haiku's capabilities, but defaults back to character rather than dwelling on
 either.
 
-**No memory category exists yet for location/environment facts** — the
-[Memory Subsystem](#45-memory-subsystem)'s allowlist covers only
-household/joke/automation tags. This is a continuity gap between this use
-case and the implemented memory design — see [Open Issues](#5-open-issues).
+**Updated 2026-09-14**: "home" is now a memory category (see
+[Memory Subsystem](#45-memory-subsystem)) — durable, low-frequency-change,
+fits the existing append-only design. "Current location" remains
+unimplemented; it changes too often for that pattern and needs an
+overwrite-style save instead — deferred, see
+[Possible Future Enhancements](#6-possible-future-enhancements).
 
 ### 2.4 Operational Modes
 
@@ -205,8 +207,9 @@ conflict, detailed in [Open Issues](#5-open-issues).
 
 Appointment/reminder recall ("Jack remembers appointments he's been told
 about and can be asked about later") is a related use case named in the
-goals document but not scoped against the current three-tag memory
-allowlist, which has no calendar/appointment category.
+goals document but not scoped against the current memory allowlist, which
+has no calendar/appointment category — see
+[Open Issues](#5-open-issues).
 
 ### 2.8 Deferred and Speculative Scenarios
 
@@ -486,10 +489,11 @@ save/parse logic in `orchestrate.py`.
 **Description**: a deliberately simple, tag-based, plain-markdown memory
 store — an identity/boot doc plus one running facts file, no daily notes,
 frontmatter, or wikilinks (unlike the fuller `ai-memory-vault` pattern used
-by the separate Jarvis project). Exactly three allowed tags:
-`household:<Name>`, `joke`, `automation`; anything else is discarded.
-Household facts can only be filed under a name with a pre-existing `###`
-heading — Jack can never mint a new household member himself.
+by the separate Jarvis project). Exactly four allowed tags:
+`household:<Name>`, `joke`, `automation`, `home`; anything else is
+discarded. Household facts can only be filed under a name with a
+pre-existing `###` heading — Jack can never mint a new household member
+himself.
 
 **Intended function**: let Jack recall durable per-person facts, running
 jokes, and stated automation preferences across sessions, without giving a
@@ -510,9 +514,12 @@ is itself non-deterministic model behavior (an identical automation-
 preference statement got `NONE` once and a correct tag on retry) — accepted
 as normal model variance, not a bug.
 
-Does not yet cover location/environment or appointment/calendar facts
-called for by [Use Cases 2.3](#23-environmental-and-self-awareness) and
-[2.7](#27-personalized-memory) — see [Open Issues](#5-open-issues).
+**Updated 2026-09-14**: added the `home` tag, covering the durable-location
+half of [Use Case 2.3](#23-environmental-and-self-awareness). Still doesn't
+cover "current location" (deferred — see
+[Possible Future Enhancements](#6-possible-future-enhancements)) or
+appointment/calendar facts called for by
+[Use Case 2.7](#27-personalized-memory) — see [Open Issues](#5-open-issues).
 
 ### 4.6 Home-Automation Tool Schema
 
@@ -746,9 +753,15 @@ this sketch himself rather than hand it to a future session.
 3. Gendered deference phrasing ("Captain" vs. "Mistress") needs per-person
   gender data with no home in the current
   [household memory schema](#45-memory-subsystem).
-4. No memory category exists for location/environment or appointment/
+4. ~~No memory category exists for location/environment or appointment/
   calendar facts, though [Use Cases 2.3](#23-environmental-and-self-awareness)
-  and [2.7](#27-personalized-memory) assume Jack tracks both.
+  and [2.7](#27-personalized-memory) assume Jack tracks both.~~
+  **Resolved/split 2026-09-14**: added a `home` tag for the durable-location
+  half — see [Memory Subsystem](#45-memory-subsystem). "Current location"
+  (volatile, needs overwrite not append) deferred to
+  [Possible Future Enhancements](#6-possible-future-enhancements) rather
+  than solved here. Appointment/calendar was a separate concern bundled
+  into this issue by mistake — split out to issue 23 below.
 5. Only the Online mode is implemented; Offline idle-catalog behavior and a
   distinct Asleep behavior/state machine
   ([4.11](#411-sleep-mode-state-machine)) are undesigned.
@@ -813,3 +826,26 @@ this sketch himself rather than hand it to a future session.
   enough for lifelike easing once easing math cost is accounted for is
   flagged as needing more research in
   [Arduino-command-structure.md](Arduino-command-structure.md).
+23. **Added 2026-09-14, split from former issue 4**: no memory category
+  exists for appointment/calendar facts, though
+  [Use Case 2.7](#27-personalized-memory) assumes Jack tracks them — no
+  allowlist tag, no schema, not scoped.
+
+## 6. Possible Future Enhancements
+
+Ideas noted as worth doing eventually, deliberately not designed or
+scheduled now — distinct from [Open Issues](#5-open-issues), which are
+gaps or conflicts that need resolving, not optional extras.
+
+1. **Volatile/overwrite-style memory.** Every current memory category
+   (`household:<Name>`, `joke`, `automation`, `home`) is append-only —
+   dated facts accumulate and old ones stay true forever, which fits all
+   four. "Current location" (the perch is portable — see
+   [Use Case 2.3](#23-environmental-and-self-awareness) and
+   [Open Issues](#5-open-issues) issue 4) doesn't fit that pattern: it
+   needs a single value that gets replaced on each update, not a growing
+   log, or Jack will eventually treat a stale location as still current.
+   Adding this well means a second save mechanism alongside the existing
+   append-and-dedup one in `orchestrate.py` — worth designing as a general
+   "current value" mechanism rather than a location-only special case,
+   since other future volatile facts would hit the same problem.

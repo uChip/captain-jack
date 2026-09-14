@@ -21,13 +21,14 @@ MAX_TOKENS = 1024
 
 MEMORY_LINE_RE = re.compile(r"^MEMORY:\s*(.+)$", re.IGNORECASE)
 TAG_RE = re.compile(
-    r"^\[(?:household:(?P<name>[A-Za-z][\w'-]*)|(?P<tag>joke|automation))\]\s+(?P<fact>.+)$"
+    r"^\[(?:household:(?P<name>[A-Za-z][\w'-]*)|(?P<tag>joke|automation|home))\]\s+(?P<fact>.+)$"
 )
 
 SECTION_HEADINGS = {
     "household": "Household",
     "joke": "Running jokes & preferences",
     "automation": "Home automation preferences",
+    "home": "Home",
 }
 
 
