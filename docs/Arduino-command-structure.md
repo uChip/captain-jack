@@ -23,7 +23,7 @@ To have realistic (lifelike) movement the pitch (head nod up and down), roll (he
      - Newline marks end-of-command
  - Use higher speeds to keep communication time low.  Worst case 19 char command = 1.65ms at 115200 bps. [confirm my math]
  - Open questions:
-   - Are gestures stored on the Arduino or the Pi? i.e. does Arduino interpret gestures or take basic servo move commands.
+   - ~~Are gestures stored on the Arduino or the Pi?~~ Resolved 2026-09-14: the Pi, to keep the Arduino as thin as possible. Arduino takes only basic timed servo move commands, never interprets a gesture id. See docs/specification.md, Open Issues issue 7. Accepted implication: if the Pi is down, the Arduino has nothing to fall back on and Jack goes still.
    - Are gestures interruptable? Does arrival or trigger of a new command before the current command finishes preempt or wait?
    - Can gestures include beak movements?
    - Are gestures layerable or blendable?

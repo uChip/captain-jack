@@ -64,9 +64,14 @@ separate stack:
 ## Hardware/software split
 
 - **Arduino**: shrinks to real-time servo execution only (head pitch/roll/yaw,
-  beak position, canned gestures) via a one-directional serial protocol from
-  the Pi (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0-255>`, `GESTURE <id>`;
-  exact framing still TBD). No sensor input, no audio hardware.
+  beak position) via a one-directional serial protocol from the Pi
+  (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0-255>`; exact framing still
+  TBD). No sensor input, no audio hardware, and no autonomous behavior of
+  its own — gestures are composed and stored on the Pi, sent down as the
+  same primitive timed commands (**decided 2026-09-14**, see
+  `docs/specification.md` Open Issues issue 7); the Arduino never sees a
+  `GESTURE <id>`. If the Pi is down, the Arduino does nothing and Jack is
+  motionless — accepted behavior.
 - **Pi 5**: owns all "intelligence" — runs the orchestration script, reads
   direction-of-arrival from the reSpeaker (`xvf_host AEC_AZIMUTH_VALUES`),
   extracts a real-time RMS amplitude envelope from whatever audio is

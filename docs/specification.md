@@ -139,13 +139,20 @@ overwrite-style save instead — deferred, see
 
 Three modes are defined:
 
-- **Offline** (powered on, not in an active Haiku session): Jack is not
-  static — he cycles through a catalog of gestures and short local audio
-  clips (one-liner jokes, movie quotes, pirate-y sayings), gesture choice
-  random unless a script is paired with a specific clip, beak movement
-  driven off the audio the same way as in an online session. See
+- **Offline** (the Pi is up and running its idle loop, just not in an
+  active Haiku session): Jack is not static — he cycles through a catalog
+  of gestures and short local audio clips (one-liner jokes, movie quotes,
+  pirate-y sayings), gesture choice random unless a script is paired with
+  a specific clip, beak movement driven off the audio the same way as in
+  an online session. See
   [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player) and
-  [Gesture Engine and Catalog](#412-gesture-engine-and-catalog).
+  [Gesture Engine and Catalog](#412-gesture-engine-and-catalog). **This
+  presumes the Pi is running** — all of Jack's behavior, including idle
+  motion, is Pi-driven (see
+  [Arduino Servo Controller](#34-arduino-servo-controller)); if the Pi
+  itself is down, crashed, or not yet booted, Jack is simply motionless
+  and silent, not in some Arduino-only idle state. That's accepted
+  behavior, not a gap — see [Open Issues](#5-open-issues) issue 7.
 - **Online**: actively in a Haiku conversation. On request, Jack can play a
   catalog sound while still online.
   See [Conversation Orchestrator](#43-conversation-orchestrator).
@@ -309,16 +316,23 @@ be written, compiled, and uploaded now, but real actuation can't be
 validated until that connection is made — see
 [Open Issues](#5-open-issues). Previously owned all "intelligence,"
 peripherals, and sensor input in the pre-Pi design; those roles are removed
-and it shrinks to real-time servo execution only. This loop deliberately
-stays on the Arduino rather than the Pi, so it stays fast and independent
-of the Pi's scheduling/serial round-trip.
+and it shrinks to real-time servo execution only. The real-time PWM loop
+itself deliberately stays on the Arduino rather than the Pi, so it stays
+fast and isn't jittered by the Pi's scheduling/serial round-trip — but the
+Arduino has **no autonomous behavior of its own**: it only ever does what
+the most recent serial command told it to do. If the Pi is down, crashed,
+or simply not sending anything, the Arduino does nothing and Jack goes
+still — accepted behavior (see
+[Open Issues](#5-open-issues) issue 7), not a gap to fix.
 
 **Intended function**: parses incoming serial commands from the Pi and
 drives the four servos accordingly — head pitch/roll/yaw and beak position
-— including gesture playback and (per
-[Arduino-command-structure.md](Arduino-command-structure.md)) eased,
-synchronized multi-servo motion via an Arduino easing library layered over
-the standard servo library.
+— as timed, eased motion (per
+[Arduino-command-structure.md](Arduino-command-structure.md)) via an
+Arduino easing library layered over the standard servo library. Gesture
+sequences are composed on the Pi and sent down as a series of these same
+primitive commands — the Arduino has no concept of a "gesture" as such;
+see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog).
 
 **Interconnect**: one-directional serial from the Pi 5 (no upstream sensor
 data anymore, unlike the original design). Exact command framing is
@@ -642,28 +656,35 @@ in isolation.
 
 ### 4.12 Gesture Engine and Catalog
 
-**Status: Content drafted, not implemented; storage location undecided.**
+**Status: Content drafted, not implemented.**
 
 **Description**: a library of named motion primitives (speech-driven,
 emotional, idle, conversational, and "expressive" categories) — each a
 short timed sequence of pitch/roll/yaw/beak targets — drafted in
 [gesture-library.md](gesture-library.md).
 
+**Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 7): gestures
+are stored and composed on the **Pi**, not the Arduino, to keep the
+Arduino as thin as possible — the catalog lives in
+`gesture-library.md`/its eventual code form, entirely Pi-side. The
+Arduino never sees a gesture as a named unit, only the same primitive
+timed servo commands it always takes.
+
 **Intended function**: provide reusable, named gesture sequences triggered
-by DoA, text content/tags, random idle selection, or explicit request, sent
-to the Arduino as multi-servo, timed, eased motion.
+by DoA, text content/tags, random idle selection, or explicit request; the
+Pi looks up the named sequence and sends it to the Arduino as a series of
+primitive, timed servo commands — not a single opaque `GESTURE <id>`.
 
 **Interfaces**: triggered by the
 [Conversation Orchestrator](#43-conversation-orchestrator) (in-session),
 the [Idle/Ambient Audio Player](#410-idle-and-ambient-audio-player) (offline),
-or [DoA](#49-direction-of-arrival-doa-reader); emits commands over the
-[serial link](#413-pi-to-arduino-serial-link) — as a single `GESTURE <id>`
-per the brief's original sketch, or as a decomposed sequence of `HEAD`/
-`BEAK` commands with timing, per
-[Arduino-command-structure.md](Arduino-command-structure.md)'s still-open
-question of whether gestures live on the Arduino or the Pi. See
-[Open Issues](#5-open-issues). A previous draft of the library included a
-`Blink` gesture assuming an eyelid mechanism not present in the
+or [DoA](#49-direction-of-arrival-doa-reader); emits a decomposed sequence
+of `HEAD`/`BEAK` commands with timing over the
+[serial link](#413-pi-to-arduino-serial-link), per
+[Arduino-command-structure.md](Arduino-command-structure.md) — never a
+single opaque `GESTURE <id>`, now that storage location is resolved (see
+above). A previous draft of the library included a `Blink` gesture
+assuming an eyelid mechanism not present in the
 [documented physical build](#35-servos-head-and-beak); it has been removed.
 
 ### 4.13 Pi to Arduino Serial Link
@@ -673,8 +694,12 @@ question of whether gestures live on the Arduino or the Pi. See
 **Description**: one-directional serial protocol, Pi → Arduino only (no
 upstream sensor relay in the new design). The
 [project brief](parrot-project-brief.md) sketches it loosely —
-`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>` — while
-[Arduino-command-structure.md](Arduino-command-structure.md) works out a
+`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE <id>` — but the
+`GESTURE <id>` form is superseded: gesture storage is resolved to Pi-side
+(see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog)), so the
+Arduino only ever receives `HEAD`/`BEAK`-style primitive commands, never a
+gesture id. [Arduino-command-structure.md](Arduino-command-structure.md)
+works out a
 more concrete, compact, fixed-width framing (single-character field tags
 `p`/`r`/`y`/`b`/`t`, two digits for pitch/roll/beak, three for yaw, four for
 time-to-reach in ms, no spaces, newline-terminated) aimed at fast parsing
@@ -694,11 +719,11 @@ exceeding the Arduino servo loop's minimum 20ms update period.
 [Gesture Engine](#412-gesture-engine-and-catalog); read by
 [Arduino Firmware](#414-arduino-firmware). Open questions recorded in
 [Arduino-command-structure.md](Arduino-command-structure.md) and carried
-into [Open Issues](#5-open-issues): gesture storage location, gesture
-interruptibility/preemption vs. queuing, whether gestures can include beak
-movement, whether gestures are layerable/blendable, whether beak movement
-needs easing, whether 20ms is a fast enough update period given easing math
-cost, and whether the link needs ACK/timeout-retry for robustness.
+into [Open Issues](#5-open-issues): gesture interruptibility/preemption
+vs. queuing, whether gestures can include beak movement, whether gestures
+are layerable/blendable, whether beak movement needs easing, whether 20ms
+is a fast enough update period given easing math cost, and whether the
+link needs ACK/timeout-retry for robustness.
 
 ### 4.14 Arduino Firmware
 
@@ -769,10 +794,22 @@ this sketch himself rather than hand it to a future session.
 6. Wake word, end-session phrase, and go-to-sleep phrase are all unchosen —
   no mode-transition trigger exists yet (see
   [Session Boundaries](#25-session-boundaries)).
-7. Gesture storage location is unresolved — Arduino-resident (interpreted
+7. ~~Gesture storage location is unresolved — Arduino-resident (interpreted
   from a `GESTURE <id>`) vs. Pi-composed primitive sequences — blocking a
   final [serial protocol](#413-pi-to-arduino-serial-link) spec; see
-  [Arduino-command-structure.md](Arduino-command-structure.md).
+  [Arduino-command-structure.md](Arduino-command-structure.md).~~
+  **Resolved 2026-09-14**: Pi-composed. Rationale: keep as much off the
+  Arduino as possible. The Arduino ends up with zero autonomous behavior —
+  it only ever executes the most recent command the Pi sent it, so if the
+  Pi is down, crashed, or hasn't booted, Jack is simply motionless and
+  silent (no local idle/gesture fallback of any kind). Accepted as
+  correct behavior, not a gap; updated
+  [Arduino Servo Controller](#34-arduino-servo-controller),
+  [Gesture Engine and Catalog](#412-gesture-engine-and-catalog),
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link),
+  [Operational Modes](#24-operational-modes), and
+  [Arduino-command-structure.md](Arduino-command-structure.md) to remove
+  any wording implying otherwise.
 8. Beak-easing ownership is unresolved: whether smoothing happens in the
   Pi's [RMS envelope extraction](#48-beak-sync-rms-envelope-extraction),
   the Arduino's easing library, both, or neither.
