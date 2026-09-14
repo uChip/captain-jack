@@ -105,11 +105,11 @@ wary of "His Majesty's Navy." Kath is never to be called "Captain."
 speaker's gender**, which has no home in the current memory schema — see
 [Open Issues](#5-open-issues).
 
-None of this backstory, speech-pattern detail, or deference behavior is
-in the current [`identity.md`](../memory/identity.md) boot prompt, which is
-a much shorter persona stub — see
-[Persona and Identity Prompt](#44-persona-and-identity-prompt) and
-[Open Issues](#5-open-issues).
+**Updated 2026-09-14**: this backstory, speech-pattern detail, and
+deference behavior are now in
+[`identity.md`](../memory/identity.md)'s `## Persona` section — see
+[Persona and Identity Prompt](#44-persona-and-identity-prompt). Untested
+against the live API; treated as a first baseline, not final.
 
 ### 2.3 Environmental and Self Awareness
 
@@ -292,15 +292,19 @@ no reference signal to cancel against, defeating the reason it was chosen.
 
 ### 3.4 Arduino Servo Controller
 
-**Description**: the original build's Arduino-style board. **Status: an
-Arduino Uno is now connected to the Pi and confirmed working via
-`arduino-cli`** (compile + download tested successfully against
-`arduino/TestBlink`, 2026-09-13); Servo and ServoEasing libraries are
-installed. Not yet confirmed whether this Uno is (or replaces) the
-original board carrying the MY1690 + electret mics — see
+**Description**: a new Arduino Uno, replacing the original build's board.
+**Status: connected to the Pi and confirmed working via `arduino-cli`** —
+compile and upload both verified end-to-end (2026-09-13 compile/download,
+2026-09-14 full compile+upload with a visually-confirmed blink-rate change
+on `arduino/TestBlink`); Servo and ServoEasing libraries are installed.
+The old MY1690 + electret-mic hardware has been removed (it lived on the
+original board, not this one) — see
+[Removed and Legacy Hardware](#37-removed-and-legacy-hardware). This new
+board is **not yet wired to the head/beak servos**; servo-only firmware can
+be written, compiled, and uploaded now, but real actuation can't be
+validated until that connection is made — see
 [Open Issues](#5-open-issues). Previously owned all "intelligence,"
-peripherals, and sensor input in the pre-Pi design; those roles are
-removed (see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware))
+peripherals, and sensor input in the pre-Pi design; those roles are removed
 and it shrinks to real-time servo execution only. This loop deliberately
 stays on the Arduino rather than the Pi, so it stays fast and independent
 of the Pi's scheduling/serial round-trip.
@@ -315,12 +319,10 @@ the standard servo library.
 **Interconnect**: one-directional serial from the Pi 5 (no upstream sensor
 data anymore, unlike the original design). Exact command framing is
 partially specified and not fully reconciled — see
-[Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
+[Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Servo PWM
+wiring itself is not yet connected — see above.
 
-Before real integration work can proceed, either the old MY1690 +
-electret-mic hardware needs removal from this board, or a new/replacement
-Arduino is used instead — an open, physical/offline decision (Chip's call).
-The sketch itself also needs a rewrite for servo-only duty; see
+The sketch itself still needs to be written for servo-only duty; see
 [Arduino Firmware](#414-arduino-firmware).
 
 ### 3.5 Servos (Head and Beak)
@@ -440,23 +442,40 @@ none of that wiring exists yet.
 
 ### 4.4 Persona and Identity Prompt
 
-**Status: Implemented, but a minimal stub relative to the full persona
-design** — `memory/identity.md`.
+**Status: Implemented, including the full persona design** —
+`memory/identity.md`. **Updated 2026-09-14**: added a `## Persona` section
+encoding the backstory, pirate speech style, deference protocol, and
+conversational-intensity fade from
+[Use Case 2.2](#22-persona-captain-jack-the-parrot)/
+[2.1](#21-companionable-conversation) — see
+[Open Issues](#5-open-issues) issue 2. Written as concrete traits + a
+handful of example lines rather than narrative prose, on the theory that a
+small model like Haiku follows short, concrete instructions more reliably
+than it "acts out" backstory lore. Untested against the live API; treated
+as a first baseline to iterate on, not a final version.
 
 **Description**: a short, human-edited boot document establishing Jack as
-a light, humorous, household-wide social companion, his action boundary
-(home-automation allowlist only, no open-ended tool access), the no-voice-
-ID trust stance, and the exact `MEMORY:` proposal format/tag rules.
+a light, humorous, household-wide social companion, his backstory and
+in-character voice, his action boundary (home-automation allowlist only,
+no open-ended tool access), the no-voice-ID trust stance, and the exact
+`MEMORY:` proposal format/tag rules.
 
 **Intended function**: injected verbatim as (the first part of) the system
 prompt every turn, establishing tone and hard behavioral rules.
 
 **Interfaces**: read by the [Conversation Orchestrator](#43-conversation-orchestrator)
-every turn; conceptually should also encode the full backstory, speech
-style, deference behavior, and conversational-intensity fade from
-[Use Case 2.2](#22-persona-captain-jack-the-parrot)/
-[2.1](#21-companionable-conversation) — it currently doesn't; see
-[Open Issues](#5-open-issues).
+every turn.
+
+**Persona portability**: confirmed 2026-09-14 — `orchestrate.py` treats
+`identity.md` as an opaque file it reads and injects verbatim
+(`load_system_prompt` in orchestrate.py:34-37); nothing in the orchestration
+code or the `memory.md` schema (household/joke/automation sections) is
+Captain-Jack-specific. Swapping personas is just replacing `identity.md`'s
+content. The one loose end: `orchestrate.py`'s CLI banner and docstring
+hardcode the literal strings "Captain Jack" and "Jack" (e.g. the
+`print("Captain Jack is listening...")` startup line and the `Jack:` reply
+prefix) — cosmetic only, doesn't affect behavior, but would show a
+mismatched label if the persona were actually swapped.
 
 ### 4.5 Memory Subsystem
 
@@ -635,10 +654,9 @@ per the brief's original sketch, or as a decomposed sequence of `HEAD`/
 `BEAK` commands with timing, per
 [Arduino-command-structure.md](Arduino-command-structure.md)'s still-open
 question of whether gestures live on the Arduino or the Pi. See
-[Open Issues](#5-open-issues). The library also includes at least one
-gesture (`Blink`) that assumes an eyelid mechanism not present in the
-[documented physical build](#35-servos-head-and-beak) — see
-[Open Issues](#5-open-issues).
+[Open Issues](#5-open-issues). A previous draft of the library included a
+`Blink` gesture assuming an eyelid mechanism not present in the
+[documented physical build](#35-servos-head-and-beak); it has been removed.
 
 ### 4.13 Pi to Arduino Serial Link
 
@@ -676,12 +694,17 @@ cost, and whether the link needs ACK/timeout-retry for robustness.
 
 ### 4.14 Arduino Firmware
 
-**Status: Toolchain confirmed, sketch not started.**
-`arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch,
-confirmed 2026-09-13 to compile and download successfully via `arduino-cli`
-against a connected Arduino Uno; it implements none of the servo-control
-design. Servo and ServoEasing libraries are installed and available, but
-the real servo/easing sketch itself hasn't been started.
+**Status: Toolchain confirmed (compile + upload), sketch not started.**
+`arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch;
+`arduino-cli` compile/download was confirmed 2026-09-13, and a full
+compile+upload cycle (including a visually-confirmed blink-rate edit) was
+confirmed 2026-09-14 against the new Arduino Uno — see
+[Arduino Servo Controller](#34-arduino-servo-controller). It implements
+none of the servo-control design. Servo and ServoEasing libraries are
+installed and available, but the real servo/easing sketch itself hasn't
+been started, and can't be validated against real actuation until the
+board is wired to the servos (still pending) — see
+[Open Issues](#5-open-issues).
 
 **Description**: the real-time sketch that will parse incoming serial
 commands and drive the four servos, layering an easing library over the
@@ -697,11 +720,9 @@ design, and SoftwareSerial was removed along with the MY1690.
 
 **Interfaces**: reads the
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link); writes PWM to
-the [head and beak servos](#35-servos-head-and-beak). Needs a full rewrite
-for servo-only duty once the Arduino hardware question (remove old
-peripherals vs. use a new board — see
-[Arduino Servo Controller](#34-arduino-servo-controller)) is resolved; Chip
-may write this sketch himself rather than hand it to a future session.
+the [head and beak servos](#35-servos-head-and-beak) — not yet wired, see
+[Arduino Servo Controller](#34-arduino-servo-controller). Chip may write
+this sketch himself rather than hand it to a future session.
 
 ## 5. Open Issues
 
@@ -712,10 +733,16 @@ may write this sketch himself rather than hand it to a future session.
   [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
   vs.
   [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
-2. [Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
+2. ~~[Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
   minimal stub; the full backstory, pirate speech style, deference
   protocol, and conversational-intensity fade from
-  [Use Case 2.2](#22-persona-captain-jack-the-parrot) aren't implemented.
+  [Use Case 2.2](#22-persona-captain-jack-the-parrot) aren't implemented.~~
+  **Resolved 2026-09-14**: all four added to `identity.md` as a `## Persona`
+  section — concrete traits + example lines rather than narrative prose, to
+  suit Haiku. Treated as a first baseline, not final — untested against the
+  live API, and expected to change once Chip hears it in practice. The
+  general per-person gendered-deference case is deliberately left to issue
+  3 below; this only hardcodes the one known exception (Kath).
 3. Gendered deference phrasing ("Captain" vs. "Mistress") needs per-person
   gender data with no home in the current
   [household memory schema](#45-memory-subsystem).
@@ -735,62 +762,54 @@ may write this sketch himself rather than hand it to a future session.
 8. Beak-easing ownership is unresolved: whether smoothing happens in the
   Pi's [RMS envelope extraction](#48-beak-sync-rms-envelope-extraction),
   the Arduino's easing library, both, or neither.
-9. [gesture-library.md](gesture-library.md)'s `Blink` gesture assumes an
-  eyelid mechanism not present in the
-  [documented servo build](#35-servos-head-and-beak) (only head
-  pitch/roll/yaw + beak) — hardware/catalog mismatch.
-10. The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
+9. The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
   unreconciled descriptions (the brief's loose sketch vs.
   [Arduino-command-structure.md](Arduino-command-structure.md)'s compact
   format), and that document's own open questions (ACK/retry, gesture
   interruptibility/preemption, layering/blending, its baud-rate timing
   math) remain unanswered.
-11. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
+10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.
-12. Minoston's integration path (direct API vs. hub requirement) is
+11. Minoston's integration path (direct API vs. hub requirement) is
   unresearched — flagged as unknown in
   [home-automation-allowlist.md](home-automation-allowlist.md) itself.
-13. A per-outlet "automation-safe" allowlist doesn't exist yet, needed before
+12. A per-outlet "automation-safe" allowlist doesn't exist yet, needed before
   any switched-outlet control ships per
   [home-automation-allowlist.md](home-automation-allowlist.md#switched-outlets).
-14. Numeric safety bounds (thermostat clamp range, irrigation max duration)
+13. Numeric safety bounds (thermostat clamp range, irrigation max duration)
   are marked TBD in
   [home-automation-allowlist.md](home-automation-allowlist.md).
-15. Automation authoring — both vendor-executed schedules and Jack-sensed/
+14. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.
-16. No `tests.md` exists yet, despite the goals document requiring at least
+15. No `tests.md` exists yet, despite the goals document requiring at least
   one test per use case and per hardware/software functional block.
-17. TTS and wake-word engines are unselected; STT is only tentatively "local
+16. TTS and wake-word engines are unselected; STT is only tentatively "local
   Whisper."
-18. Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
+17. Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
   unlike the removed MY1690-on-Arduino design — noted, not mitigated (see
   [Removed and Legacy Hardware](#37-removed-and-legacy-hardware)).
-19. Conversational-privacy/oversharing risk (a fact told by one household
+18. Conversational-privacy/oversharing risk (a fact told by one household
   member surfacing in front of another) is noted with no technical
   mitigation, per
   [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
-20. Persona portability ("if we grow tired of Captain Jack, the persona
-  should be changeable without rebuilding the stack") isn't addressed —
-  [identity.md](../memory/identity.md) is Jack-specific prose, not a
-  swappable config.
-21. The scope of "anything Haiku can do" beyond home automation is explicitly
+19. The scope of "anything Haiku can do" beyond home automation is explicitly
   undefined in the goals document — including whether Haiku can be
   proactive within a session, and what (if anything) carries over between
   sessions outside of Jack's own `memory.md`.
-22. Speculative scenarios (Alexa flirtation, community-lecture demo — see
+20. Speculative scenarios (Alexa flirtation, community-lecture demo — see
   [Deferred and Speculative Scenarios](#28-deferred-and-speculative-scenarios))
   are recorded but unscoped, including the lecture scenario's own
   follow-on questions about credential/network provisioning and long-form
   vs. interactive delivery.
-23. An Arduino Uno is now connected to the Pi and its toolchain confirmed
-  working, but it's unconfirmed whether it is (or replaces) the original
-  board carrying the MY1690/electret mics; that old hardware must be
-  removed (or a replacement Arduino used) before real serial integration,
-  and the firmware itself still needs a servo-only rewrite — see
-  [Arduino Servo Controller](#34-arduino-servo-controller).
-24. Servo real-time loop rate: whether the 20ms PWM-period floor is fast
+21. Firmware for servo-only control still needs to be written for
+  the new Arduino Uno (old MY1690/electret-mic hardware already removed —
+  see [Arduino Servo Controller](#34-arduino-servo-controller)); it can be
+  developed and uploaded now, but can't be validated against real
+  actuation until the board is wired to the head/beak servos, which
+  hasn't happened yet.
+22. Servo real-time loop rate: whether the 20ms PWM-period floor is fast
   enough for lifelike easing once easing math cost is accounted for is
   flagged as needing more research in
   [Arduino-command-structure.md](Arduino-command-structure.md).

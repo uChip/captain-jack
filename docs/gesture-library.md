@@ -84,10 +84,6 @@ Micro‑Twitch — tiny random pulses
   Roll: ±4
   Duration: 40–60 ms
 
-Blink — eyelid motion + roll
-  Roll: +5
-  Duration: 80–120 ms
-
 Preen Motion — bird‑like grooming
   Roll: +20
   Pitch: −15

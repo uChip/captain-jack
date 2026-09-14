@@ -106,6 +106,10 @@ separate stack:
    against an Arduino Uno connected to the Pi — `arduino/TestBlink`
    compiles and downloads successfully. Servo and ServoEasing libraries are
    installed and ready for real sketch development.
+5. **Confirmed 2026-09-14**: `arduino-cli` compile + upload verified
+   end-to-end against a freshly connected Arduino Uno — doubled
+   `TestBlink`'s blink rate, compiled, uploaded via `/dev/ttyUSB0`, and
+   Chip visually confirmed the LED blinks at the new rate.
 
 ## Work list — split by hardware dependency
 
@@ -124,16 +128,16 @@ XVF3800, still on order.
    unknown.
 3. Design the Pi↔Arduino serial protocol precisely — framing is still TBD
    per the brief; pure spec work, no audio board needed.
-4. **Updated 2026-09-13**: the Arduino Uno used for toolchain testing is
-   now connected to the Pi, and `arduino-cli` compile/download is
-   confirmed working (see "Done so far" above). Still open: whether this
-   is (or replaces) the board that has the old MY1690 + electret mics on
-   it — that old audio hardware needs to come out of the existing board,
-   or a new Arduino is used instead, Chip's call, still a physical/offline
-   task. The real sketch also still needs writing for servo-only control
-   (no more mic/audio duties), using the now-installed Servo/ServoEasing
-   libraries, to match the serial protocol from item 3 above — Chip may
-   write this himself rather than hand it to a future session.
+4. ~~Confirm the `arduino-cli` toolchain (compile + upload) end-to-end.~~
+   Done — see "Done so far" items 4-5. **Resolved 2026-09-14**: the
+   connected Arduino Uno is a fresh/new board, not the original one — the
+   old MY1690 + electret-mic hardware has already been removed. Still
+   open: this new board isn't yet wired to the head/beak servos, so the
+   real servo-only sketch (using the now-installed Servo/ServoEasing
+   libraries, matching the serial protocol from item 3 above) can be
+   written, compiled, and uploaded, but not validated against real
+   actuation until that wiring is done — Chip may write this sketch
+   himself rather than hand it to a future session.
 5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's
