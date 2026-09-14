@@ -705,92 +705,92 @@ may write this sketch himself rather than hand it to a future session.
 
 ## 5. Open Issues
 
-- Voice-ID conflict: [Use Case 2.7](#27-personalized-memory)/the goals
+1. Voice-ID conflict: [Use Case 2.7](#27-personalized-memory)/the goals
   document assume voice ID identifies which household member is speaking,
   but the brief and memory design explicitly defer speaker ID and rely on
   self-reported names instead — see
   [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
   vs.
   [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
-- [Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
+2. [Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
   minimal stub; the full backstory, pirate speech style, deference
   protocol, and conversational-intensity fade from
   [Use Case 2.2](#22-persona-captain-jack-the-parrot) aren't implemented.
-- Gendered deference phrasing ("Captain" vs. "Mistress") needs per-person
+3. Gendered deference phrasing ("Captain" vs. "Mistress") needs per-person
   gender data with no home in the current
   [household memory schema](#45-memory-subsystem).
-- No memory category exists for location/environment or appointment/
+4. No memory category exists for location/environment or appointment/
   calendar facts, though [Use Cases 2.3](#23-environmental-and-self-awareness)
   and [2.7](#27-personalized-memory) assume Jack tracks both.
-- Only the Online mode is implemented; Offline idle-catalog behavior and a
+5. Only the Online mode is implemented; Offline idle-catalog behavior and a
   distinct Asleep behavior/state machine
   ([4.11](#411-sleep-mode-state-machine)) are undesigned.
-- Wake word, end-session phrase, and go-to-sleep phrase are all unchosen —
+6. Wake word, end-session phrase, and go-to-sleep phrase are all unchosen —
   no mode-transition trigger exists yet (see
   [Session Boundaries](#25-session-boundaries)).
-- Gesture storage location is unresolved — Arduino-resident (interpreted
+7. Gesture storage location is unresolved — Arduino-resident (interpreted
   from a `GESTURE <id>`) vs. Pi-composed primitive sequences — blocking a
   final [serial protocol](#413-pi-to-arduino-serial-link) spec; see
   [Arduino-command-structure.md](Arduino-command-structure.md).
-- Beak-easing ownership is unresolved: whether smoothing happens in the
+8. Beak-easing ownership is unresolved: whether smoothing happens in the
   Pi's [RMS envelope extraction](#48-beak-sync-rms-envelope-extraction),
   the Arduino's easing library, both, or neither.
-- [gesture-library.md](gesture-library.md)'s `Blink` gesture assumes an
+9. [gesture-library.md](gesture-library.md)'s `Blink` gesture assumes an
   eyelid mechanism not present in the
   [documented servo build](#35-servos-head-and-beak) (only head
   pitch/roll/yaw + beak) — hardware/catalog mismatch.
-- The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
+10. The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
   unreconciled descriptions (the brief's loose sketch vs.
   [Arduino-command-structure.md](Arduino-command-structure.md)'s compact
   format), and that document's own open questions (ACK/retry, gesture
   interruptibility/preemption, layering/blending, its baud-rate timing
   math) remain unanswered.
-- [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
+11. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.
-- Minoston's integration path (direct API vs. hub requirement) is
+12. Minoston's integration path (direct API vs. hub requirement) is
   unresearched — flagged as unknown in
   [home-automation-allowlist.md](home-automation-allowlist.md) itself.
-- A per-outlet "automation-safe" allowlist doesn't exist yet, needed before
+13. A per-outlet "automation-safe" allowlist doesn't exist yet, needed before
   any switched-outlet control ships per
   [home-automation-allowlist.md](home-automation-allowlist.md#switched-outlets).
-- Numeric safety bounds (thermostat clamp range, irrigation max duration)
+14. Numeric safety bounds (thermostat clamp range, irrigation max duration)
   are marked TBD in
   [home-automation-allowlist.md](home-automation-allowlist.md).
-- Automation authoring — both vendor-executed schedules and Jack-sensed/
+15. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.
-- No `tests.md` exists yet, despite the goals document requiring at least
+16. No `tests.md` exists yet, despite the goals document requiring at least
   one test per use case and per hardware/software functional block.
-- TTS and wake-word engines are unselected; STT is only tentatively "local
+17. TTS and wake-word engines are unselected; STT is only tentatively "local
   Whisper."
-- Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
+18. Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being up,
   unlike the removed MY1690-on-Arduino design — noted, not mitigated (see
   [Removed and Legacy Hardware](#37-removed-and-legacy-hardware)).
-- Conversational-privacy/oversharing risk (a fact told by one household
+19. Conversational-privacy/oversharing risk (a fact told by one household
   member surfacing in front of another) is noted with no technical
   mitigation, per
   [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
-- Persona portability ("if we grow tired of Captain Jack, the persona
+20. Persona portability ("if we grow tired of Captain Jack, the persona
   should be changeable without rebuilding the stack") isn't addressed —
   [identity.md](../memory/identity.md) is Jack-specific prose, not a
   swappable config.
-- The scope of "anything Haiku can do" beyond home automation is explicitly
+21. The scope of "anything Haiku can do" beyond home automation is explicitly
   undefined in the goals document — including whether Haiku can be
   proactive within a session, and what (if anything) carries over between
   sessions outside of Jack's own `memory.md`.
-- Speculative scenarios (Alexa flirtation, community-lecture demo — see
+22. Speculative scenarios (Alexa flirtation, community-lecture demo — see
   [Deferred and Speculative Scenarios](#28-deferred-and-speculative-scenarios))
   are recorded but unscoped, including the lecture scenario's own
   follow-on questions about credential/network provisioning and long-form
   vs. interactive delivery.
-- An Arduino Uno is now connected to the Pi and its toolchain confirmed
+23. An Arduino Uno is now connected to the Pi and its toolchain confirmed
   working, but it's unconfirmed whether it is (or replaces) the original
   board carrying the MY1690/electret mics; that old hardware must be
   removed (or a replacement Arduino used) before real serial integration,
   and the firmware itself still needs a servo-only rewrite — see
   [Arduino Servo Controller](#34-arduino-servo-controller).
-- Servo real-time loop rate: whether the 20ms PWM-period floor is fast
+24. Servo real-time loop rate: whether the 20ms PWM-period floor is fast
   enough for lifelike easing once easing math cost is accounted for is
   flagged as needing more research in
   [Arduino-command-structure.md](Arduino-command-structure.md).
