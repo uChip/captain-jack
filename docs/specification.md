@@ -590,14 +590,18 @@ amplitude and stream it to the Arduino as `BEAK <0–255>` commands. Because
 the envelope needs to be computed before playback timing catches up,
 audio playback likely needs a small deliberate delay to keep beak motion in
 sync — accounting for RMS processing, command generation/transmission, and
-Arduino-side parsing/easing/mechanical response time.
+Arduino-side parsing/mechanical response time.
+
+**Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 8): all beak
+smoothing happens here, as part of extracting the envelope itself
+(attack/release-style shaping) — not as a separate easing step on either
+side. The Arduino applies the `BEAK` value it receives directly to PWM,
+no interpolation; see [Arduino Firmware](#414-arduino-firmware).
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the
 [idle/ambient player](#410-idle-and-ambient-audio-player); writes `BEAK`
 commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
-Whether this value needs additional easing (Arduino-side, Pi-side, or at
-all) is unresolved — see [Open Issues](#5-open-issues).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
@@ -741,12 +745,18 @@ board is wired to the servos (still pending) — see
 
 **Description**: the real-time sketch that will parse incoming serial
 commands and drive the four servos, layering an easing library over the
-standard Arduino servo library for smooth, synchronized multi-servo motion.
+standard Arduino servo library for smooth, synchronized head motion
+(gestures are just `HEAD`/`BEAK` command sequences from the Pi — see
+[Gesture Engine and Catalog](#412-gesture-engine-and-catalog) — not a
+distinct command type).
 
-**Intended function**: execute `HEAD`/`BEAK`/gesture commands from the Pi
-at a real-time loop rate no slower than the servos' 20ms PWM period,
-easing pitch/roll/yaw transitions together (cubic easing, kept to integer
-math where possible for speed). Notably must **not** reintroduce
+**Intended function**: execute `HEAD`/`BEAK` commands from the Pi at a
+real-time loop rate no slower than the servos' 20ms PWM period, easing
+pitch/roll/yaw transitions together (cubic easing, kept to integer math
+where possible for speed). `BEAK` is applied directly to PWM with **no**
+easing — that smoothing is done Pi-side, in
+[Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see former
+[Open Issue](#5-open-issues) 8. Notably must **not** reintroduce
 SoftwareSerial alongside the easing library without further research —
 the two were observed to interfere with each other in the prior MY1690-era
 design, and SoftwareSerial was removed along with the MY1690.
@@ -810,9 +820,22 @@ this sketch himself rather than hand it to a future session.
   [Operational Modes](#24-operational-modes), and
   [Arduino-command-structure.md](Arduino-command-structure.md) to remove
   any wording implying otherwise.
-8. Beak-easing ownership is unresolved: whether smoothing happens in the
+8. ~~Beak-easing ownership is unresolved: whether smoothing happens in the
   Pi's [RMS envelope extraction](#48-beak-sync-rms-envelope-extraction),
-  the Arduino's easing library, both, or neither.
+  the Arduino's easing library, both, or neither.~~ **Resolved
+  2026-09-14**: all beak smoothing lives in the Pi's RMS envelope
+  extraction; the Arduino applies whatever `BEAK` value it receives
+  directly to PWM, no easing. Rationale: `BEAK` updates already arrive at
+  ~30–50Hz (every 20–33ms), near the Arduino's 20ms PWM floor, so there's
+  barely a gap for a cubic-easing pass to smooth over — unlike a gesture
+  waypoint, which is hundreds of ms from the next. A correct envelope
+  extractor already needs attack/release-style smoothing to produce a
+  good envelope in the first place, so the smoothing effectively already
+  exists on the Pi side, at no extra cost, before a value is ever sent.
+  Consistent with the Arduino-thin principle from issue 7. Untested — this
+  resolves the design question, not a validated one; still blocked on the
+  XVF3800 to confirm it looks smooth enough in practice, per
+  [Beak-Sync](#48-beak-sync-rms-envelope-extraction)'s status.
 9. The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has two
   unreconciled descriptions (the brief's loose sketch vs.
   [Arduino-command-structure.md](Arduino-command-structure.md)'s compact

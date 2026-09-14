@@ -27,7 +27,7 @@ To have realistic (lifelike) movement the pitch (head nod up and down), roll (he
    - Are gestures interruptable? Does arrival or trigger of a new command before the current command finishes preempt or wait?
    - Can gestures include beak movements?
    - Are gestures layerable or blendable?
-   - Does beak movement need easing?
+   - ~~Does beak movement need easing?~~ Resolved 2026-09-14: no separate easing step on either side - smoothing happens as part of the Pi's RMS envelope extraction itself (attack/release-style shaping), and the Arduino applies the BEAK value it receives straight to PWM. See docs/specification.md, Open Issues issue 8 (former).
    - Is 20ms update fast enough? And will easing slow head movement down too much?
    - Need the list of gesture triggers.
    - How robust is serial communications? Is an ACK or timeout retry needed?
