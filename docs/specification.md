@@ -916,10 +916,16 @@ this sketch himself rather than hand it to a future session.
   a Pi outage already means total stillness and silence, not just no
   idle audio, and that's accepted behavior. No separate fix needed for
   audio specifically.
-18. Conversational-privacy/oversharing risk (a fact told by one household
+18. ~~Conversational-privacy/oversharing risk (a fact told by one household
   member surfacing in front of another) is noted with no technical
   mitigation, per
-  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
+  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).~~
+  **Closed 2026-09-14**: this was never actually an open design question —
+  the brief already made the call (accepted risk, no mitigation, revisit
+  only if it becomes a real annoyance in practice). Listing it here
+  mischaracterized a decision as undecided. Not reopened by the `home`
+  memory category or persona work added since, per Chip's call — flagged
+  and considered, but left as the brief decided it.
 19. The scope of "anything Haiku can do" beyond home automation is explicitly
   undefined in the goals document — including whether Haiku can be
   proactive within a session, and what (if anything) carries over between
