@@ -945,11 +945,15 @@ this sketch himself rather than hand it to a future session.
   memory.md" has a plain answer, not a gap: **nothing** — each API call
   is stateless; `orchestrate.py` re-sends `identity.md`/`memory.md` fresh
   every turn, and that's the only persistence there is.
-20. Speculative scenarios (Alexa flirtation, community-lecture demo — see
+20. ~~Speculative scenarios (Alexa flirtation, community-lecture demo —
+  see
   [Deferred and Speculative Scenarios](#28-deferred-and-speculative-scenarios))
   are recorded but unscoped, including the lecture scenario's own
   follow-on questions about credential/network provisioning and long-form
-  vs. interactive delivery.
+  vs. interactive delivery.~~ **Closed 2026-09-14**: discussed and moved
+  to [Possible Future Enhancements](#6-possible-future-enhancements) item
+  3, with concrete implementation risks noted inline for both scenarios
+  rather than left as bare "undiscussed" flags.
 21. Firmware for servo-only control still needs to be written for
   the new Arduino Uno (old MY1690/electret-mic hardware already removed —
   see [Arduino Servo Controller](#34-arduino-servo-controller)); it can be
@@ -1006,3 +1010,39 @@ gaps or conflicts that need resolving, not optional extras.
    - Proactive mid-session behavior — Jack bringing up something on his
      own (a reminder, a follow-up) rather than only ever responding. Not
      deferred the same way as the above — just unscoped.
+3. **Speculative demo scenarios.** Recorded for continuity, not designed
+   or scheduled — see
+   [Use Case 2.8](#28-deferred-and-speculative-scenarios)/former
+   [Open Issue](#5-open-issues) 20. Discussed 2026-09-14:
+   - **Alexa flirtation easter egg**: cheapest version is a scripted
+     one-liner in the existing idle-audio catalog
+     ([4.10](#410-idle-and-ambient-audio-player)) — needs no new
+     capability. Concrete risk: if the line literally says "Alexa" as
+     its first word, a real Amazon Echo in the house could start
+     listening/responding to it as its actual wake word, turning the
+     joke into Jack accidentally addressing a real device — write around
+     that, or test against a real Echo before shipping. If the intent is
+     instead for Jack to notice a lull and speak up unprompted, that's
+     the same "proactive mid-session behavior" idea already listed in
+     item 2 above, not a separate problem.
+   - **Community lecture demo**: three concrete issues, not just
+     undiscussed:
+     - Network provisioning is a real failure mode, not just a TBD —
+       there's no on-device WiFi UI (SSH or a keyboard/monitor only),
+       and a venue's captive-portal guest WiFi can't be completed
+       headless at all. A live demo depending on venue WiFi risks
+       silent API failure on stage; default to a cellular hotspot as
+       the plan, not a fallback.
+     - `orchestrate.py`'s `MAX_TOKENS = 1024` caps every reply to
+       roughly 750-800 words — incompatible with sustained monologue
+       delivery as-is. Would need either raising it (cost/latency
+       tradeoff) or restructuring into a scripted multi-turn sequence,
+       which undercuts the "lecture" format the idea was going for.
+     - Interacts with [Open Issues](#5-open-issues) issue 18 (closed):
+       that closure accepted conversational-privacy risk in a
+       *household* context. A public audience of strangers is a
+       different blast radius for the same risk (a household joke or
+       health detail surfacing to a room of strangers) — worth its own
+       narrow mitigation (e.g. a blank/demo `memory.md` for public
+       appearances) if this is ever actually scheduled, not a reason to
+       reopen issue 18 generally.
