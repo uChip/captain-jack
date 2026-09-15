@@ -212,11 +212,12 @@ Kath, Liz — pre-seeded subsections, not auto-created), running jokes, and
 stated home-automation preferences, across sessions, via a plain-markdown
 memory file the model itself never writes directly. Full design in
 [Memory Subsystem](#45-memory-subsystem) /
-[captain-jack-memory-design.md](captain-jack-memory-design.md). The goals
-document's framing assumes voice ID resolves *which* household member is
-speaking; the current design instead relies on the speaker identifying
-themselves in conversation, with voice ID explicitly deferred — a direct
-conflict, detailed in [Open Issues](#5-open-issues).
+[captain-jack-memory-design.md](captain-jack-memory-design.md).
+**Clarified 2026-09-14** (former "conflict," see
+[Open Issues](#5-open-issues) issue 1): voice ID is the *preferred*
+mechanism for resolving which household member is speaking, pending
+hardware validation; explicit self-identification is today's working
+fallback, not the intended end state.
 
 Appointment/reminder recall ("Jack remembers appointments he's been told
 about and can be asked about later") is a related use case named in the
@@ -809,13 +810,37 @@ this sketch himself rather than hand it to a future session.
 
 ## 5. Open Issues
 
-1. Voice-ID conflict: [Use Case 2.7](#27-personalized-memory)/the goals
+1. ~~Voice-ID conflict: [Use Case 2.7](#27-personalized-memory)/the goals
   document assume voice ID identifies which household member is speaking,
   but the brief and memory design explicitly defer speaker ID and rely on
   self-reported names instead — see
   [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
   vs.
-  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).
+  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).~~
+  **Reframed 2026-09-14, Chip's clarification**: not actually a conflict
+  between two docs — a three-tier priority for resolving who's speaking,
+  clarified rather than newly decided:
+  1. **Voice ID (preferred)**: whether it actually works well enough is
+     unknown until the XVF3800 arrives and the scheduled accuracy test
+     runs (see `CLAUDE.md`, "Blocked until XVF3800 arrives" item 5) — not
+     a documentation gap, just hardware-gated.
+  2. **Explicit self-identification (today's working fallback)**: what's
+     actually implemented now — fail-closed by design (see
+     [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+     Flagged 2026-09-14 as workable but awkward in practice — untested
+     against real conversation at any length.
+  3. **Contextual inference (fallback of last resort)**: guessing who's
+     speaking without being told. Not implemented, not designed, and in
+     direct tension with the project's established fail-closed principle
+     (Haiku is already known to invent placeholder names rather than
+     admit it doesn't know — see
+     [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+     Flagged 2026-09-14 as the riskiest tier — genuinely open, not just
+     unwritten.
+
+  Left open: the hope is that tier 1 works well enough that tiers 2 and 3
+  rarely matter in practice — that's an empirical question the XVF3800
+  test will answer, not something to design further now.
 2. ~~[Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
   minimal stub; the full backstory, pirate speech style, deference
   protocol, and conversational-intensity fade from
