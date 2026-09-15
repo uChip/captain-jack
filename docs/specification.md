@@ -983,10 +983,15 @@ this sketch himself rather than hand it to a future session.
   actually looks *lifelike* — that's a tuning judgment only real servo
   motion can confirm, once the board is wired (see
   [Open Issues](#5-open-issues) issue 21).
-23. **Added 2026-09-14, split from former issue 4**: no memory category
+23. ~~**Added 2026-09-14, split from former issue 4**: no memory category
   exists for appointment/calendar facts, though
   [Use Case 2.7](#27-personalized-memory) assumes Jack tracks them — no
-  allowlist tag, no schema, not scoped.
+  allowlist tag, no schema, not scoped.~~ **Closed 2026-09-14, Chip's
+  call**: moved to
+  [Possible Future Enhancements](#6-possible-future-enhancements) item 2
+  — whether it ends up as a new memory tag or a tool call, either is more
+  scope than is worth taking on now. Keeping the current feature set
+  focused improves the odds of actually finishing it.
 24. **Added 2026-09-14, reclassified out of former issue 9's scope**:
   gesture interruptibility/preemption vs. queuing, and layering/blending,
   are undesigned. Since the Arduino has no queue and acts on each command
@@ -1023,9 +1028,14 @@ gaps or conflicts that need resolving, not optional extras.
      any calendar or financial account access/interaction. Not rejected
      outright, just far enough out that they're not worth designing
      against yet.
-   - Appointment/calendar awareness — related to, but broader than, the
-     memory-category gap in [Open Issues](#5-open-issues) issue 23; same
-     deferral as above.
+   - Appointment/calendar awareness (former
+     [Open Issue](#5-open-issues) 23) — no memory-allowlist tag or schema
+     exists for it, though [Use Case 2.7](#27-personalized-memory)
+     assumes Jack tracks it; same deferral as above. **Closed as an Open
+     Issue 2026-09-14, Chip's call**: keeping the current feature set
+     focused gives a better chance of actually finishing it — whether
+     this ends up as a new memory tag or an actual tool Jack calls,
+     either is more scope than is worth taking on now.
    - Proactive mid-session behavior — Jack bringing up something on his
      own (a reminder, a follow-up) rather than only ever responding. Not
      deferred the same way as the above — just unscoped.
