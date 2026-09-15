@@ -517,7 +517,10 @@ by the separate Jarvis project). Exactly four allowed tags:
 `household:<Name>`, `joke`, `automation`, `home`; anything else is
 discarded. Household facts can only be filed under a name with a
 pre-existing `###` heading — Jack can never mint a new household member
-himself.
+himself. **Added 2026-09-14**: each household subsection may also carry a
+leading `- gender: ...` line — hand-set only, same as the heading itself,
+never proposed or inferred by the model; see
+[Open Issues](#5-open-issues) issue 3.
 
 **Intended function**: let Jack recall durable per-person facts, running
 jokes, and stated automation preferences across sessions, without giving a
@@ -849,11 +852,29 @@ this sketch himself rather than hand it to a future session.
   section — concrete traits + example lines rather than narrative prose, to
   suit Haiku. Treated as a first baseline, not final — untested against the
   live API, and expected to change once Chip hears it in practice. The
-  general per-person gendered-deference case is deliberately left to issue
-  3 below; this only hardcodes the one known exception (Kath).
-3. Gendered deference phrasing ("Captain" vs. "Mistress") needs per-person
-  gender data with no home in the current
-  [household memory schema](#45-memory-subsystem).
+  deference rule was originally a one-off hardcoded exception for Kath;
+  **generalized 2026-09-14** into a memory-driven lookup — see issue 3
+  below.
+3. ~~Gendered deference phrasing ("Captain" vs. "Mistress") needs
+  per-person gender data with no home in the current
+  [household memory schema](#45-memory-subsystem).~~ **Partially resolved
+  2026-09-14**: gender is now an explicit, hand-set fact — a leading
+  `- gender: ...` line in each person's existing `### Name` subsection in
+  `memory.md`, same non-model-writable status as the heading itself (Jack
+  never proposes or infers it, only reads it). `identity.md`'s deference
+  rule was generalized from the one-off Kath hardcode into a lookup
+  against this fact. Chip: male, Kath: female, Liz: female. Left open,
+  narrowed to a genuinely harder question Chip is still thinking through:
+  even when a trait like gender is given to the model only as an
+  explicit, narrowly-instructed fact (here, just for the address term),
+  does it still leak into broader conversational tone/word choice the
+  instruction never asked for? That's a real, not fully predictable LLM
+  behavior, not a design preference — Liz's case (only just added) is a
+  live, deliberate test of exactly this, not yet observed in practice.
+  Resolves the "no home in the schema" complaint; does not resolve
+  whether explicit-fact-only is sufficient to keep gender's influence
+  where it's wanted and nowhere else, especially in social conversation
+  as opposed to technical.
 4. ~~No memory category exists for location/environment or appointment/
   calendar facts, though [Use Cases 2.3](#23-environmental-and-self-awareness)
   and [2.7](#27-personalized-memory) assume Jack tracks both.~~
