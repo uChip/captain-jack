@@ -1,16 +1,67 @@
 
 /*
-  Reads an incoming text stream and parses to control servos.
-  Extracts key characters followed by integers (integer strings terminated by any non-numeric character):
-    b<BB>  BB = multi-character integer in the range of 0 to 45
-    p<PP>  PP = multi-character integer in the range of 0 to 60
-    r<RR>  RR = multi-character integer in the range of 0 to 60
-    y<YY>  YY = multi-character integer in the range of 0 to 90
+  ServoControl.ino
+  2026-09-15 : Chip Schnarel
 
-  after receiving b, the angle value is limit checked then sent to the servo subroutine immediately.
-  after receiving p,r,y or t, local variables are limit checked and saved.
-  after receiving s, a servo ease command is sent and all three servos are started.
-  all other characters ignored, including numeric characters not immediately following b, p, r, y or t.
+  Reads an incoming text stream and parses the stream to extract commands to control servos.
+  Objective is to extract specific servo control commands and ignore malformed strings without
+  needing position dependent commands or communications syncing.
+  Controls 4 servos, beak, pitch, roll and yaw.
+  Beak servo moves immediately upon receipt of the command.
+  Pitch, roll and yaw move together, synchronized so that they start and finish at the same time,
+  taking t milliseconds for the move.
+  ServoControl has no way to know if a command is reasonable or not.  It only checks that the
+  angle is within the defined range.  Numbers outside the defined range might damage the mechanism, therefore
+  are limited before being sent to servos.
+  Communications stream is receive only, except when DEBUG is defined.
+  Servos are not powered up or moved unless SERVO is defined.
+
+  Extracts key characters followed by integers (variable length integer strings terminated by any non-numeric character):
+    b<BB>  BB = integer angles in the range of 0 = beak closed to 45 = beak fully open
+    p<PP>  PP = integer angles in the range of 0 = head tipped down to 60 = head tipped up
+    r<RR>  RR = integer angles in the range of 0 = head tipped to left to 60 = head tipped to right
+    y<YY>  YY = integer angles in the range of 0 = head turned to left to 90 = head turned to right
+    t<TTTT> TTTT = integer representing milliseconds in the range of 0 = move servos to position immediately to
+            9999 = very very very slow movement to position.
+
+  After receiving b, the angle value is limit checked then sent to the servo subroutine immediately. No easing.
+  After receiving p,r,y or t, local variables are limit checked and saved.
+  After receiving s, a servo ease command is sent using saved values and all three servos are started.
+  Sending an s by itself: previous values are sent to ease routine again.
+  Any of b, p, r, y, or t commands (with integers) can be sent individually or concatenated together.
+  Sending b, p, r, y, or t with no integer following is the same as sending the character with 0 as the integer.
+  All other characters are ignored, including numeric characters not immediately following b, p, r, y or t.
+  Line terminators (\r, \n) are also ignored.
+  Repeating p, r, y, or t command before sending s will overwrite the previous saved value, not move the servo.
+  Integer values are always interpreted as positive.  The negative sign is ignored.
+  Angle integer values are unsigned 8-bit.  Sending larger values will be correctly evaluated but only lowest 8-bits is used.
+    e.g. 256 = 0, 257 = 1, etc
+  
+  Examples of valid commands
+    b20
+    p40
+    r30
+    y45
+    t300
+    s
+    p40r30y45t300s
+    b30p40r30y45t300s
+    p50s
+
+  Examples of range adjustments (showing b but p, r and y work the same)
+    b60 - interpreted as b45
+    bX - where X is any non-numeric char - interpreted as b0
+    b1025 - interpreted as b1
+    b-7 - interpreted as b7
+    b23.4 - interpreted as b23
+
+  Error strings
+    aedfghjkl - ignored. No command char.
+    0123456789.23 - ignored. No command char.
+    54321b23hpgl - b23 picked out from garbage
+
+  STATUS: Compiles. Runs. Spot checked valid commands work.  Spot checked garbage is ignored.  All done by
+  reading debug print statements.  Actual servo response not yet tested.
 
 */
 
@@ -60,6 +111,7 @@ void setup() {
   Serial.println(F("Just a message at the beginning."));
 #endif
 
+#if defined(SERVO)
   //Enable servo power
   pinMode(SERVO_PWR_ENBL, OUTPUT);
   digitalWrite(SERVO_PWR_ENBL, HIGH);  // Enable servo power
@@ -73,22 +125,31 @@ void setup() {
   rollServo.write(ROLL_MID);
   yawServo.attach(SERVO_YAW_PIN);
   yawServo.write(YAW_MID);
+#endif
 
-  /* DDEBUG
+#if defined(DEBUG)
   delay(500);
   Serial.println(F("Beak open."));
-  beakServo.write((int)BEAK_OPENED);
+#if defined(SERVO)
+  beakServo.write((uint8_t)BEAK_OPENED);
+#endif
   delay(500);
   Serial.println(F("Beak close."));
-  beakServo.write((int)BEAK_CLOSED);
+#if defined(SERVO)
+  beakServo.write((uint8_t)BEAK_CLOSED);
+#endif
   delay(500);
   Serial.println(F("Beak open."));
-  beakServo.write((int)BEAK_OPENED);
+#if defined(SERVO)
+  beakServo.write((uint8_t)BEAK_OPENED);
+#endif
   delay(500);
   Serial.println(F("Beak close."));
-  beakServo.write((int)BEAK_CLOSED);
+#if defined(SERVO)
+  beakServo.write((uint8_t)BEAK_CLOSED);
+#endif
   delay(500);
-  */
+#endif
 }
 
 uint8_t beakAngle = BEAK_CLOSED;
@@ -105,49 +166,48 @@ void loop() {
 #endif
 
     if (incomingByte == 'b') {
-      beakAngle = Serial.parseInt();  // Note: values over 255 will wrap (only lowest byte is used)
-      if ((beakAngle += BEAK_CLOSED) > BEAK_OPEN) beakAngle = BEAK_OPEN; // Could remove bounds check from library since we do it here more efficiently (only need to check one end)
+      beakAngle = Serial.parseInt(SKIP_NONE, '-');                        // Note: values over 255 will wrap (only lowest byte is used)
+      if ((beakAngle += BEAK_CLOSED) > BEAK_OPEN) beakAngle = BEAK_OPEN;  // Could remove bounds check from library since we do it here more efficiently (only need to check one end)
 #if defined(SERVO)
-      beakServo.write((uint8_t)beakAngle);
+      beakServo.write(beakAngle);
 #endif
 #if defined(DEBUG)
       Serial.println(beakAngle);
 #endif
 
     } else if (incomingByte == 'p') {
-      pitchAngle = Serial.parseInt();
+      pitchAngle = Serial.parseInt(SKIP_NONE, '-');
       if ((pitchAngle += PITCH_MIN) > PITCH_MAX) pitchAngle = PITCH_MAX;
 #if defined(DEBUG)
       Serial.print(pitchAngle);
 #endif
 
     } else if (incomingByte == 'r') {
-      rollAngle = Serial.parseInt();
+      rollAngle = Serial.parseInt(SKIP_NONE, '-');
       if ((rollAngle += ROLL_MIN) > ROLL_MAX) rollAngle = ROLL_MAX;
-      rollServo.setEaseTo((int)rollAngle);
 #if defined(DEBUG)
       Serial.print(rollAngle);
 #endif
 
     } else if (incomingByte == 'y') {
-      yawAngle = Serial.parseInt();
+      yawAngle = Serial.parseInt(SKIP_NONE, '-');
       if ((yawAngle += YAW_MIN) > YAW_MAX) yawAngle = YAW_MAX;
 #if defined(DEBUG)
       Serial.print(yawAngle);
 #endif
 
     } else if (incomingByte == 't') {
-      duration = Serial.parseInt();
+      duration = Serial.parseInt(SKIP_NONE, '-');
 #if defined(DEBUG)
       Serial.print(duration);
 #endif
 
     } else if (incomingByte == 's') {
+#if defined(SERVO)
       pitchServo.setEaseTo(pitchAngle);  // Hmmm, what happens when setEaseTo is sent before current easeTo is finished?
       rollServo.setEaseTo(rollAngle);
       yawServo.setEaseTo(yawAngle);
       setEaseToDForAllServos(duration);
-#if defined(SERVO)
       synchronizeAllServosAndStartInterrupt();
 #endif
 #if defined(DEBUG)
@@ -164,7 +224,7 @@ void loop() {
 #endif
 
     } else {
-      //Serial.read();  // throw away anything else
+      // throw away anything else
     }
   }
 }
