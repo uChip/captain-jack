@@ -517,9 +517,10 @@ by the separate Jarvis project). Exactly four allowed tags:
 `household:<Name>`, `joke`, `automation`, `home`; anything else is
 discarded. Household facts can only be filed under a name with a
 pre-existing `###` heading — Jack can never mint a new household member
-himself. **Added 2026-09-14**: each household subsection may also carry a
-leading `- gender: ...` line — hand-set only, same as the heading itself,
-never proposed or inferred by the model; see
+himself. **Added 2026-09-14**: each household subsection may also carry
+leading `- gender: ...` and `- honorific: ...` lines — hand-set only,
+same as the heading itself, never proposed or inferred by the model, and
+independent of each other (honorific is not derived from gender); see
 [Open Issues](#5-open-issues) issue 3.
 
 **Intended function**: let Jack recall durable per-person facts, running
@@ -861,20 +862,28 @@ this sketch himself rather than hand it to a future session.
   2026-09-14**: gender is now an explicit, hand-set fact — a leading
   `- gender: ...` line in each person's existing `### Name` subsection in
   `memory.md`, same non-model-writable status as the heading itself (Jack
-  never proposes or infers it, only reads it). `identity.md`'s deference
-  rule was generalized from the one-off Kath hardcode into a lookup
-  against this fact. Chip: male, Kath: female, Liz: female. Left open,
-  narrowed to a genuinely harder question Chip is still thinking through:
-  even when a trait like gender is given to the model only as an
-  explicit, narrowly-instructed fact (here, just for the address term),
-  does it still leak into broader conversational tone/word choice the
-  instruction never asked for? That's a real, not fully predictable LLM
-  behavior, not a design preference — Liz's case (only just added) is a
-  live, deliberate test of exactly this, not yet observed in practice.
-  Resolves the "no home in the schema" complaint; does not resolve
-  whether explicit-fact-only is sufficient to keep gender's influence
-  where it's wanted and nowhere else, especially in social conversation
-  as opposed to technical.
+  never proposes or infers it, only reads it). Chip: male, Kath: female,
+  Liz: female.
+
+  **Updated same day**: the honorific itself is *not* derived from
+  gender — it's now its own explicit, hand-set `- honorific: ...` fact,
+  same status as gender. Chip: "Captain," Kath: "Mistress," Liz:
+  "Matey" — Liz's gender (female) doesn't determine her honorific,
+  demonstrating they're independent. The default for anyone with no
+  noted honorific, including a guest or stranger not in memory at all,
+  is now the gender-neutral "Matey," replacing the earlier "Captain"
+  default (Chip's own follow-up to a tone concern raised the same day).
+  `identity.md`'s deference rule reads the honorific fact directly, never
+  guessing it from gender.
+
+  Left open, narrowed to a genuinely harder question Chip is still
+  thinking through: even when a trait like gender is given to the model
+  only as an explicit, narrowly-instructed fact (now decoupled from the
+  honorific entirely), does it still leak into broader conversational
+  tone/word choice no instruction ever asked for? That's a real, not
+  fully predictable LLM behavior question, not a design preference —
+  Liz's case is a live, deliberate test of exactly this, not yet observed
+  in practice.
 4. ~~No memory category exists for location/environment or appointment/
   calendar facts, though [Use Cases 2.3](#23-environmental-and-self-awareness)
   and [2.7](#27-personalized-memory) assume Jack tracks both.~~

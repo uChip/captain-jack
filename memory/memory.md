@@ -12,19 +12,25 @@
 
 <!-- one ### subsection per person, added by hand - Jack can only file facts
      under a name that already has a heading here, never create one himself.
-     A leading, undated "- gender: ..." line (if present) is also hand-set,
-     never model-written - same reasoning as the heading itself: foundational
-     profile data, not something to infer or let Jack propose. -->
+     Leading, undated "- gender: ..." / "- honorific: ..." lines (if present)
+     are also hand-set, never model-written - same reasoning as the heading
+     itself: foundational profile data, not something to infer or let Jack
+     propose. Honorific is independent of gender, not derived from it (see
+     Liz, and docs/specification.md Open Issues issue 3) - always check the
+     noted honorific itself, never assume one from gender. -->
 
 ### Chip
 - gender: male
+- honorific: Captain
 - 2026-09-11: lactose intolerant
 
 ### Kath
 - gender: female
+- honorific: Mistress
 
 ### Liz
 - gender: female
+- honorific: Matey
 
 ## Home
 
