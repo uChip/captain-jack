@@ -1,4 +1,19 @@
 
+/*
+  Reads an incoming text stream and parses to control servos.
+  Extracts key characters followed by integers (integer strings terminated by any non-numeric character):
+    b<BB>  BB = multi-character integer in the range of 0 to 45
+    p<PP>  PP = multi-character integer in the range of 0 to 60
+    r<RR>  RR = multi-character integer in the range of 0 to 60
+    y<YY>  YY = multi-character integer in the range of 0 to 90
+
+  after receiving b, the angle value is limit checked then sent to the servo subroutine immediately.
+  after receiving p,r,y or t, local variables are limit checked and saved.
+  after receiving s, a servo ease command is sent and all three servos are started.
+  all other characters ignored, including numeric characters not immediately following b, p, r, y or t.
+
+*/
+
 #include <Arduino.h>
 #include <Servo.h>
 
@@ -18,7 +33,7 @@ const uint8_t SERVO_PWR_ENBL = 13;
 
 // --- BEAK SERVO CONFIGURATION ---
 const int BEAK_CLOSED = 80;
-const int BEAK_OPENED = 125;
+const int BEAK_OPEN = 125;
 
 // --- HEAD SERVOS CONFIGURATION ---
 const int PITCH_MID = 90;   // Adjust to center
@@ -36,10 +51,14 @@ ServoEasing pitchServo;
 ServoEasing rollServo;
 ServoEasing yawServo;
 
+#define DEBUG
+//#define SERVO
 
 void setup() {
   Serial.begin(115200);
-  //Serial.println(F("Just a message at the beginning."));
+#if defined(DEBUG)
+  Serial.println(F("Just a message at the beginning."));
+#endif
 
   //Enable servo power
   pinMode(SERVO_PWR_ENBL, OUTPUT);
@@ -72,36 +91,80 @@ void setup() {
   */
 }
 
+uint8_t beakAngle = BEAK_CLOSED;
+uint8_t pitchAngle = PITCH_MID;
+uint8_t rollAngle = ROLL_MID;
+uint8_t yawAngle = YAW_MID;
+long duration = 100;
+
 void loop() {
   if (Serial.available() > 0) {  // Data is available to read
     char incomingByte = Serial.read();
+#if defined(DEBUG)
     Serial.print(incomingByte);
+#endif
 
     if (incomingByte == 'b') {
-      long beakAngle = Serial.parseInt();
-      beakServo.write((int)beakAngle + BEAK_CLOSED);
-      Serial.print(beakAngle);
+      beakAngle = Serial.parseInt();  // Note: values over 255 will wrap (only lowest byte is used)
+      if ((beakAngle += BEAK_CLOSED) > BEAK_OPEN) beakAngle = BEAK_OPEN; // Could remove bounds check from library since we do it here more efficiently (only need to check one end)
+#if defined(SERVO)
+      beakServo.write((uint8_t)beakAngle);
+#endif
+#if defined(DEBUG)
+      Serial.println(beakAngle);
+#endif
+
     } else if (incomingByte == 'p') {
-      long pitchAngle = Serial.parseInt();
-      pitchServo.setEaseTo((int)pitchAngle + PITCH_MIN);
+      pitchAngle = Serial.parseInt();
+      if ((pitchAngle += PITCH_MIN) > PITCH_MAX) pitchAngle = PITCH_MAX;
+#if defined(DEBUG)
       Serial.print(pitchAngle);
+#endif
+
     } else if (incomingByte == 'r') {
-      long rollAngle = Serial.parseInt();
-      rollServo.setEaseTo((int)rollAngle + ROLL_MIN);
+      rollAngle = Serial.parseInt();
+      if ((rollAngle += ROLL_MIN) > ROLL_MAX) rollAngle = ROLL_MAX;
+      rollServo.setEaseTo((int)rollAngle);
+#if defined(DEBUG)
       Serial.print(rollAngle);
+#endif
+
     } else if (incomingByte == 'y') {
-      long yawAngle = Serial.parseInt();
-      yawServo.setEaseTo((int)yawAngle + YAW_MIN);
+      yawAngle = Serial.parseInt();
+      if ((yawAngle += YAW_MIN) > YAW_MAX) yawAngle = YAW_MAX;
+#if defined(DEBUG)
       Serial.print(yawAngle);
+#endif
+
     } else if (incomingByte == 't') {
-      long duration = Serial.parseInt();
-      setEaseToDForAllServos(duration);
+      duration = Serial.parseInt();
+#if defined(DEBUG)
       Serial.print(duration);
-    } else if (incomingByte = '\n') {
-      //synchronizeAllServosAndStartInterrupt();
-      Serial.println();
+#endif
+
+    } else if (incomingByte == 's') {
+      pitchServo.setEaseTo(pitchAngle);  // Hmmm, what happens when setEaseTo is sent before current easeTo is finished?
+      rollServo.setEaseTo(rollAngle);
+      yawServo.setEaseTo(yawAngle);
+      setEaseToDForAllServos(duration);
+#if defined(SERVO)
+      synchronizeAllServosAndStartInterrupt();
+#endif
+#if defined(DEBUG)
+      Serial.print('\n');
+      Serial.print('p');
+      Serial.print(pitchAngle);
+      Serial.print('r');
+      Serial.print(rollAngle);
+      Serial.print('y');
+      Serial.print(yawAngle);
+      Serial.print('t');
+      Serial.print(duration);
+      Serial.println("Start!");
+#endif
+
     } else {
-      Serial.read();  // throw away anything else
+      //Serial.read();  // throw away anything else
     }
   }
 }
