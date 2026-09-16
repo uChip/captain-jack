@@ -97,6 +97,10 @@ const int PITCH_MIN = 60;   // Adjust to travel limit
 const int ROLL_MIN = 60;    // Adjust to travel limit
 const int YAW_MIN = 45;     // Adjust to travel limit
 
+// Slowest gesture in docs/gesture-library.md is a 3-5s sweep; 9999ms gives headroom
+// for future gestures while treating anything past it as a garbled command, not a real move.
+const long DURATION_MAX = 9999;
+
 ServoEasing beakServo;
 ServoEasing pitchServo;
 ServoEasing rollServo;
@@ -107,6 +111,7 @@ ServoEasing yawServo;
 
 void setup() {
   Serial.begin(115200);
+  Serial.setTimeout(5);  // Command transfer times estimated well under 2ms; a 5ms parseInt() timeout firing means something else is wrong.
 #if defined(DEBUG)
   Serial.println(F("Just a message at the beginning."));
 #endif
@@ -131,7 +136,7 @@ void setup() {
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_OPENED);
+  beakServo.write((uint8_t)BEAK_OPEN);
 #endif
   delay(500);
   Serial.println(F("Beak close."));
@@ -141,7 +146,7 @@ void setup() {
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_OPENED);
+  beakServo.write((uint8_t)BEAK_OPEN);
 #endif
   delay(500);
   Serial.println(F("Beak close."));
@@ -166,8 +171,9 @@ void loop() {
 #endif
 
     if (incomingByte == 'b') {
-      beakAngle = Serial.parseInt(SKIP_NONE, '-');                        // Note: values over 255 will wrap (only lowest byte is used)
-      if ((beakAngle += BEAK_CLOSED) > BEAK_OPEN) beakAngle = BEAK_OPEN;  // Could remove bounds check from library since we do it here more efficiently (only need to check one end)
+      beakAngle = Serial.parseInt(SKIP_NONE, '-');                                      // Note: values over 255 will wrap (only lowest byte is used)
+      if (beakAngle > (BEAK_OPEN - BEAK_CLOSED)) beakAngle = (BEAK_OPEN - BEAK_CLOSED);  // Clamp against the defined range, not the offset sum, so the addition below can't wrap
+      beakAngle += BEAK_CLOSED;
 #if defined(SERVO)
       beakServo.write(beakAngle);
 #endif
@@ -177,27 +183,31 @@ void loop() {
 
     } else if (incomingByte == 'p') {
       pitchAngle = Serial.parseInt(SKIP_NONE, '-');
-      if ((pitchAngle += PITCH_MIN) > PITCH_MAX) pitchAngle = PITCH_MAX;
+      if (pitchAngle > (PITCH_MAX - PITCH_MIN)) pitchAngle = (PITCH_MAX - PITCH_MIN);
+      pitchAngle += PITCH_MIN;
 #if defined(DEBUG)
       Serial.print(pitchAngle);
 #endif
 
     } else if (incomingByte == 'r') {
       rollAngle = Serial.parseInt(SKIP_NONE, '-');
-      if ((rollAngle += ROLL_MIN) > ROLL_MAX) rollAngle = ROLL_MAX;
+      if (rollAngle > (ROLL_MAX - ROLL_MIN)) rollAngle = (ROLL_MAX - ROLL_MIN);
+      rollAngle += ROLL_MIN;
 #if defined(DEBUG)
       Serial.print(rollAngle);
 #endif
 
     } else if (incomingByte == 'y') {
       yawAngle = Serial.parseInt(SKIP_NONE, '-');
-      if ((yawAngle += YAW_MIN) > YAW_MAX) yawAngle = YAW_MAX;
+      if (yawAngle > (YAW_MAX - YAW_MIN)) yawAngle = (YAW_MAX - YAW_MIN);
+      yawAngle += YAW_MIN;
 #if defined(DEBUG)
       Serial.print(yawAngle);
 #endif
 
     } else if (incomingByte == 't') {
       duration = Serial.parseInt(SKIP_NONE, '-');
+      if (duration > DURATION_MAX) duration = DURATION_MAX;
 #if defined(DEBUG)
       Serial.print(duration);
 #endif
