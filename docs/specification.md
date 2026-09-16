@@ -711,48 +711,69 @@ assuming an eyelid mechanism not present in the
 
 ### 4.13 Pi to Arduino Serial Link
 
-**Status: Partially specified, not implemented.**
+**Status: Command syntax locked down 2026-09-15.** Implemented in
+`arduino/ServoControl/ServoControl.ino` and code-reviewed (former
+[Open Issue](#5-open-issues) 21) — servo actuation itself is still
+unvalidated pending wiring, but the wire format below is Chip's call as
+settled: further testing is expected to change implementation details
+(calibration offsets, exact timing bounds), not the syntax itself. If
+that assumption turns out wrong, that's a bug to call out and deal with
+when found, not a reason to hold the syntax open now.
 
 **Description**: one-directional serial protocol, Pi → Arduino only (no
-upstream sensor relay in the new design). **Reconciled 2026-09-14**
-(former [Open Issue](#5-open-issues) 9) into one authoritative framing,
-superseding both the [project brief](parrot-project-brief.md)'s loose,
-word-prefixed sketch (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`,
-`GESTURE <id>`) and treating
-[Arduino-command-structure.md](Arduino-command-structure.md)'s compact,
-fixed-width encoding as the winning design:
+upstream sensor relay in the new design). **Locked down 2026-09-15**,
+superseding the fixed-width framing reconciled here on 2026-09-14
+(former [Open Issue](#5-open-issues) 9) — which itself had superseded
+both the [project brief](parrot-project-brief.md)'s loose, word-prefixed
+sketch (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE
+<id>`) and
+[Arduino-command-structure.md](Arduino-command-structure.md)'s
+fixed-width proposal:
 
-- Exactly two line shapes, newline-terminated, human-readable, no spaces,
-  no literal `HEAD`/`BEAK`/`GESTURE` keyword — the leading field-tag
-  character *is* the command type, since that's strictly shorter and the
-  two shapes are already unambiguous by their fields:
-  - **Head motion**: `p<PP>r<RR>y<YYY>t<TTTT>` — pitch (2 digits), roll (2
-    digits), yaw (3 digits), time-to-reach in ms (4 digits). Always
-    carries all three axes, even if only one is actually changing — the
-    Pi fills in the others with their last-sent value — so the Arduino's
-    easing library always has a full 3-axis start/end pair to interpolate
-    over `t` ms, per
-    [Arduino Servo Controller](#34-arduino-servo-controller).
-  - **Beak position**: `b<BB>` — beak position (2 digits) only, **no
-    `t` field**. Per former [Open Issue](#5-open-issues) 8, beak motion is
-    never eased on the Arduino, so there's nothing for a time field to
-    do; the Arduino applies it to PWM immediately.
-  - Pitch/roll/beak's 2-digit fields and yaw's 3-digit field are
-    unsigned, zero-padded, offset-encoded (per
-    [Arduino-command-structure.md](Arduino-command-structure.md)'s
-    "use 2 digits and offset in Arduino code" note) — the exact offset
-    and usable angle range per axis aren't pinned down yet, just the
-    encoding shape.
-  - `GESTURE <id>` is dropped entirely, not just superseded in wording:
-    gesture storage lives on the Pi (former issue 7), so the Arduino
-    never receives anything but the two shapes above, whether a given
-    line came from a gesture sequence, DoA, or beak-sync makes no
+- Variable-length, self-delimiting integers — no fixed field width, no
+  zero-padding. Each field is a command-type character immediately
+  followed by a variable-length decimal integer, terminated by whatever
+  non-numeric character follows (typically the next command character,
+  or a line terminator). No spaces, no literal `HEAD`/`BEAK`/`GESTURE`
+  keyword — the leading character *is* the command type, same principle
+  as the superseded fixed-width design, just without the fixed width:
+  - **Beak position**: `b<BB>` — moves the beak servo immediately on
+    receipt, no easing (per former [Open Issue](#5-open-issues) 8). `BB`
+    is a nominal 0–45 value, clamped, then offset in firmware onto the
+    physical 80–125 PWM range.
+  - **Head motion axes**: `p<PP>` (nominal 0–60), `r<RR>` (nominal 0–60),
+    and `y<YY>` (nominal 0–90) each stage a pitch/roll/yaw target —
+    clamped, then offset in firmware onto their physical PWM ranges —
+    without moving anything yet. `t<TTTT>` (0–9999ms, clamped) stages
+    the move duration. Any of `b`/`p`/`r`/`y`/`t` can arrive
+    individually or concatenated on one line, in any order; repeating
+    one before the move is triggered overwrites the staged value
+    rather than moving anything.
+  - **Move trigger**: `s` — starts an eased, synchronized pitch/roll/yaw
+    move to the currently staged targets over the currently staged
+    duration. Sending `s` alone repeats the last staged move. `b` is
+    independent of `s` and never eased, per former Open Issue 8.
+  - Any character that isn't a recognized command char or digit
+    (including `\r`/`\n` and stray digits not immediately following a
+    command char) is simply discarded — the stream is self-resyncing by
+    construction, so there's no positional/framing state to get out of
+    sync, unlike the fixed-width proposal it replaced.
+  - Per-axis nominal ranges and their offsets onto the physical PWM range
+    are now pinned by the constants in
+    `arduino/ServoControl/ServoControl.ino`: beak 0–45 → 80–125, pitch
+    0–60 → 60–120, roll 0–60 → 60–120, yaw 0–90 → 45–135.
+  - `GESTURE <id>` is still dropped entirely, not just superseded in
+    wording: gesture storage lives on the Pi (former issue 7), so the
+    Arduino never receives anything but the primitives above, whether a
+    given line came from a gesture sequence, DoA, or beak-sync makes no
     difference to it.
-- Still **not** pinned down by this reconciliation: exact per-axis
-  offsets/ranges, worst-case transmission time (that doc's own
-  ~19-char/1.65ms estimate is flagged there as unconfirmed arithmetic and
-  needs re-deriving against the format above), and whether the link needs
-  ACK/timeout-retry.
+- **Resolved 2026-09-15, Chip's call**: worst-case transmission time and
+  ACK/timeout-retry are no longer open. Chip's rough estimate (well under
+  2ms per command) is accepted as-is even allowing up to 2x error —
+  nothing in the design is timing-critical enough for that margin to
+  matter, so a formal re-derivation isn't worth doing. ACK/timeout-retry
+  is judged unnecessary: the self-resyncing design above is robust enough
+  on its own.
 - **Reclassified 2026-09-14**: gesture interruptibility/preemption vs.
   queuing and layering/blending are **not** link-level or Arduino-level
   concerns. Each line the Arduino receives is acted on immediately, as
@@ -944,6 +965,19 @@ this sketch himself rather than hand it to a future session.
   reconciled format, and ACK/timeout-retry. Gesture interruptibility and
   layering were dropped from this issue's scope — see issue 24: they're
   not a link-level concern.
+
+  **Updated 2026-09-15**: command syntax is now locked down and
+  implemented — see
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link) and former
+  issue 21 — superseding the fixed-width framing this issue reconciled
+  the day before; further testing is expected to affect implementation,
+  not syntax. All three items this issue left open are now resolved:
+  per-axis offsets/ranges are pinned by the shipped firmware;
+  worst-case transmission time is accepted as non-blocking even allowing
+  up to 2x error in Chip's informal under-2ms-per-command estimate; and
+  ACK/timeout-retry is judged unnecessary given the self-resyncing
+  design's robustness (both Chip's call, not further measurement).
+  Fully resolved.
 10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.
@@ -1009,7 +1043,7 @@ this sketch himself rather than hand it to a future session.
   to [Possible Future Enhancements](#6-possible-future-enhancements) item
   3, with concrete implementation risks noted inline for both scenarios
   rather than left as bare "undiscussed" flags.
-21. Firmware for servo-only control still needs to be written for
+21. ~~Firmware for servo-only control still needs to be written for
   the new Arduino Uno (old MY1690/electret-mic hardware already removed —
   see [Arduino Servo Controller](#34-arduino-servo-controller)); it can be
   developed and uploaded now, but can't be validated against real
@@ -1019,7 +1053,20 @@ this sketch himself rather than hand it to a future session.
   Plan: ship it first against the stock ServoEasing library as installed,
   known-good; trimming that library down to just the easing algorithm(s)
   actually used is a separate, later optimization — see
-  [Possible Future Enhancements](#6-possible-future-enhancements).
+  [Possible Future Enhancements](#6-possible-future-enhancements).~~
+  **Written and reviewed 2026-09-15**: `arduino/ServoControl/ServoControl.ino`
+  exists, parsing the `b`/`p`/`r`/`y`/`t`/`s` command structure against the
+  stock ServoEasing library per the plan above. Code review caught, and
+  Chip fixed, two correctness bugs: the `b`/`p`/`r`/`y` range clamp
+  compared the post-offset sum against the max instead of the raw
+  incoming integer against the defined range, so `uint8_t` wraparound
+  could silently produce an angle below the intended minimum (e.g. `b200`
+  landed at 24, outside the 80-125 beak range); and duration (`t`) had no
+  upper bound at all, now capped at 9999ms — 2x the slowest gesture in
+  [gesture-library.md](gesture-library.md) — so a garbled/huge value
+  can't reach the easing library unbounded. Left open: still can't be
+  validated against real actuation until the board is wired to the
+  head/beak servos, which hasn't happened yet.
 22. **Downgraded 2026-09-14, low risk per analysis, not closed** (pending
   empirical confirmation): the ATmega328P runs at 16MHz with a hardware
   8-bit multiplier; only 3 servos need easing math per update (pitch/
