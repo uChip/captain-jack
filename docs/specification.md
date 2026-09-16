@@ -317,8 +317,8 @@ on `arduino/TestBlink`); Servo and ServoEasing libraries are installed.
 The old MY1690 + electret-mic hardware has been removed (it lived on the
 original board, not this one) — see
 [Removed and Legacy Hardware](#37-removed-and-legacy-hardware). This new
-board is **not yet wired to the head/beak servos**; servo-only firmware can
-be written, compiled, and uploaded now, but real actuation can't be
+board is **not yet wired to the head/beak servos**; servo-only firmware has
+been written, compiled, and uploaded, but real actuation can't be
 validated until that connection is made — see
 [Open Issues](#5-open-issues). Previously owned all "intelligence,"
 peripherals, and sensor input in the pre-Pi design; those roles are removed
@@ -341,12 +341,11 @@ primitive commands — the Arduino has no concept of a "gesture" as such;
 see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog).
 
 **Interconnect**: one-directional serial from the Pi 5 (no upstream sensor
-data anymore, unlike the original design). Exact command framing is
-partially specified and not fully reconciled — see
-[Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Servo PWM
+data anymore, unlike the original design). Command framing is locked down
+— see [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Servo PWM
 wiring itself is not yet connected — see above.
 
-The sketch itself still needs to be written for servo-only duty; see
+The sketch itself has been written for servo-only duty; see
 [Arduino Firmware](#414-arduino-firmware).
 
 ### 3.5 Servos (Head and Beak)
@@ -797,41 +796,48 @@ lines, per above); read by [Arduino Firmware](#414-arduino-firmware).
 
 ### 4.14 Arduino Firmware
 
-**Status: Toolchain confirmed (compile + upload), sketch not started.**
+**Status: Written and code-reviewed 2026-09-15, actuation unvalidated.**
 `arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch;
 `arduino-cli` compile/download was confirmed 2026-09-13, and a full
 compile+upload cycle (including a visually-confirmed blink-rate edit) was
 confirmed 2026-09-14 against the new Arduino Uno — see
-[Arduino Servo Controller](#34-arduino-servo-controller). It implements
-none of the servo-control design. Servo and ServoEasing libraries are
-installed and available, but the real servo/easing sketch itself hasn't
-been started, and can't be validated against real actuation until the
-board is wired to the servos (still pending) — see
+[Arduino Servo Controller](#34-arduino-servo-controller). The real
+servo-control sketch, `arduino/ServoControl/ServoControl.ino`, has since
+been written by Chip and code-reviewed — two bugs were caught and fixed
+(an angle-clamp overflow and an unbounded duration value; see former
+[Open Issue](#5-open-issues) 21) — and it compiles clean, including with
+its `DEBUG` path enabled. It still can't be validated against real
+actuation until the board is wired to the servos (still pending) — see
 [Open Issues](#5-open-issues).
 
-**Description**: the real-time sketch that will parse incoming serial
-commands and drive the four servos, layering an easing library over the
-standard Arduino servo library for smooth, synchronized head motion
-(gestures are just `HEAD`/`BEAK` command sequences from the Pi — see
+**Description**: the real-time sketch that parses incoming serial
+commands and drives the four servos, layering the ServoEasing library
+over the standard Arduino servo library for smooth, synchronized head
+motion (gestures are just `p`/`r`/`y`/`t`/`b`/`s` command sequences from
+the Pi — see
 [Gesture Engine and Catalog](#412-gesture-engine-and-catalog) — not a
 distinct command type).
 
-**Intended function**: execute `HEAD`/`BEAK` commands from the Pi at a
-real-time loop rate no slower than the servos' 20ms PWM period, easing
-pitch/roll/yaw transitions together (cubic easing, kept to integer math
-where possible for speed). `BEAK` is applied directly to PWM with **no**
-easing — that smoothing is done Pi-side, in
-[Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see former
-[Open Issue](#5-open-issues) 8. Notably must **not** reintroduce
+**Intended function**: execute `p`/`r`/`y`/`t`/`b`/`s` commands from the
+Pi at a real-time loop rate no slower than the servos' 20ms PWM period,
+easing pitch/roll/yaw transitions together (cubic easing, kept to integer
+math where possible for speed) once triggered by `s`. Beak (`b`) is
+applied directly to PWM with **no** easing — that smoothing is done
+Pi-side, in [Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see
+former [Open Issue](#5-open-issues) 8. Notably must **not** reintroduce
 SoftwareSerial alongside the easing library without further research —
 the two were observed to interfere with each other in the prior MY1690-era
-design, and SoftwareSerial was removed along with the MY1690.
+design, and SoftwareSerial was removed along with the MY1690. Still open,
+from code review: whether attaching the beak servo as a `ServoEasing`
+object (even though it's only ever driven via plain `.write()`) has any
+side effects worth avoiding by using a plain `Servo` for beak instead —
+needs more research/experimentation.
 
 **Interfaces**: reads the
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link); writes PWM to
 the [head and beak servos](#35-servos-head-and-beak) — not yet wired, see
-[Arduino Servo Controller](#34-arduino-servo-controller). Chip may write
-this sketch himself rather than hand it to a future session.
+[Arduino Servo Controller](#34-arduino-servo-controller). Chip wrote this
+sketch himself rather than handing it to a future session.
 
 ## 5. Open Issues
 

@@ -14,10 +14,13 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-No audio I/O, reSpeaker DoA, or Pi<->Arduino serial link yet — those need
-hardware that hasn't arrived and specs that aren't written (serial framing
-still TBD, see the brief). No home-automation tool calling yet either — the
-intent allowlist (next-step below) isn't defined.
+No audio I/O or reSpeaker DoA yet — that needs hardware that hasn't
+arrived. The Pi<->Arduino serial link's command syntax is locked down and
+implemented (`arduino/ServoControl/ServoControl.ino`, see
+`docs/specification.md` section 4.13), but real actuation is still
+unvalidated — the Arduino isn't wired to the head/beak servos yet. No
+home-automation tool calling yet either — the intent allowlist (next-step
+below) isn't defined.
 
 ### Running it
 
@@ -136,18 +139,26 @@ XVF3800, still on order.
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.
-3. Design the Pi↔Arduino serial protocol precisely — framing is still TBD
-   per the brief; pure spec work, no audio board needed.
+3. ~~Design the Pi↔Arduino serial protocol precisely — framing is still
+   TBD per the brief; pure spec work, no audio board needed.~~ **Resolved,
+   locked down 2026-09-15**: variable-length, self-delimiting `b`/`p`/`r`/
+   `y`/`t`/`s` syntax — see `docs/specification.md` section 4.13.
 4. ~~Confirm the `arduino-cli` toolchain (compile + upload) end-to-end.~~
    Done — see "Done so far" items 4-5. **Resolved 2026-09-14**: the
    connected Arduino Uno is a fresh/new board, not the original one — the
-   old MY1690 + electret-mic hardware has already been removed. Still
-   open: this new board isn't yet wired to the head/beak servos, so the
-   real servo-only sketch (using the now-installed Servo/ServoEasing
+   old MY1690 + electret-mic hardware has already been removed.
+   ~~Still open: this new board isn't yet wired to the head/beak servos,
+   so the real servo-only sketch (using the now-installed Servo/ServoEasing
    libraries, matching the serial protocol from item 3 above) can be
    written, compiled, and uploaded, but not validated against real
    actuation until that wiring is done — Chip may write this sketch
-   himself rather than hand it to a future session.
+   himself rather than hand it to a future session.~~ **Written and
+   reviewed 2026-09-15**: `arduino/ServoControl/ServoControl.ino` exists,
+   compiles clean, and had two bugs (angle-clamp overflow, unbounded
+   duration) caught and fixed in code review — see `specification.md`
+   Open Issues issue 21. Still open: real actuation still can't be
+   validated until the board is wired to the head/beak servos, which
+   hasn't happened yet.
 5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's
