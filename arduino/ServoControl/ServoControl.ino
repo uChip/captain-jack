@@ -7,12 +7,12 @@
   Objective is to extract specific servo control commands and ignore malformed strings without
   needing position dependent commands or communications syncing.
   Controls 4 servos, beak, pitch, roll and yaw.
-  Beak servo moves immediately upon receipt of the command.
+  Beak servo moves immediately upon receipt of the whole command.
   Pitch, roll and yaw move together, synchronized so that they start and finish at the same time,
   taking t milliseconds for the move.
   ServoControl has no way to know if a command is reasonable or not.  It only checks that the
   angle is within the defined range.  Numbers outside the defined range might damage the mechanism, therefore
-  are limited before being sent to servos.
+  angles are limited before being sent to servos.
   Communications stream is receive only, except when DEBUG is defined.
   Servos are not powered up or moved unless SERVO is defined.
 
@@ -24,38 +24,38 @@
     t<TTTT> TTTT = integer representing milliseconds in the range of 0 = move servos to position immediately to
             9999 = very very very slow movement to position.
 
-  After receiving b, the angle value is limit checked then sent to the servo subroutine immediately. No easing.
-  After receiving p,r,y or t, local variables are limit checked and saved.
+  After receiving b and the integer, the angle value is limit checked then sent to the servo subroutine immediately. No easing.
+  After receiving p,r,y or t, and the integer, local variables are limit checked and saved.
   After receiving s, a servo ease command is sent using saved values and all three servos are started.
   Sending an s by itself: previous values are sent to ease routine again.
-  Any of b, p, r, y, or t commands (with integers) can be sent individually or concatenated together.
+  Any of b, p, r, y, or t commands with integers can be sent individually or concatenated together.
   Sending b, p, r, y, or t with no integer following is the same as sending the character with 0 as the integer.
   All other characters are ignored, including numeric characters not immediately following b, p, r, y or t.
   Line terminators (\r, \n) are also ignored.
   Repeating p, r, y, or t command before sending s will overwrite the previous saved value, not move the servo.
   Integer values are always interpreted as positive.  The negative sign is ignored.
-  Angle integer values are unsigned 8-bit.  Sending larger values will be correctly evaluated but only lowest 8-bits is used.
+  Angle integer values are saved as unsigned 8-bit.  Sending larger values will be correctly evaluated but only lowest 8-bits is saved.
     e.g. 256 = 0, 257 = 1, etc
   
   Examples of valid commands
-    b20
-    p40
-    r30
-    y45
-    t300
-    s
-    p40r30y45t300s
-    b30p40r30y45t300s
-    p50s
+    b20\n
+    p40\n
+    r30\n
+    y45\n
+    t300\n
+    s\n
+    p40r30y45t300s\n
+    b30p40r30y45t300s\n
+    p50s\n
 
   Examples of range adjustments (showing b but p, r and y work the same)
-    b60 - interpreted as b45
-    bX - where X is any non-numeric char - interpreted as b0
-    b1025 - interpreted as b1
-    b-7 - interpreted as b7
-    b23.4 - interpreted as b23
+    b60 - parsed as b45
+    bX - where X is any non-numeric char except '-' - parsed as b0
+    b1025 - parsed as b1
+    b-7 - parsed as b7
+    b23.4 - parsed as b23
 
-  Error strings
+  Stream error examples
     aedfghjkl - ignored. No command char.
     0123456789.23 - ignored. No command char.
     54321b23hpgl - b23 picked out from garbage
@@ -102,8 +102,8 @@ ServoEasing pitchServo;
 ServoEasing rollServo;
 ServoEasing yawServo;
 
-#define DEBUG
-//#define SERVO
+//#define DEBUG
+#define SERVO
 
 void setup() {
   Serial.begin(115200);
