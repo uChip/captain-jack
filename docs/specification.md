@@ -824,23 +824,23 @@ this sketch himself rather than hand it to a future session.
   **Reframed 2026-09-14, Chip's clarification**: not actually a conflict
   between two docs — a three-tier priority for resolving who's speaking,
   clarified rather than newly decided:
-  1. **Voice ID (preferred)**: whether it actually works well enough is
-     unknown until the XVF3800 arrives and the scheduled accuracy test
-     runs (see `CLAUDE.md`, "Blocked until XVF3800 arrives" item 5) — not
-     a documentation gap, just hardware-gated.
-  2. **Explicit self-identification (today's working fallback)**: what's
-     actually implemented now — fail-closed by design (see
-     [captain-jack-memory-design.md](captain-jack-memory-design.md)).
-     Flagged 2026-09-14 as workable but awkward in practice — untested
-     against real conversation at any length.
-  3. **Contextual inference (fallback of last resort)**: guessing who's
-     speaking without being told. Not implemented, not designed, and in
-     direct tension with the project's established fail-closed principle
-     (Haiku is already known to invent placeholder names rather than
-     admit it doesn't know — see
-     [captain-jack-memory-design.md](captain-jack-memory-design.md)).
-     Flagged 2026-09-14 as the riskiest tier — genuinely open, not just
-     unwritten.
+   1. **Voice ID (preferred)**: whether it actually works well enough is
+      unknown until the XVF3800 arrives and the scheduled accuracy test
+      runs (see `CLAUDE.md`, "Blocked until XVF3800 arrives" item 5) — not
+      a documentation gap, just hardware-gated.
+   2. **Explicit self-identification (today's working fallback)**: what's
+      actually implemented now — fail-closed by design (see
+      [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+      Flagged 2026-09-14 as workable but awkward in practice — untested
+      against real conversation at any length.
+   3. **Contextual inference (fallback of last resort)**: guessing who's
+      speaking without being told. Not implemented, not designed, and in
+      direct tension with the project's established fail-closed principle
+      (Haiku is already known to invent placeholder names rather than
+      admit it doesn't know — see
+      [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+      Flagged 2026-09-14 as the riskiest tier — genuinely open, not just
+      unwritten.
 
   Left open: the hope is that tier 1 works well enough that tiers 2 and 3
   rarely matter in practice — that's an empirical question the XVF3800
