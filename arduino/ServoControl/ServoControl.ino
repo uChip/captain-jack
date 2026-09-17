@@ -107,7 +107,7 @@ ServoEasing pitchServo;
 ServoEasing rollServo;
 ServoEasing yawServo;
 
-//#define DEBUG
+// #define DEBUG
 #define SERVO
 
 void setup() {
