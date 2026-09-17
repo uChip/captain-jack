@@ -83,25 +83,26 @@ const uint8_t SERVO_BEAK_PIN = 11;
 const uint8_t SERVO_PWR_ENBL = 13;
 
 // --- BEAK SERVO CONFIGURATION ---
-const int BEAK_CLOSED = 80;
-const int BEAK_OPEN = 125;
+const int BEAK_OPEN = 0;
+const int BEAK_RANGE = 45;
+const int BEAK_OFFSET = 80;
 
 // --- HEAD SERVOS CONFIGURATION ---
-const int PITCH_MID = 90;   // Adjust to center
-const int ROLL_MID = 90;    // Adjust to center
-const int YAW_MID = 90;     // Adjust to center
-const int PITCH_MAX = 120;  // Adjust to travel limit
-const int ROLL_MAX = 120;   // Adjust to travel limit
-const int YAW_MAX = 135;    // Adjust to travel limit
-const int PITCH_MIN = 60;   // Adjust to travel limit
-const int ROLL_MIN = 60;    // Adjust to travel limit
-const int YAW_MIN = 45;     // Adjust to travel limit
+const int PITCH_RESTING = 30;   // Servo assembly can result in small errors. Adjust here to center
+const int ROLL_RESTING = 40;    // Servo assembly can result in small errors. Adjust here to center
+const int YAW_RESTING = 45;     // Servo assembly can result in small errors. Adjust here to center
+const int PITCH_RANGE = 60;     // Servo assembly can result in small errors. Adjust to limit travel
+const int ROLL_RANGE = 60;      // Servo assembly can result in small errors. Adjust to limit travel
+const int YAW_RANGE = 90;       // Servo assembly can result in small errors. Adjust to limit travel
+const int PITCH_OFFSET = 60;    // Servo assembly can result in small errors. Adjust to limit travel
+const int ROLL_OFFSET = 60;     // Servo assembly can result in small errors. Adjust to limit travel
+const int YAW_OFFSET = 45;      // Servo assembly can result in small errors. Adjust to limit travel
 
 // Slowest gesture in docs/gesture-library.md is a 3-5s sweep; 9999ms gives headroom
 // for future gestures while treating anything past it as a garbled command, not a real move.
 const long DURATION_MAX = 9999;
 
-ServoEasing beakServo;
+Servo beakServo;
 ServoEasing pitchServo;
 ServoEasing rollServo;
 ServoEasing yawServo;
@@ -123,44 +124,44 @@ void setup() {
 
   //Initialize servos
   beakServo.attach(SERVO_BEAK_PIN);
-  beakServo.write(BEAK_CLOSED);
+  beakServo.write(BEAK_RANGE + BEAK_OFFSET);
   pitchServo.attach(SERVO_PITCH_PIN);
-  pitchServo.write(PITCH_MID);
+  pitchServo.write(PITCH_RESTING + PITCH_OFFSET);
   rollServo.attach(SERVO_ROLL_PIN);
-  rollServo.write(ROLL_MID);
+  rollServo.write(ROLL_RESTING + ROLL_OFFSET);
   yawServo.attach(SERVO_YAW_PIN);
-  yawServo.write(YAW_MID);
+  yawServo.write(YAW_RESTING + YAW_OFFSET);
 #endif
 
 #if defined(DEBUG)
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_OPEN);
+  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_CLOSED);
+  beakServo.write((int)BEAK_CLOSED + BEAK_OFFSET);
 #endif
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_OPEN);
+  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((uint8_t)BEAK_CLOSED);
+  beakServo.write((int)BEAK_CLOSED + BEAK_OFFSET);
 #endif
   delay(500);
 #endif
 }
 
-uint8_t beakAngle = BEAK_CLOSED;
-uint8_t pitchAngle = PITCH_MID;
-uint8_t rollAngle = ROLL_MID;
-uint8_t yawAngle = YAW_MID;
+int beakAngle = BEAK_RANGE + BEAK_OFFSET;
+int pitchAngle = PITCH_RESTING + PITCH_OFFSET;
+int rollAngle = ROLL_RESTING + ROLL_OFFSET;
+int yawAngle = YAW_RESTING + YAW_OFFSET;
 long duration = 100;
 
 void loop() {
@@ -172,8 +173,8 @@ void loop() {
 
     if (incomingByte == 'b') {
       beakAngle = Serial.parseInt(SKIP_NONE, '-');                                      // Note: values over 255 will wrap (only lowest byte is used)
-      if (beakAngle > (BEAK_OPEN - BEAK_CLOSED)) beakAngle = (BEAK_OPEN - BEAK_CLOSED);  // Clamp against the defined range, not the offset sum, so the addition below can't wrap
-      beakAngle += BEAK_CLOSED;
+      if (beakAngle > BEAK_RANGE) beakAngle = BEAK_RANGE;    // Clamp against the defined range, not the offset sum, so the addition below can't wrap
+      beakAngle += BEAK_OFFSET;
 #if defined(SERVO)
       beakServo.write(beakAngle);
 #endif
@@ -183,24 +184,24 @@ void loop() {
 
     } else if (incomingByte == 'p') {
       pitchAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (pitchAngle > (PITCH_MAX - PITCH_MIN)) pitchAngle = (PITCH_MAX - PITCH_MIN);
-      pitchAngle += PITCH_MIN;
+      if (pitchAngle > PITCH_RANGE) pitchAngle = PITCH_RANGE;
+      pitchAngle += PITCH_OFFSET;
 #if defined(DEBUG)
       Serial.print(pitchAngle);
 #endif
 
     } else if (incomingByte == 'r') {
       rollAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (rollAngle > (ROLL_MAX - ROLL_MIN)) rollAngle = (ROLL_MAX - ROLL_MIN);
-      rollAngle += ROLL_MIN;
+      if (rollAngle > ROLL_RANGE) rollAngle = ROLL_RANGE;
+      rollAngle += ROLL_OFFSET;
 #if defined(DEBUG)
       Serial.print(rollAngle);
 #endif
 
     } else if (incomingByte == 'y') {
       yawAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (yawAngle > (YAW_MAX - YAW_MIN)) yawAngle = (YAW_MAX - YAW_MIN);
-      yawAngle += YAW_MIN;
+      if (yawAngle > YAW_RANGE) yawAngle = YAW_RANGE;
+      yawAngle += YAW_OFFSET;
 #if defined(DEBUG)
       Serial.print(yawAngle);
 #endif
