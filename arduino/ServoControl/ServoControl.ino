@@ -17,10 +17,10 @@
   Servos are not powered up or moved unless SERVO is defined.
 
   Extracts key characters followed by integers (variable length integer strings terminated by any non-numeric character):
-    b<BB>  BB = integer angles in the range of 0 = beak closed to 45 = beak fully open
-    p<PP>  PP = integer angles in the range of 0 = head tipped down to 60 = head tipped up
-    r<RR>  RR = integer angles in the range of 0 = head tipped to left to 60 = head tipped to right
-    y<YY>  YY = integer angles in the range of 0 = head turned to left to 90 = head turned to right
+    b<BB>  BB = integer angles in the range of 0 = beak open to 60 = beak fully closed
+    p<PP>  PP = integer angles in the range of 0 = head tipped down to 50 = head tipped up
+    r<RR>  RR = integer angles in the range of 0 = head tipped to left to 50 = head tipped to right
+    y<YY>  YY = integer angles in the range of 0 = head turned to right to 130 = head turned to left
     t<TTTT> TTTT = integer representing milliseconds in the range of 0 = move servos to position immediately to
             9999 = very very very slow movement to position.
 
@@ -34,8 +34,7 @@
   Line terminators (\r, \n) are also ignored.
   Repeating p, r, y, or t command before sending s will overwrite the previous saved value, not move the servo.
   Integer values are always interpreted as positive.  The negative sign is ignored.
-  Angle integer values are saved as unsigned 8-bit.  Sending larger values will be correctly evaluated but only lowest 8-bits is saved.
-    e.g. 256 = 0, 257 = 1, etc
+  Angle integer values are saved as data type int.
   
   Examples of valid commands
     b20\n
@@ -49,7 +48,7 @@
     p50s\n
 
   Examples of range adjustments (showing b but p, r and y work the same)
-    b60 - parsed as b45
+    b75 - parsed as b60
     bX - where X is any non-numeric char except '-' - parsed as b0
     b1025 - parsed as b1
     b-7 - parsed as b7
@@ -80,23 +79,22 @@ const uint8_t SERVO_PITCH_PIN = 3;
 const uint8_t SERVO_ROLL_PIN = 5;
 const uint8_t SERVO_YAW_PIN = 6;
 const uint8_t SERVO_BEAK_PIN = 11;
-const uint8_t SERVO_PWR_ENBL = 13;
 
 // --- BEAK SERVO CONFIGURATION ---
 const int BEAK_OPEN = 0;
-const int BEAK_RANGE = 45;
-const int BEAK_OFFSET = 80;
+const int BEAK_RANGE = 60;
+const int BEAK_OFFSET = 65;
 
 // --- HEAD SERVOS CONFIGURATION ---
-const int PITCH_RESTING = 30;   // Servo assembly can result in small errors. Adjust here to center
-const int ROLL_RESTING = 40;    // Servo assembly can result in small errors. Adjust here to center
-const int YAW_RESTING = 45;     // Servo assembly can result in small errors. Adjust here to center
-const int PITCH_RANGE = 60;     // Servo assembly can result in small errors. Adjust to limit travel
-const int ROLL_RANGE = 60;      // Servo assembly can result in small errors. Adjust to limit travel
-const int YAW_RANGE = 90;       // Servo assembly can result in small errors. Adjust to limit travel
-const int PITCH_OFFSET = 60;    // Servo assembly can result in small errors. Adjust to limit travel
-const int ROLL_OFFSET = 60;     // Servo assembly can result in small errors. Adjust to limit travel
-const int YAW_OFFSET = 45;      // Servo assembly can result in small errors. Adjust to limit travel
+const int PITCH_RESTING = 35;   // Servo assembly can result in small errors. Adjust here to center
+const int ROLL_RESTING = 30;    // Servo assembly can result in small errors. Adjust here to center
+const int YAW_RESTING = 70;     // Servo assembly can result in small errors. Adjust here to center
+const int PITCH_RANGE = 50;     // Servo assembly can result in small errors. Adjust to limit travel
+const int ROLL_RANGE = 50;      // Servo assembly can result in small errors. Adjust to limit travel
+const int YAW_RANGE = 130;       // Servo assembly can result in small errors. Adjust to limit travel
+const int PITCH_OFFSET = 70;    // Servo assembly can result in small errors. Adjust to limit travel
+const int ROLL_OFFSET = 55;     // Servo assembly can result in small errors. Adjust to limit travel
+const int YAW_OFFSET = 30;      // Servo assembly can result in small errors. Adjust to limit travel
 
 // Slowest gesture in docs/gesture-library.md is a 3-5s sweep; 9999ms gives headroom
 // for future gestures while treating anything past it as a garbled command, not a real move.
@@ -118,10 +116,6 @@ void setup() {
 #endif
 
 #if defined(SERVO)
-  //Enable servo power
-  pinMode(SERVO_PWR_ENBL, OUTPUT);
-  digitalWrite(SERVO_PWR_ENBL, HIGH);  // Enable servo power
-
   //Initialize servos
   beakServo.attach(SERVO_BEAK_PIN);
   beakServo.write(BEAK_RANGE + BEAK_OFFSET);
@@ -137,22 +131,22 @@ void setup() {
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);  // fully open
+  beakServo.write((int)BEAK_OPEN + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_CLOSED + BEAK_OFFSET);
+  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);
 #endif
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);  // fully open
+  beakServo.write((int)BEAK_OPEN + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_CLOSED + BEAK_OFFSET);
+  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);
 #endif
   delay(500);
 #endif
@@ -172,7 +166,8 @@ void loop() {
 #endif
 
     if (incomingByte == 'b') {
-      beakAngle = Serial.parseInt(SKIP_NONE, '-');                                      // Note: values over 255 will wrap (only lowest byte is used)
+      beakAngle = Serial.parseInt(SKIP_NONE, '-');    // Note: values over 32767 will turn negative so we have to test for that
+      if (beakAngle < 0 ) beakAngle = 0;
       if (beakAngle > BEAK_RANGE) beakAngle = BEAK_RANGE;    // Clamp against the defined range, not the offset sum, so the addition below can't wrap
       beakAngle += BEAK_OFFSET;
 #if defined(SERVO)
@@ -184,6 +179,7 @@ void loop() {
 
     } else if (incomingByte == 'p') {
       pitchAngle = Serial.parseInt(SKIP_NONE, '-');
+      if (pitchAngle < 0) pitchAngle = 0;
       if (pitchAngle > PITCH_RANGE) pitchAngle = PITCH_RANGE;
       pitchAngle += PITCH_OFFSET;
 #if defined(DEBUG)
@@ -192,6 +188,7 @@ void loop() {
 
     } else if (incomingByte == 'r') {
       rollAngle = Serial.parseInt(SKIP_NONE, '-');
+      if (rollAngle < 0) rollAngle = 0;
       if (rollAngle > ROLL_RANGE) rollAngle = ROLL_RANGE;
       rollAngle += ROLL_OFFSET;
 #if defined(DEBUG)
@@ -200,6 +197,7 @@ void loop() {
 
     } else if (incomingByte == 'y') {
       yawAngle = Serial.parseInt(SKIP_NONE, '-');
+      if (yawAngle < 0) yawAngle = 0;
       if (yawAngle > YAW_RANGE) yawAngle = YAW_RANGE;
       yawAngle += YAW_OFFSET;
 #if defined(DEBUG)
