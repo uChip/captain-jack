@@ -42,23 +42,26 @@ when it was last confirmed passing.
 
 ## Gesture Engine and Catalog
 
-### `gesture-catalog.yaml` servo bounds
+### `gesture-catalog.yaml` sanity checks
 
 - **Covers**: [Gesture Engine and Catalog](specification.md#412-gesture-engine-and-catalog)
-  — every Move command string in
-  [`gesture-catalog.yaml`](gesture-catalog.yaml) (the first-pass mapping
-  of [gesture-library.md](gesture-library.md) into the agreed Gesture/Move
-  structure).
+  — the delta-encoded Gesture/Move structure in
+  [`gesture-catalog.yaml`](gesture-catalog.yaml) (second pass, 2026-09-20:
+  gestures store deltas from a live baseline, not resolved servo values —
+  see the catalog's own header comments and specification.md 4.10/4.12).
 - **Script**: [`../tests/test_gesture_catalog_bounds.py`](../tests/test_gesture_catalog_bounds.py)
 - **Run**: `venv/bin/python tests/test_gesture_catalog_bounds.py`
-- **Expected**: prints `PASS: gesture-catalog.yaml stays within servo
-  bounds, no duplicate ids` and exits 0. Checks every `p`/`r`/`y`/`b`/`t`
-  value against the real ranges in `arduino/ServoControl/ServoControl.ino`
-  (pitch/roll 0-50, yaw 0-130, beak 0-60, duration 0-9999ms), every
-  `wait_ms` is positive, and no gesture `id` is duplicated across
-  On Watch/Off Watch/Asleep.
+- **Expected**: prints `PASS: gesture-catalog.yaml deltas/beak values
+  sane, ids unique, ambient gestures exist` and exits 0. Checks every
+  Move's `dp`/`dr`/`dy` against each axis's total travel from
+  `arduino/ServoControl/ServoControl.ino` (a loose sanity bound, since
+  real validity now depends on the runtime baseline this test can't
+  know), any absolute `beak` value against 0-60, every `t`/`wait_ms` is
+  positive, no gesture `id` is duplicated, and each mode's `ambient`
+  entry actually names a gesture that exists in that mode's list.
 - **Last confirmed passing**: 2026-09-20.
 - **Not covered**: whether any gesture actually looks right on the real
-  bird — this only checks the data won't ask a servo to go somewhere it
-  can't. Also doesn't check the two `NEEDS-RUNTIME-PARAM` entries'
-  fallback values, which are known placeholders, not real behavior.
+  bird, whether baseline/DoA tracking or the ambient/excursion engine
+  behave correctly (none of that is implemented yet), or the
+  `NEEDS-RUNTIME-PARAM` entry's fallback values, which are known
+  placeholders, not real behavior.

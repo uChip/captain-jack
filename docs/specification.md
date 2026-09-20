@@ -652,19 +652,24 @@ commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
-**Status: Not started; blocked on the XVF3800.**
+**Status: Not started; unblocked 2026-09-20** — the XVF3800 has arrived
+and is USB-connected to the Pi (see `CLAUDE.md`), so this no longer needs
+hardware that isn't on hand, just code.
 
 **Description**: Pi-side code reading per-beam azimuth from the XVF3800 via
 `xvf_host AEC_AZIMUTH_VALUES`.
 
-**Intended function**: supply a sound-direction cue to drive head-turn
-behavior (e.g., turning to face whoever just spoke), replacing the old
-electret-mic-based triangulation entirely.
+**Intended function**: supply a continuous sound-direction cue that pulls
+On Watch's and Off Watch's baseline yaw toward whoever's currently
+talking or making noise — not a one-shot "turn to face" gesture. Asleep
+deliberately doesn't use it (see
+[Gesture Engine and Catalog](#412-gesture-engine-and-catalog)). Replaces
+the old electret-mic-based triangulation entirely.
 
-**Interfaces**: reads from the XVF3800 over USB; feeds head-position
-targets into the [Gesture Engine](#412-gesture-engine-and-catalog) or
-directly into `HEAD` commands over the
-[serial link](#413-pi-to-arduino-serial-link).
+**Interfaces**: reads from the XVF3800 over USB; feeds the
+[Gesture Engine](#412-gesture-engine-and-catalog)'s baseline-yaw tracking
+for whichever mode has `doa_yaw_tracking` enabled
+([gesture-catalog.yaml](gesture-catalog.yaml)).
 
 ### 4.10 Idle and Ambient Audio Player
 
@@ -724,13 +729,25 @@ authored — no matching audio exists in `wavFiles/` yet, and
 `sl-waking-up` is the only new gesture added
 ([gesture-catalog.yaml](gesture-catalog.yaml) assumption 13).
 
-**Off Watch's own behavior loop is still an open design question** — an
-earlier sketch (independent random-interval timers for wav and gesture
-playback, picked uniformly at random from the whole library) had real
-bugs and doesn't obviously generalize from Asleep's simpler sequence,
-since Off Watch has more variety and less of a single natural "base
-cycle" to sequence around. Left for a dedicated pass — see
-[Open Issues](#5-open-issues) issue 5.
+**Off Watch's (and On Watch's) behavior loop, resolved 2026-09-20**: not
+Asleep's plain sequence — an earlier sketch of independent random-interval
+timers for wav/gesture playback had real bugs, and a fixed "excursion,
+then return to a hardcoded neutral point" model was rejected as too
+mechanical for something meant to read as lifelike. Instead, both Off
+Watch and On Watch use the **ambient/excursion model** now described in
+[Gesture Engine and Catalog](#412-gesture-engine-and-catalog): a
+designated ambient gesture runs continuously as the default state (Idle
+Breathing for Off Watch, Attentive Sway for On Watch —
+[gesture-catalog.yaml](gesture-catalog.yaml)'s `ambient:` map), its
+baseline drifting with live DoA yaw rather than sitting at a fixed point
+([DoA Reader](#49-direction-of-arrival-doa-reader)), and excursion
+gestures/wavs are chosen at random intervals to briefly interrupt it,
+handing control back to the ambient gesture's own next step when they
+finish rather than snapping to a stored constant. This resolves former
+[Open Issues](#5-open-issues) issue 5's remaining scope (Off Watch's
+behavior was undesigned) for the mechanism; the actual random-interval
+tuning (how often an excursion fires, weighting between wav vs. gesture)
+is not yet specified — a smaller follow-up, not a design gap.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
@@ -852,28 +869,89 @@ above). A previous draft of the library included a `Blink` gesture
 assuming an eyelid mechanism not present in the
 [documented physical build](#35-servos-head-and-beak); it has been removed.
 
-**Data structures (Chip's proposal, 2026-09-20, first pass — deliberately
-doesn't cover every nuance in [gesture-library.md](gesture-library.md)
-yet, see gaps below):**
+**Data structures — second pass, 2026-09-20** (first pass mapped
+[gesture-library.md](gesture-library.md) into resolved absolute servo
+commands; discussion surfaced that as the wrong model — see below):
 
 - **Gesture Library**: one array of Gestures each for **On Watch**,
-  **Off Watch**, and **Asleep** (mode-selectable gestures), plus a fourth,
-  separate **Wav-Paired** library — gestures scripted to accompany one
-  specific wav clip's timing, a distinct *purpose* from the three mode
-  libraries, not a fourth mode.
-  - **Gesture**: `id` (stable, assigned once, never reused — see below),
-    human-readable name/description, array of **Move**.
-  - **Move**: a command string sent verbatim to the Arduino (per
-    [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link)), plus a
-    wait time (ms) before advancing to the next Move or exiting the
-    gesture.
+  **Off Watch**, and **Asleep**, plus a fourth, separate **Wav-Paired**
+  library — gestures scripted to accompany one specific wav clip's
+  timing, a distinct *purpose* from the three mode libraries, not a
+  fourth mode.
+  - **Gesture**: `id` (stable, assigned once, never reused), human-
+    readable name/description, array of **Move**.
+  - **Move**: signed per-axis deltas (`dp`/`dr`/`dy`, each relative to a
+    live **baseline** pose, not a fixed resting position — see below;
+    omitted = 0, i.e. matches baseline on that axis), an optional
+    absolute `beak` value (0-60; omitted = don't touch the beak, which is
+    normally RMS-driven, not gesture-driven), a duration `t` (ms), and a
+    `wait_ms` before advancing to the next Move or exiting the gesture.
+    **No longer a literal Arduino command string** — see "Baseline and
+    the ambient/excursion model" below for why.
 - **Wav Library**: one array of Wavs each for On Watch, Off Watch, and
   Asleep (no Wav-Paired variant — that would be circular).
   - **Wav**: filename of the clip to play (path to `wavFiles/` stored
     separately), plus the `id` of the Wav-Paired Gesture to play
-    alongside it (a sentinel, e.g. -1, means none).
+    alongside it (empty/`null` means none — an integer sentinel like -1
+    no longer fits now that Gestures are id-keyed, not index-keyed).
 
-Design decisions from review:
+**Baseline and the ambient/excursion model (added 2026-09-20):** the
+first pass resolved every gesture's deltas into one fixed absolute
+command at authoring time — e.g. "+10 yaw" became a specific number
+computed against a hardcoded resting position. Chip's review caught two
+problems with that: (1) a real baseline should track where Jack is
+actually oriented (e.g. toward whoever's speaking, per DoA), not a
+constant; and (2) many gestures don't return to neutral on their own, so
+sequencing several of them without a shared reference point drifts until
+a servo hits its physical travel limit.
+
+The fix, applied uniformly to all three mode libraries:
+- Each mode has exactly one designated **ambient gesture** (see
+  `ambient:` in [gesture-catalog.yaml](gesture-catalog.yaml)) that the
+  engine treats as its default/base state — it never "finishes"; the
+  engine just keeps re-triggering it whenever nothing else is queued.
+  Everything else in that mode's library is an **excursion**: it
+  temporarily takes over, and once its own Move list ends, control
+  simply resumes the ambient gesture's next step. This is still
+  sequential, not concurrent — the Arduino only ever has one eased move
+  in flight — so this doesn't reopen [Open Issues](#5-open-issues) issue
+  24, which stays scoped to true simultaneous layering/blending
+  (currently still only a live question for On Watch — see
+  [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
+- **Baseline is the ambient gesture's own current center**, not a stored
+  constant. Baseline yaw is pulled toward the live DoA azimuth wherever
+  `doa_yaw_tracking` is true for that mode (On Watch and Off Watch, not
+  Asleep — a sleeping bird isn't meant to track household noise; see
+  [DoA Reader](#49-direction-of-arrival-doa-reader)). Baseline pitch/roll
+  has no DoA input and only moves via the ambient gesture's own gentle
+  oscillation, centered on `resting` as a fallback before anything has
+  nudged it.
+- The engine composes the real wire string only at send time:
+  `P = clamp(baseline.pitch + dp, 0, 50)`, and likewise for roll/yaw —
+  meaning a gesture's authored delta is the *original* magnitude from
+  gesture-library.md, and how much of it actually lands depends on
+  where baseline is right now, not a value pre-clamped against an
+  assumed-resting baseline. This retires the first pass's `CLAMPED`
+  annotations entirely.
+- Most excursions still end with an explicit delta-(0,0,0) Move for
+  tight control over how fast they snap back — but "back" now means
+  "current baseline," which is always drifting, not a hardcoded number,
+  which is what actually fixes the "too mechanical" complaint, not the
+  removal of return moves themselves. A few gestures (Look Back) don't
+  need a separate return move at all, because "recover to baseline" is
+  already their described motion.
+- The first pass's "anchor gesture" idea (should some excursions
+  permanently relocate the baseline?) is retired — this ambient/excursion
+  split replaces it. Off Watch's Ambient Scanning, for example, is just
+  a normal (larger) excursion now, not a special case.
+- "Turn Toward Speaker" no longer needs runtime parameterization —
+  continuous DoA-tracked baseline yaw already does the subtle following.
+  Re-scoped to a deliberate, fixed-delta *emphasis* turn layered on top
+  of that (e.g. noticeably acknowledging a new speaker), resolving one of
+  the two `NEEDS-RUNTIME-PARAM` cases below. "Vowel Drift" is unrelated
+  (duration tied to live TTS phoneme timing) and stays open.
+
+Design decisions carried over from the first pass, unchanged:
 - Gestures usable in more than one mode are **duplicated** into each
   mode's library rather than shared via a common catalog + per-mode
   allowlist. Deliberate: the system isn't memory-constrained, and
@@ -882,58 +960,35 @@ Design decisions from review:
   chosen specifically so hand-editing/reordering a library over time
   can't silently repoint a Wav's paired-gesture reference the way an
   index would.
-- The Move's wait time is **intentionally independent of** (and
-  typically ≥) any `t<TTTT>` duration already embedded in its verbatim
-  Arduino command string — not a redundant encoding of the same number.
-  Two reasons: (1) it avoids the engine ever needing to parse timing back
-  out of a string it already knows the timing of at authoring time, and
-  (2) the [serial link](#413-pi-to-arduino-serial-link) is one-directional
-  with no Arduino→Pi "done" acknowledgment, and whether the ServoEasing
-  library ignores a new command sent before the previous easing finishes,
-  or instead interrupts it, is unverified either way — so the wait is a
-  deliberate safety margin against firing the next Move before the servo
-  has actually settled, not just an optimization. Directly relevant to
-  [Open Issues](#5-open-issues) issue 24 (see that issue for the
-  still-undesigned interruption/preemption policy this only pads around,
-  not resolves).
+- The Move's `wait_ms` is **intentionally independent of** (and
+  typically ≥) its own `t` duration — not a redundant encoding of the
+  same number. Two reasons: (1) it avoids the engine ever needing to
+  parse timing back out of something it already knows the timing of at
+  authoring time, and (2) the
+  [serial link](#413-pi-to-arduino-serial-link) is one-directional with
+  no Arduino→Pi "done" acknowledgment, and whether the ServoEasing
+  library ignores a new command sent before the previous easing
+  finishes, or instead interrupts it, is unverified either way — so the
+  wait is a deliberate safety margin, not just an optimization. Directly
+  relevant to [Open Issues](#5-open-issues) issue 24.
 
 Known gaps, left for a later pass (not blocking this one):
-- No representation for the ranges (e.g. Roll: ±25°) or frequency-based
-  oscillation (e.g. "Excited Bob," 4–6Hz) that
-  [gesture-library.md](gesture-library.md) specifies for several
-  gestures — those must be hand-unrolled into repeated fixed Move
-  entries for now, so a gesture plays identically every time rather than
-  varying within its stated range.
+- No representation for frequency-based oscillation (e.g. "Excited Bob,"
+  4–6Hz) — still hand-unrolled into repeated fixed Moves, so a gesture
+  plays identically every time.
 - No machine-matchable selection tag on Gesture beyond the human-readable
   name/description — this section's own "Intended function" above lists
   four trigger sources (DoA, text content/tags, random idle selection,
   explicit request); picking a gesture programmatically from any of
   those will eventually need more structure than a free-text name.
+- "Vowel Drift" still can't be expressed as static data — its duration is
+  real TTS phoneme timing, not knowable at authoring time. Still marked
+  `NEEDS-RUNTIME-PARAM`.
 
-**Mapped 2026-09-20**: every entry in
-[gesture-library.md](gesture-library.md) has been translated into this
-structure — see [gesture-catalog.yaml](gesture-catalog.yaml). Doing that
-translation surfaced two more gaps beyond the two above (both noted
-inline in the catalog file):
-- Two entries ("Vowel Drift," "Turn Toward Speaker") aren't actually
-  expressible as fixed data at all — their timing/target depends on
-  live TTS phoneme timing or the live DoA azimuth respectively, not
-  anything knowable when the catalog is authored. Both are stubbed with
-  a fixed fallback so the id exists, marked `NEEDS-RUNTIME-PARAM`, not
-  treated as done.
-- Gesture has no loop/repeat field, but several Off Watch/Asleep entries
-  (Idle Breathing, Ambient Scanning) are meant to play continuously, not
-  once — currently an assumption the caller has to implement, not
-  something the data declares.
-
-Also surfaced: `PITCH_RESTING`/`ROLL_RESTING` in
-`arduino/ServoControl/ServoControl.ino` leave less headroom on the "up"
-and "tipped right" sides (+15/+20) than several gesture-library.md
-entries assume (some ask for +25/+30) — those are clamped to the real
-headroom in the catalog (marked `CLAMPED`), a toned-down motion rather
-than the originally brainstormed one. Getting the fuller motion back
-would mean re-centering those resting constants, trading off headroom
-elsewhere — a real hardware tradeoff, not a data-structure problem.
+**Mapped 2026-09-20 (both passes)**: every entry in
+[gesture-library.md](gesture-library.md) is translated into this
+structure — see [gesture-catalog.yaml](gesture-catalog.yaml), including
+its own header comments for the full first-pass-to-second-pass changelog.
 
 ### 4.13 Pi to Arduino Serial Link
 
@@ -1153,11 +1208,15 @@ session.
   ([4.11](#411-sleep-mode-state-machine)) are undesigned.~~ **Partially
   resolved 2026-09-20**: the state-machine/transition-logic half is now
   designed — see [Sleep-Mode State Machine](#411-sleep-mode-state-machine)
-  — and modes renamed Off Watch/On Watch/Asleep. Left open, narrowed to
-  the part this issue was actually about beyond transitions: the
-  Off-Watch idle catalog's specific content/script pairing and the
-  Asleep-specific quieter gesture/sound subset are still undesigned; only
-  On Watch (the conversation loop) is implemented.
+  — and modes renamed Off Watch/On Watch/Asleep. **Narrowed further
+  2026-09-20**: Off Watch's and Asleep's behavior-loop *mechanism* is now
+  also designed (ambient/excursion model for Off Watch/On Watch, plain
+  sequence for Asleep — see
+  [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
+  Left open: the actual random-interval tuning for Off Watch's excursion
+  frequency, and none of this (transitions, ambient/excursion engine, or
+  gesture catalog) is implemented in code yet — only On Watch's
+  conversation loop is.
 6. ~~Wake word, end-session phrase, and go-to-sleep phrase are all
   unchosen — no mode-transition trigger exists yet (see
   [Session Boundaries](#25-session-boundaries)).~~ **Resolved 2026-09-20**,

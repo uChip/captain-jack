@@ -1,16 +1,15 @@
-"""Re-runnable test for docs/tests.md: "gesture-catalog.yaml servo bounds".
+"""Re-runnable test for docs/tests.md: "gesture-catalog.yaml sanity checks".
 
-Verifies every Move command string in docs/gesture-catalog.yaml stays
-within the real servo ranges defined in
-arduino/ServoControl/ServoControl.ino (pitch/roll 0-50, yaw 0-130,
-beak 0-60, duration 0-9999ms), and that every Move has a positive
-wait_ms. Catches authoring/arithmetic mistakes in the catalog before
-they'd ever reach a real servo - does not touch hardware.
+Verifies docs/gesture-catalog.yaml's structure: every Move's delta stays
+within the axis's total travel (a loose sanity bound - real validity
+depends on the runtime baseline, which this can't know statically), any
+absolute `beak` value is in range, every wait_ms/t is positive, gesture
+ids are unique, and every mode's `ambient` entry actually exists in that
+mode's own gesture list. Does not touch hardware.
 
 Run: venv/bin/python tests/test_gesture_catalog_bounds.py
 """
 
-import re
 import sys
 from pathlib import Path
 
@@ -18,48 +17,54 @@ import yaml
 
 CATALOG = Path(__file__).parent.parent / "docs" / "gesture-catalog.yaml"
 
-# Matches arduino/ServoControl/ServoControl.ino's BEAK_RANGE/PITCH_RANGE/
-# ROLL_RANGE/YAW_RANGE and DURATION_MAX as tuned 2026-09-20 - the incoming
-# command range, not the offset-adjusted PWM angle.
-BOUNDS = {
-    "p": (0, 50),
-    "r": (0, 50),
-    "y": (0, 130),
-    "b": (0, 60),
-    "t": (0, 9999),
-}
+# Total travel per axis, from arduino/ServoControl/ServoControl.ino as
+# tuned 2026-09-20 - a delta can't exceed this even before baseline is
+# known, since baseline itself is always within [0, range].
+AXIS_SPAN = {"dp": 50, "dr": 50, "dy": 130}
+BEAK_RANGE = (0, 60)
+LIBS = ("on_watch", "off_watch", "asleep")
 
 
 def check_catalog():
     catalog = yaml.safe_load(CATALOG.read_text())
     errors = []
 
-    for lib in ("on_watch", "off_watch", "asleep"):
+    for lib in LIBS:
         for gesture in catalog[lib]:
             for i, move in enumerate(gesture["moves"]):
-                cmd = move["cmd"]
-                for axis, (lo, hi) in BOUNDS.items():
-                    m = re.search(axis + r"(\d+)", cmd)
-                    if not m:
-                        continue
-                    val = int(m.group(1))
-                    if not (lo <= val <= hi):
+                for axis, span in AXIS_SPAN.items():
+                    val = move.get(axis, 0)
+                    if abs(val) > span:
                         errors.append(
-                            f"{gesture['id']} move {i}: {axis}{val} outside "
-                            f"[{lo}, {hi}] in '{cmd}'"
+                            f"{gesture['id']} move {i}: {axis}={val} exceeds "
+                            f"total axis travel of {span}"
                         )
+                if "beak" in move:
+                    lo, hi = BEAK_RANGE
+                    if not (lo <= move["beak"] <= hi):
+                        errors.append(
+                            f"{gesture['id']} move {i}: beak={move['beak']} "
+                            f"outside [{lo}, {hi}]"
+                        )
+                if move.get("t", 1) <= 0:
+                    errors.append(f"{gesture['id']} move {i}: t must be positive")
                 if move["wait_ms"] <= 0:
                     errors.append(
                         f"{gesture['id']} move {i}: wait_ms must be positive, "
                         f"got {move['wait_ms']}"
                     )
 
-    all_ids = [
-        g["id"] for lib in ("on_watch", "off_watch", "asleep") for g in catalog[lib]
-    ]
+    all_ids = [g["id"] for lib in LIBS for g in catalog[lib]]
     dupes = {i for i in all_ids if all_ids.count(i) > 1}
     if dupes:
         errors.append(f"duplicate gesture ids: {sorted(dupes)}")
+
+    for lib, ambient_id in catalog["ambient"].items():
+        if ambient_id not in [g["id"] for g in catalog[lib]]:
+            errors.append(
+                f"ambient['{lib}'] = '{ambient_id}' not found in the "
+                f"'{lib}' gesture list"
+            )
 
     return errors
 
@@ -71,7 +76,10 @@ def run():
         for e in errors:
             print(" -", e)
         sys.exit(1)
-    print("PASS: gesture-catalog.yaml stays within servo bounds, no duplicate ids")
+    print(
+        "PASS: gesture-catalog.yaml deltas/beak values sane, ids unique, "
+        "ambient gestures exist"
+    )
 
 
 if __name__ == "__main__":
