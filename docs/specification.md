@@ -805,6 +805,64 @@ above). A previous draft of the library included a `Blink` gesture
 assuming an eyelid mechanism not present in the
 [documented physical build](#35-servos-head-and-beak); it has been removed.
 
+**Data structures (Chip's proposal, 2026-09-20, first pass — deliberately
+doesn't cover every nuance in [gesture-library.md](gesture-library.md)
+yet, see gaps below):**
+
+- **Gesture Library**: one array of Gestures each for **On Watch**,
+  **Off Watch**, and **Asleep** (mode-selectable gestures), plus a fourth,
+  separate **Wav-Paired** library — gestures scripted to accompany one
+  specific wav clip's timing, a distinct *purpose* from the three mode
+  libraries, not a fourth mode.
+  - **Gesture**: `id` (stable, assigned once, never reused — see below),
+    human-readable name/description, array of **Move**.
+  - **Move**: a command string sent verbatim to the Arduino (per
+    [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link)), plus a
+    wait time (ms) before advancing to the next Move or exiting the
+    gesture.
+- **Wav Library**: one array of Wavs each for On Watch, Off Watch, and
+  Asleep (no Wav-Paired variant — that would be circular).
+  - **Wav**: filename of the clip to play (path to `wavFiles/` stored
+    separately), plus the `id` of the Wav-Paired Gesture to play
+    alongside it (a sentinel, e.g. -1, means none).
+
+Design decisions from review:
+- Gestures usable in more than one mode are **duplicated** into each
+  mode's library rather than shared via a common catalog + per-mode
+  allowlist. Deliberate: the system isn't memory-constrained, and
+  duplication is the simpler structure to author and reason about.
+- Gestures are referenced by a stable **id**, not array position —
+  chosen specifically so hand-editing/reordering a library over time
+  can't silently repoint a Wav's paired-gesture reference the way an
+  index would.
+- The Move's wait time is **intentionally independent of** (and
+  typically ≥) any `t<TTTT>` duration already embedded in its verbatim
+  Arduino command string — not a redundant encoding of the same number.
+  Two reasons: (1) it avoids the engine ever needing to parse timing back
+  out of a string it already knows the timing of at authoring time, and
+  (2) the [serial link](#413-pi-to-arduino-serial-link) is one-directional
+  with no Arduino→Pi "done" acknowledgment, and whether the ServoEasing
+  library ignores a new command sent before the previous easing finishes,
+  or instead interrupts it, is unverified either way — so the wait is a
+  deliberate safety margin against firing the next Move before the servo
+  has actually settled, not just an optimization. Directly relevant to
+  [Open Issues](#5-open-issues) issue 24 (see that issue for the
+  still-undesigned interruption/preemption policy this only pads around,
+  not resolves).
+
+Known gaps, left for a later pass (not blocking this one):
+- No representation for the ranges (e.g. Roll: ±25°) or frequency-based
+  oscillation (e.g. "Excited Bob," 4–6Hz) that
+  [gesture-library.md](gesture-library.md) specifies for several
+  gestures — those must be hand-unrolled into repeated fixed Move
+  entries for now, so a gesture plays identically every time rather than
+  varying within its stated range.
+- No machine-matchable selection tag on Gesture beyond the human-readable
+  name/description — this section's own "Intended function" above lists
+  four trigger sources (DoA, text content/tags, random idle selection,
+  explicit request); picking a gesture programmatically from any of
+  those will eventually need more structure than a free-text name.
+
 ### 4.13 Pi to Arduino Serial Link
 
 **Status: Command syntax locked down 2026-09-15, servo actuation validated
@@ -1224,6 +1282,15 @@ session.
   — e.g. whether a new gesture request cuts off one in progress or waits,
   and whether two gestures can run on different axes at once — not
   anything the serial link or firmware need to know about.
+
+  **Noted 2026-09-20**: still undesigned, but the
+  [Gesture Engine's data structures](#412-gesture-engine-and-catalog) now
+  pad each Move's wait time past its embedded `t<TTTT>` duration as a
+  safety margin, specifically because whether the ServoEasing library
+  ignores a new command sent before the previous easing finishes, or
+  interrupts it instead, is unverified — either behavior is a real
+  candidate answer to this issue once it's actually tested, not just an
+  edge case to design around blindly.
 
 ## 6. Possible Future Enhancements
 
