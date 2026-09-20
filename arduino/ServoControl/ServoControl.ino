@@ -81,17 +81,17 @@ const uint8_t SERVO_YAW_PIN = 6;
 const uint8_t SERVO_BEAK_PIN = 11;
 
 // --- BEAK SERVO CONFIGURATION ---
-const int BEAK_OPEN = 0;
-const int BEAK_RANGE = 60;
-const int BEAK_OFFSET = 65;
+const unsigned int BEAK_OPEN = 0;
+const unsigned int BEAK_RANGE = 60;
+const unsigned int BEAK_OFFSET = 65;
 
 // --- HEAD SERVOS CONFIGURATION ---
-const int PITCH_RESTING = 35;   // Servo assembly can result in small errors. Adjust here to center
+const int PITCH_RESTING = 35;   // Servo assembly can result in small differences in alignment. Adjust here to center
 const int ROLL_RESTING = 30;    // Servo assembly can result in small errors. Adjust here to center
 const int YAW_RESTING = 70;     // Servo assembly can result in small errors. Adjust here to center
 const int PITCH_RANGE = 50;     // Servo assembly can result in small errors. Adjust to limit travel
 const int ROLL_RANGE = 50;      // Servo assembly can result in small errors. Adjust to limit travel
-const int YAW_RANGE = 130;       // Servo assembly can result in small errors. Adjust to limit travel
+const int YAW_RANGE = 130;      // Servo assembly can result in small errors. Adjust to limit travel
 const int PITCH_OFFSET = 70;    // Servo assembly can result in small errors. Adjust to limit travel
 const int ROLL_OFFSET = 55;     // Servo assembly can result in small errors. Adjust to limit travel
 const int YAW_OFFSET = 30;      // Servo assembly can result in small errors. Adjust to limit travel
@@ -131,31 +131,31 @@ void setup() {
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_OPEN + BEAK_OFFSET);  // fully open
+  beakServo.write((unsigned int)BEAK_OPEN + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);
+  beakServo.write((unsigned int)BEAK_RANGE + BEAK_OFFSET);
 #endif
   delay(500);
   Serial.println(F("Beak open."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_OPEN + BEAK_OFFSET);  // fully open
+  beakServo.write((unsigned int)BEAK_OPEN + BEAK_OFFSET);  // fully open
 #endif
   delay(500);
   Serial.println(F("Beak close."));
 #if defined(SERVO)
-  beakServo.write((int)BEAK_RANGE + BEAK_OFFSET);
+  beakServo.write((unsigned int)BEAK_RANGE + BEAK_OFFSET);
 #endif
   delay(500);
 #endif
 }
 
-int beakAngle = BEAK_RANGE + BEAK_OFFSET;
-int pitchAngle = PITCH_RESTING + PITCH_OFFSET;
-int rollAngle = ROLL_RESTING + ROLL_OFFSET;
-int yawAngle = YAW_RESTING + YAW_OFFSET;
+unsigned int beakAngle = BEAK_RANGE + BEAK_OFFSET;
+unsigned int pitchAngle = PITCH_RESTING + PITCH_OFFSET;
+unsigned int rollAngle = ROLL_RESTING + ROLL_OFFSET;
+unsigned int yawAngle = YAW_RESTING + YAW_OFFSET;
 long duration = 100;
 
 void loop() {
@@ -166,8 +166,7 @@ void loop() {
 #endif
 
     if (incomingByte == 'b') {
-      beakAngle = Serial.parseInt(SKIP_NONE, '-');    // Note: values over 32767 will turn negative so we have to test for that
-      if (beakAngle < 0 ) beakAngle = 0;
+      beakAngle = Serial.parseInt(SKIP_NONE, '-');    // don't allow negatives
       if (beakAngle > BEAK_RANGE) beakAngle = BEAK_RANGE;    // Clamp against the defined range, not the offset sum, so the addition below can't wrap
       beakAngle += BEAK_OFFSET;
 #if defined(SERVO)
@@ -179,7 +178,6 @@ void loop() {
 
     } else if (incomingByte == 'p') {
       pitchAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (pitchAngle < 0) pitchAngle = 0;
       if (pitchAngle > PITCH_RANGE) pitchAngle = PITCH_RANGE;
       pitchAngle += PITCH_OFFSET;
 #if defined(DEBUG)
@@ -188,7 +186,6 @@ void loop() {
 
     } else if (incomingByte == 'r') {
       rollAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (rollAngle < 0) rollAngle = 0;
       if (rollAngle > ROLL_RANGE) rollAngle = ROLL_RANGE;
       rollAngle += ROLL_OFFSET;
 #if defined(DEBUG)
@@ -197,7 +194,6 @@ void loop() {
 
     } else if (incomingByte == 'y') {
       yawAngle = Serial.parseInt(SKIP_NONE, '-');
-      if (yawAngle < 0) yawAngle = 0;
       if (yawAngle > YAW_RANGE) yawAngle = YAW_RANGE;
       yawAngle += YAW_OFFSET;
 #if defined(DEBUG)
