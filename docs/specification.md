@@ -668,22 +668,69 @@ directly into `HEAD` commands over the
 
 ### 4.10 Idle and Ambient Audio Player
 
-**Status: Not started; clip library seeded.** The `wavFiles/` folder now
-holds a first batch of mono, 41000Hz signed-16-bit-PCM clips (movie lines,
-song snippets with music removed, etc.) plus `AlignmentTone.wav` — a
-0.5s 880Hz-tone/0.5s-silence pattern repeated 8x, intended for measuring
-timing offset between audio output and beak movement once beak-sync
-exists. More clips, including short recordings of notable live Captain
-Jack responses, are expected to be added over time, including after
-project end. Playback code itself is still unwritten.
+**Status: Not started; clip library seeded; Asleep's own behavior loop
+designed 2026-09-20 (Off Watch's is not, see below).** The `wavFiles/`
+folder now holds a first batch of mono, 41000Hz signed-16-bit-PCM clips
+(movie lines, song snippets with music removed, etc.) plus
+`AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
+intended for measuring timing offset between audio output and beak
+movement once beak-sync exists. More clips, including short recordings of
+notable live Captain Jack responses, are expected to be added over time,
+including after project end. Playback code itself is still unwritten.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
-movie quotes, pirate sayings) during Off Watch mode.
+movie quotes, pirate sayings) during Off Watch mode, and the sparser
+breathing/snore/shift clips during Asleep.
 
-**Intended function**: drive Off-Watch behavior — periodic playback of a
-clip, paired with either a random gesture or a predefined gesture script,
-beak-synced via the same [RMS envelope path](#48-beak-sync-rms-envelope-extraction)
-used for live TTS.
+**Intended function**: drive Off-Watch and Asleep ambient behavior —
+periodic playback of a clip, paired with either a random gesture or a
+predefined gesture script, beak-synced via the same
+[RMS envelope path](#48-beak-sync-rms-envelope-extraction) used for live
+TTS.
+
+**Asleep's behavior loop (designed 2026-09-20)**: a plain repeating
+sequence, not independent wav/gesture timers — deliberately simpler than
+Off Watch's, since Asleep only has a handful of clips/gestures and
+nothing in it ever needs to play at the same time as anything else (no
+layering/blending question here, unlike [Open Issues](#5-open-issues)
+issue 24, which remains open for On Watch):
+
+```
+On entering Asleep:
+    play the going-to-sleep transition wav/gesture pair (not yet authored)
+
+Loop:
+    play the "breath" wav/gesture pair (sl-idle-breathing-quiet in
+      gesture-catalog.yaml) all the way through
+    if wake phrase "Ahoy, Captain Jack" detected:
+        play the "waking up" wav/gesture pair (sl-waking-up)
+        go to On Watch state
+    else, with some (tunable) chance:
+        play one random extra pair from {snore, snort,
+          "shift to get comfortable" (sl-micro-twitch-quiet stands in
+          for this one)}
+        if wake phrase detected: play "waking up", go to On Watch
+    # otherwise loop back to the next breath
+```
+
+The wake-phrase check happens only *between* completed
+wav/gesture pairs, never mid-playback — nothing here needs true
+interruption (see issue 24), since everything is a few seconds long at
+most. Playing "waking up" in full before actually transitioning is
+deliberate, not a latency compromise: a real animal is slow to react
+right out of sleep, so the delay reads as in-character. Snore/snort clips
+and the going-to-sleep transition gesture are named here but not yet
+authored — no matching audio exists in `wavFiles/` yet, and
+`sl-waking-up` is the only new gesture added
+([gesture-catalog.yaml](gesture-catalog.yaml) assumption 13).
+
+**Off Watch's own behavior loop is still an open design question** — an
+earlier sketch (independent random-interval timers for wav and gesture
+playback, picked uniformly at random from the whole library) had real
+bugs and doesn't obviously generalize from Asleep's simpler sequence,
+since Off Watch has more variety and less of a single natural "base
+cycle" to sequence around. Left for a dedicated pass — see
+[Open Issues](#5-open-issues) issue 5.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
@@ -1316,6 +1363,13 @@ session.
   interrupts it instead, is unverified — either behavior is a real
   candidate answer to this issue once it's actually tested, not just an
   edge case to design around blindly.
+
+  **Narrowed 2026-09-20**: resolved for Asleep specifically — its
+  [behavior loop](#410-idle-and-ambient-audio-player) is a plain
+  sequence where nothing ever plays concurrently with anything else, so
+  layering/blending doesn't arise there at all. Still fully open for
+  On Watch, and for whatever Off Watch's own behavior loop ends up being
+  once that's designed.
 
 ## 6. Possible Future Enhancements
 

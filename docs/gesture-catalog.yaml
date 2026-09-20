@@ -74,12 +74,11 @@
 #    something plays if triggered before real parameterization exists, but
 #    that fallback is not the intended behavior.
 #
-# 9. Idle/ambient gestures (Idle Breathing, Ambient Scanning) are written
-#    as a single play-through, but are meant to be looped continuously
-#    while off watch/asleep. There's no loop/repeat field on Gesture yet
-#    (another gap alongside #7/#8 above) — looping is currently an
-#    assumption the *caller* has to implement, not something this data
-#    declares.
+# 9. Off Watch's idle/ambient gestures (Idle Breathing, Ambient Scanning)
+#    are written as a single play-through, and Off Watch's own scheduling
+#    model (how/whether they repeat) is still an open question — see
+#    specification.md 4.10. This gap is Off-Watch-specific now; see #13
+#    below for why Asleep doesn't need a loop/repeat field at all.
 #
 # 10. Asleep's two entries are not copies of Off Watch's Idle gestures —
 #     per specification.md 2.4, Asleep needs a quieter subset, so these
@@ -96,6 +95,22 @@
 #     in gesture-library.md pairs a gesture with a specific wav file —
 #     that's real content curation against actual files in wavFiles/,
 #     out of scope for "map gesture-library.md's entries."
+#
+# 13. **Added 2026-09-20**: Asleep's behavior loop is now designed as a
+#     plain sequence, not independent timers (see specification.md 4.10)
+#     — a breath cycle plays through, then occasionally an extra clip
+#     (snore/snort/"shift to get comfortable") plays instead of/before
+#     the next breath. Nothing ever plays at the same time as anything
+#     else, so unlike Off Watch (see #9), Asleep never needed a
+#     loop/repeat field on Gesture — repetition is just the caller
+#     replaying "breath" each time through the sequence. `sl-waking-up`
+#     added below as the gesture played on detecting the wake phrase,
+#     before the state machine actually leaves Asleep (see 4.10/4.11) —
+#     matches Chip's call that a real animal is slow to react right out
+#     of sleep, so finishing this gesture before transitioning is in
+#     character, not a latency compromise. Snore/snort content, and the
+#     going-to-sleep entry gesture, are named in 4.10 but not yet
+#     authored — no matching audio exists in `wavFiles/` yet.
 
 resting:
   pitch: 35
@@ -343,10 +358,15 @@ off_watch:
         wait_ms: 430
 
 asleep:
-  # Quieter subset, not copies of off_watch's Idle gestures — see assumption 10.
+  # Quieter subset, not copies of off_watch's Idle gestures — see
+  # assumption 10. Roles in the breath-cycle sequence (specification.md
+  # 4.10, assumption 13): sl-idle-breathing-quiet is the repeating
+  # "breath" step; sl-micro-twitch-quiet stands in for the occasional
+  # "shift to get comfortable" variation. Snore/snort have no gesture or
+  # wav yet — audio doesn't exist in wavFiles/ (see assumption 13).
 
   - id: sl-idle-breathing-quiet
-    name: "Idle Breathing (Asleep) — smaller, slower than off-watch version"
+    name: "Idle Breathing (Asleep) — smaller, slower than off-watch version; the cycle's repeating 'breath' step"
     moves:
       - cmd: p38r32y70t3000s
         wait_ms: 3030
@@ -354,12 +374,20 @@ asleep:
         wait_ms: 3030
 
   - id: sl-micro-twitch-quiet
-    name: "Micro-Twitch (Asleep) — smaller, slower than off-watch version"
+    name: "Micro-Twitch (Asleep) — smaller, slower than off-watch version; stands in for 'shift to get comfortable'"
     moves:
       - cmd: p36r32y71t70s
         wait_ms: 100
       - cmd: p35r30y70t70s
         wait_ms: 100
+
+  - id: sl-waking-up
+    name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
+    moves:
+      - cmd: b10r35p40y75t200s
+        wait_ms: 230
+      - cmd: b60r30p35y70t300s
+        wait_ms: 330
 
 wav_paired: []   # empty — no source content to map yet, see assumption 12
 
