@@ -278,8 +278,13 @@ Arduino; outbound network to the Anthropic API for each conversation turn.
 
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
-and dynamic noise suppression. **Status: on order** (not yet on hand — this
-gates all items in CLAUDE.md's "Blocked until the XVF3800 arrives" list).
+and dynamic noise suppression. **Status: received and connected to the Pi
+via USB (2026-09-20)**, but not yet physically mounted to the statue —
+currently sits on a table in front of the parrot. No speaker is connected
+yet (see [Speaker](#33-speaker)), so wake-word spotting, DoA, and STT can
+start now, but AEC/echo-cancellation validation and idle/TTS audio output
+remain blocked until the speaker is wired — see CLAUDE.md's "Blocked
+until the XVF3800 arrives" list, now narrowed to the speaker-output items.
 Chosen over the 2-mic ReSpeaker Lite (XU316) and the older WM8960-based
 2-Mic HAT specifically for its newer-generation AEC and 4-mic beamforming,
 needed because the bird's speaker sits inches from its own mics — at
@@ -298,8 +303,10 @@ output is a possible later addition if voice quality needs it.
 
 ### 3.3 Speaker
 
-**Description**: the bird's existing speaker. **Status: on hand** (assumed
-carried over from the original build; not separately specified).
+**Description**: the speaker from the previous prototype build (the
+XVF3800 doesn't ship with one). **Status: on hand, not yet connected** —
+the XVF3800's speaker output uses a 2-pin JST connector Chip doesn't have
+on hand; one is ordered, ETA ~2026-09-27.
 
 **Intended function**: audio output for TTS and idle/ambient clips.
 
@@ -310,17 +317,19 @@ no reference signal to cancel against, defeating the reason it was chosen.
 ### 3.4 Arduino Servo Controller
 
 **Description**: a new Arduino Uno, replacing the original build's board.
-**Status: connected to the Pi and confirmed working via `arduino-cli`** —
-compile and upload both verified end-to-end (2026-09-13 compile/download,
-2026-09-14 full compile+upload with a visually-confirmed blink-rate change
-on `arduino/TestBlink`); Servo and ServoEasing libraries are installed.
-The old MY1690 + electret-mic hardware has been removed (it lived on the
-original board, not this one) — see
-[Removed and Legacy Hardware](#37-removed-and-legacy-hardware). This new
-board is **not yet wired to the head/beak servos**; servo-only firmware has
-been written, compiled, and uploaded, but real actuation can't be
-validated until that connection is made — see
-[Open Issues](#5-open-issues). Previously owned all "intelligence,"
+**Status: connected to the Pi, wired to all four servos, and confirmed
+driving them correctly (2026-09-20)** — compile and upload verified
+end-to-end (2026-09-13/2026-09-14 via `arduino/TestBlink`); Servo and
+ServoEasing libraries are installed. Real actuation was initially
+erratic — traced to an inadequate 500mA servo power supply for 4 servos
+running simultaneously, fixed by swapping in a 2000mA supply (which
+required removing a power-enable line the old supply had and the new one
+doesn't support at 5V). Resting/offset/range constants for all four axes
+are now tuned empirically against the real mechanism — see
+[Arduino Firmware](#414-arduino-firmware). The old MY1690 + electret-mic
+hardware has been removed (it lived on the original board, not this one)
+— see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware).
+Previously owned all "intelligence,"
 peripherals, and sensor input in the pre-Pi design; those roles are removed
 and it shrinks to real-time servo execution only. The real-time PWM loop
 itself deliberately stays on the Arduino rather than the Pi, so it stays
@@ -343,7 +352,7 @@ see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog).
 **Interconnect**: one-directional serial from the Pi 5 (no upstream sensor
 data anymore, unlike the original design). Command framing is locked down
 — see [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Servo PWM
-wiring itself is not yet connected — see above.
+wiring is connected — see above.
 
 The sketch itself has been written for servo-only duty; see
 [Arduino Firmware](#414-arduino-firmware).
@@ -633,7 +642,14 @@ directly into `HEAD` commands over the
 
 ### 4.10 Idle and Ambient Audio Player
 
-**Status: Not started.**
+**Status: Not started; clip library seeded.** The `wavFiles/` folder now
+holds a first batch of mono, 41000Hz signed-16-bit-PCM clips (movie lines,
+song snippets with music removed, etc.) plus `AlignmentTone.wav` — a
+0.5s 880Hz-tone/0.5s-silence pattern repeated 8x, intended for measuring
+timing offset between audio output and beak movement once beak-sync
+exists. More clips, including short recordings of notable live Captain
+Jack responses, are expected to be added over time, including after
+project end. Playback code itself is still unwritten.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Offline mode.
@@ -710,14 +726,14 @@ assuming an eyelid mechanism not present in the
 
 ### 4.13 Pi to Arduino Serial Link
 
-**Status: Command syntax locked down 2026-09-15.** Implemented in
-`arduino/ServoControl/ServoControl.ino` and code-reviewed (former
-[Open Issue](#5-open-issues) 21) — servo actuation itself is still
-unvalidated pending wiring, but the wire format below is Chip's call as
-settled: further testing is expected to change implementation details
-(calibration offsets, exact timing bounds), not the syntax itself. If
-that assumption turns out wrong, that's a bug to call out and deal with
-when found, not a reason to hold the syntax open now.
+**Status: Command syntax locked down 2026-09-15, servo actuation validated
+2026-09-20.** Implemented in `arduino/ServoControl/ServoControl.ino` and
+code-reviewed (former [Open Issue](#5-open-issues) 21) — the wire format
+below is Chip's call as settled: further testing is expected to change
+implementation details (calibration offsets, exact timing bounds), not
+the syntax itself. If that assumption turns out wrong, that's a bug to
+call out and deal with when found, not a reason to hold the syntax open
+now.
 
 **Description**: one-directional serial protocol, Pi → Arduino only (no
 upstream sensor relay in the new design). **Locked down 2026-09-15**,
@@ -827,17 +843,18 @@ Pi-side, in [Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see
 former [Open Issue](#5-open-issues) 8. Notably must **not** reintroduce
 SoftwareSerial alongside the easing library without further research —
 the two were observed to interfere with each other in the prior MY1690-era
-design, and SoftwareSerial was removed along with the MY1690. Still open,
-from code review: whether attaching the beak servo as a `ServoEasing`
-object (even though it's only ever driven via plain `.write()`) has any
-side effects worth avoiding by using a plain `Servo` for beak instead —
-needs more research/experimentation.
+design, and SoftwareSerial was removed along with the MY1690. **Resolved
+2026-09-20**: the beak servo is now attached as a plain `Servo` rather
+than `ServoEasing` (it was only ever driven via `.write()`, never eased),
+closing the code-review question of whether the `ServoEasing` object had
+side effects worth avoiding.
 
 **Interfaces**: reads the
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link); writes PWM to
-the [head and beak servos](#35-servos-head-and-beak) — not yet wired, see
-[Arduino Servo Controller](#34-arduino-servo-controller). Chip wrote this
-sketch himself rather than handing it to a future session.
+the [head and beak servos](#35-servos-head-and-beak) — wired and
+validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
+Chip wrote this sketch himself rather than handing it to a future
+session.
 
 ## 5. Open Issues
 
@@ -1070,9 +1087,11 @@ sketch himself rather than handing it to a future session.
   landed at 24, outside the 80-125 beak range); and duration (`t`) had no
   upper bound at all, now capped at 9999ms — 2x the slowest gesture in
   [gesture-library.md](gesture-library.md) — so a garbled/huge value
-  can't reach the easing library unbounded. Left open: still can't be
-  validated against real actuation until the board is wired to the
-  head/beak servos, which hasn't happened yet.
+  can't reach the easing library unbounded.~~ **Closed 2026-09-20**: board
+  wired to all four servos; erratic behavior traced to an undersized
+  500mA power supply (replaced with 2000mA), then resting/offset/range
+  constants tuned empirically. `ServoControl.ino` now drives all four
+  servos correctly from real commands.
 22. **Downgraded 2026-09-14, low risk per analysis, not closed** (pending
   empirical confirmation): the ATmega328P runs at 16MHz with a hardware
   8-bit multiplier; only 3 servos need easing math per update (pitch/

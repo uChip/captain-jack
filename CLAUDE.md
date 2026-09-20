@@ -14,13 +14,16 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-No audio I/O or reSpeaker DoA yet — that needs hardware that hasn't
-arrived. The Pi<->Arduino serial link's command syntax is locked down and
+The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
-`docs/specification.md` section 4.13), but real actuation is still
-unvalidated — the Arduino isn't wired to the head/beak servos yet. No
-home-automation tool calling yet either — the intent allowlist (next-step
-below) isn't defined.
+`docs/specification.md` section 4.13) — **confirmed 2026-09-20**: the
+Arduino is now wired to all four servos (head pitch/roll/yaw + beak) and
+drives them correctly from real commands. The reSpeaker XVF3800 has
+arrived and is connected to the Pi via USB, but isn't mounted to the
+statue yet and has no speaker wired (2-pin JST connector on order, ETA
+~2026-09-27) — so wake-word/DoA/STT work can start, but audio output and
+AEC validation can't yet. No home-automation tool calling yet either —
+the intent allowlist (next-step below) isn't defined.
 
 ### Running it
 
@@ -123,6 +126,20 @@ separate stack:
    end-to-end against a freshly connected Arduino Uno — doubled
    `TestBlink`'s blink rate, compiled, uploaded via `/dev/ttyUSB0`, and
    Chip visually confirmed the LED blinks at the new rate.
+6. **Confirmed 2026-09-20**: Arduino wired to all four servos (head
+   pitch/roll/yaw + beak) and `ServoControl.ino` drives them correctly.
+   Erratic behavior was traced to an undersized 500mA power supply,
+   fixed with a 2000mA supply (which meant removing the power-enable
+   line — the new supply has no 5V-compatible enable). Beak switched
+   from `ServoEasing` to plain `Servo`; resting/offset/range constants
+   for all four axes tuned empirically. See `docs/specification.md`
+   Open Issues issue 21 (closed) and section 4.14.
+7. **Received 2026-09-20**: the reSpeaker XVF3800 has arrived and is
+   connected to the Pi via USB, sitting on a table in front of the
+   parrot (not yet mounted to the statue). No speaker connected yet — a
+   2-pin JST connector is on order, ETA ~2026-09-27. A first batch of
+   idle/ambient `.wav` clips has been added under `wavFiles/`, including
+   an `AlignmentTone.wav` for later beak-sync timing calibration.
 
 ## Work list — split by hardware dependency
 
@@ -156,9 +173,10 @@ XVF3800, still on order.
    reviewed 2026-09-15**: `arduino/ServoControl/ServoControl.ino` exists,
    compiles clean, and had two bugs (angle-clamp overflow, unbounded
    duration) caught and fixed in code review — see `specification.md`
-   Open Issues issue 21. Still open: real actuation still can't be
+   Open Issues issue 21. ~~Still open: real actuation still can't be
    validated until the board is wired to the head/beak servos, which
-   hasn't happened yet.
+   hasn't happened yet.~~ **Resolved 2026-09-20**: board wired to all
+   four servos, actuation validated — see "Done so far" item 6.
 5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's
@@ -168,16 +186,32 @@ XVF3800, still on order.
    spec — doesn't need new hardware either.
 7. More conversational/memory test vectors as they come up — continuing the
    joke/automation/NONE-case testing from this session.
+8. **New 2026-09-20, unblocked by the XVF3800's arrival**: with the board
+   USB-connected to the Pi (even unmounted and without a speaker), start
+   on the mic/DoA-only half of the stack — reading DoA via
+   `xvf_host AEC_AZIMUTH_VALUES`, and wake-word/STT groundwork. Audio
+   *output* (TTS, idle clips, beak-sync, AEC validation) still needs the
+   speaker wired — see "Blocked" below.
 
 ### Blocked until the XVF3800 arrives
 
+**The XVF3800 itself arrived 2026-09-20** and is connected to the Pi via
+USB, so items needing only its mic/DoA input (not its speaker output) are
+now unblocked — see "Doable now" below. Still blocked on the speaker
+being wired (2-pin JST connector on order, ETA ~2026-09-27) and on
+mounting the board to the statue:
+
 1. Validate AEC quality against the bird's own speaker — can't test
-   self-echo cancellation without the real board.
-2. Validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from Pi-side code.
+   self-echo cancellation without the speaker wired.
+2. ~~Validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from Pi-side
+   code.~~ **Unblocked 2026-09-20** — XVF3800 is USB-connected; move to
+   "Doable now."
 3. Real-time RMS beak-sync extraction from live audio playback/TTS through
-   the reSpeaker's output.
+   the reSpeaker's output — needs the speaker wired.
 4. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
-   tested for real.
+   tested for real — needs the speaker wired for the TTS/beak-sync half.
 5. Speaker-ID accuracy validation against real household voices — a
-   stand-in mic won't fairly test what the AEC-cleaned audio actually buys.
-6. Idle/ambient audio playback tuning through the reSpeaker's own output.
+   stand-in mic won't fairly test what the AEC-cleaned audio actually buys;
+   AEC itself needs the speaker wired first.
+6. Idle/ambient audio playback tuning through the reSpeaker's own output —
+   needs the speaker wired.
