@@ -60,7 +60,7 @@
     54321b23hpgl - b23 picked out from garbage
 
   STATUS: Compiles. Runs. Spot checked valid commands work.  Spot checked garbage is ignored.  All done by
-  reading debug print statements.  Actual servo response not yet tested.
+  reading debug print statements.  Actual servo response tested and functional.
 
 */
 
