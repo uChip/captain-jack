@@ -66,6 +66,14 @@ def check_catalog():
                 f"'{lib}' gesture list"
             )
 
+    for lib, interval in catalog.get("excursion_interval_seconds", {}).items():
+        lo, hi = interval
+        if not (0 < lo < hi):
+            errors.append(
+                f"excursion_interval_seconds['{lib}'] = {interval} must "
+                f"satisfy 0 < min < max"
+            )
+
     return errors
 
 

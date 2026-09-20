@@ -110,6 +110,18 @@ doa_yaw_tracking:
   off_watch: true
   asleep: false
 
+excursion_interval_seconds:
+  # Off Watch only — On Watch's excursions are triggered by conversation
+  # content/DoA/emotion, not a wall-clock timer, and Asleep uses its own
+  # per-breath-cycle chance instead (specification.md 4.10). Between
+  # completed ambient-motion steps (~4s granularity, see
+  # id-idle-breathing), pick a random wait in this range before the next
+  # excursion. Widened 2026-09-20 from an original 10-20s instinct:
+  # with only 3 off_watch excursion gestures and 0 wav clips today,
+  # 10-20s would repeat each gesture ~20x in a single 15-minute Off
+  # Watch session — tighten back toward 10-20s as the library grows.
+  off_watch: [30, 90]
+
 on_watch:
   # --- Ambient (default/base state, always running) ---
 
@@ -273,6 +285,8 @@ off_watch:
       - {dp: -5, dr: -3, t: 2000, wait_ms: 2030}
 
   # --- Idle excursions (docs/gesture-library.md "Idle Gestures") ---
+  # Engine rule (2026-09-20): never pick the same excursion id twice in a
+  # row — cheap anti-repetition given how small this pool still is.
 
   - id: id-ambient-scanning
     name: "Ambient Scanning — yaw drift + roll tilt"

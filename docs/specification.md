@@ -745,9 +745,19 @@ gestures/wavs are chosen at random intervals to briefly interrupt it,
 handing control back to the ambient gesture's own next step when they
 finish rather than snapping to a stored constant. This resolves former
 [Open Issues](#5-open-issues) issue 5's remaining scope (Off Watch's
-behavior was undesigned) for the mechanism; the actual random-interval
-tuning (how often an excursion fires, weighting between wav vs. gesture)
-is not yet specified — a smaller follow-up, not a design gap.
+behavior was undesigned) for the mechanism.
+
+**Off Watch excursion tuning (2026-09-20)**: a random interval of
+30-90 seconds between completed ambient-motion steps
+(`excursion_interval_seconds` in
+[gesture-catalog.yaml](gesture-catalog.yaml)), plus a rule never to pick
+the same excursion id twice in a row. Chip's first instinct was 10-20s;
+widened because the math didn't work against today's library — with only
+3 Off Watch excursion gestures and 0 wav clips, 10-20s over a full
+15-minute Off Watch session would repeat each gesture roughly 20 times,
+reading as mechanical rather than lifelike. 30-90s is explicitly a
+starting point to tighten back down as the library grows, not a final
+number — "try it and see," per Chip.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
