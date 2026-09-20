@@ -87,14 +87,14 @@ const unsigned int BEAK_OFFSET = 65;
 
 // --- HEAD SERVOS CONFIGURATION ---
 const int PITCH_RESTING = 35;   // Servo assembly can result in small differences in alignment. Adjust here to center
-const int ROLL_RESTING = 30;    // Servo assembly can result in small errors. Adjust here to center
-const int YAW_RESTING = 70;     // Servo assembly can result in small errors. Adjust here to center
-const int PITCH_RANGE = 50;     // Servo assembly can result in small errors. Adjust to limit travel
-const int ROLL_RANGE = 50;      // Servo assembly can result in small errors. Adjust to limit travel
-const int YAW_RANGE = 130;      // Servo assembly can result in small errors. Adjust to limit travel
-const int PITCH_OFFSET = 70;    // Servo assembly can result in small errors. Adjust to limit travel
-const int ROLL_OFFSET = 55;     // Servo assembly can result in small errors. Adjust to limit travel
-const int YAW_OFFSET = 30;      // Servo assembly can result in small errors. Adjust to limit travel
+const int ROLL_RESTING = 30;    // Servo assembly can result in small differences in alignment. Adjust here to center
+const int YAW_RESTING = 70;     // Servo assembly can result in small differences in alignment. Adjust here to center
+const int PITCH_RANGE = 50;     // Servo assembly can result in small differences in alignment. Adjust to limit travel
+const int ROLL_RANGE = 50;      // Servo assembly can result in small differences in alignment. Adjust to limit travel
+const int YAW_RANGE = 130;      // Servo assembly can result in small differences in alignment. Adjust to limit travel
+const int PITCH_OFFSET = 70;    // Servo assembly can result in small differences in alignment. Adjust to limit travel
+const int ROLL_OFFSET = 55;     // Servo assembly can result in small differences in alignment. Adjust to limit travel
+const int YAW_OFFSET = 30;      // Servo assembly can result in small differences in alignment. Adjust to limit travel
 
 // Slowest gesture in docs/gesture-library.md is a 3-5s sweep; 9999ms gives headroom
 // for future gestures while treating anything past it as a garbled command, not a real move.
