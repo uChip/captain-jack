@@ -142,14 +142,22 @@ overwrite-style save instead — deferred, see
 
 ### 2.4 Operational Modes
 
-Three modes are defined:
+Three modes are defined — **renamed 2026-09-20** from the original
+Offline/Online/Asleep naming (Chip's call: Offline and Asleep were both,
+in fact, "offline" and both ran idle behavior off local catalogs, just
+different ones, so "Offline" didn't actually distinguish anything;
+"Asleep" was always the right name for what it describes). Nautical
+naming was chosen to fit Jack's persona:
 
-- **Offline** (the Pi is up and running its idle loop, just not in an
-  active Haiku session): Jack is not static — he cycles through a catalog
-  of gestures and short local audio clips (one-liner jokes, movie quotes,
-  pirate-y sayings), gesture choice random unless a script is paired with
-  a specific clip, beak movement driven off the audio the same way as in
-  an online session. See
+- **On Watch** (formerly "Online"): actively in a Haiku conversation. On
+  request, Jack can play a catalog sound while still on watch.
+  See [Conversation Orchestrator](#43-conversation-orchestrator).
+- **Off Watch** (formerly "Offline" — the Pi is up and running its idle
+  loop, just not in an active Haiku session): Jack is not static — he
+  cycles through a catalog of gestures and short local audio clips
+  (one-liner jokes, movie quotes, pirate-y sayings), gesture choice random
+  unless a script is paired with a specific clip, beak movement driven off
+  the audio the same way as in an On Watch session. See
   [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player) and
   [Gesture Engine and Catalog](#412-gesture-engine-and-catalog). **This
   presumes the Pi is running** — all of Jack's behavior, including idle
@@ -158,28 +166,36 @@ Three modes are defined:
   itself is down, crashed, or not yet booted, Jack is simply motionless
   and silent, not in some Arduino-only idle state. That's accepted
   behavior, not a gap — see [Open Issues](#5-open-issues) issue 7.
-- **Online**: actively in a Haiku conversation. On request, Jack can play a
-  catalog sound while still online.
-  See [Conversation Orchestrator](#43-conversation-orchestrator).
-- **Asleep**: after a random (min/max-bounded) idle period offline, Jack
-  switches to a quieter subset of movements/sounds. No behavior spec,
-  gesture/sound subset, or state-machine design exists yet for this mode,
-  distinct from plain Offline — see
-  [Sleep-Mode State Machine](#411-sleep-mode-state-machine) and
-  [Open Issues](#5-open-issues).
+- **Asleep**: reached from Off Watch after a randomized idle period, or
+  directly from On Watch on request. Jack switches to a quieter subset of
+  movements/sounds. The mode-transition logic (when Asleep is entered/
+  exited) is now specified — see
+  [Sleep-Mode State Machine](#411-sleep-mode-state-machine). The
+  Asleep-specific gesture/sound *subset itself* (which clips, which
+  gestures) is still undesigned — see [Open Issues](#5-open-issues)
+  issue 5.
 
-Only **Online**, as a text-only conversation loop, is implemented today (see
-`orchestrate.py`, [Conversation Orchestrator](#43-conversation-orchestrator)).
-Offline and Asleep are undesigned beyond the description above.
+Only **On Watch**, as a text-only conversation loop, is implemented today
+(see `orchestrate.py`,
+[Conversation Orchestrator](#43-conversation-orchestrator)). Off Watch's
+and Asleep's own catalog behavior are undesigned beyond the description
+above; their transition logic is designed but unimplemented — see
+[Sleep-Mode State Machine](#411-sleep-mode-state-machine).
 
 ### 2.5 Session Boundaries
 
-An (unchosen — see [Open Issues](#5-open-issues)) trigger phrase ends a
-session; before disconnecting, Jack gets the last word with an in-context
-"exit line" (not a conversational lead-in), then returns to Offline
-behavior. A separate, also-unchosen phrase instead sends Jack to sleep, with
-its own sleep-flavored exit line, transitioning directly to Asleep behavior.
-Neither trigger phrase, nor the mode-transition logic itself, is implemented.
+**Updated 2026-09-20** — see
+[Sleep-Mode State Machine](#411-sleep-mode-state-machine) for the full
+transition design; summary: a fixed wake phrase ("Ahoy, Captain Jack",
+spotted locally, not by Haiku) starts a session from either Off Watch or
+Asleep. Ending a session or going to sleep *while already On Watch* is
+not phrase-matched at all — Haiku itself recognizes the intent from
+however the household member actually phrases it (a meta-tag on the
+reply, same mechanism as the `MEMORY:` line) and Jack's own reply already
+serves as the in-context exit/sleep-flavored line, so no separate
+scripted line is needed. A second fixed phrase ("Goodnight, Jack",
+also locally spotted) sends Jack from Off Watch directly to Asleep
+without a conversation. None of this is implemented yet.
 
 ### 2.6 Home Automation
 
@@ -427,15 +443,25 @@ hasn't arrived and the Arduino isn't yet connected.
 
 **Status: Not started.**
 
-**Description**: local, always-on keyword spotter running on the Pi.
+**Description**: local, always-on keyword spotter running on the Pi. Per
+[Sleep-Mode State Machine](#411-sleep-mode-state-machine), this same
+spotter (not Haiku) is what listens for the small fixed set of
+mode-transition phrases while Jack isn't On Watch — it isn't limited to
+just the wake phrase.
 
-**Intended function**: detect a wake word/phrase to start a session,
-transitioning Offline → Online. No engine has been chosen, and the wake
-phrase itself is undecided (see [Open Issues](#5-open-issues)).
+**Intended function**: detect the wake phrase **"Ahoy, Captain Jack"**
+(chosen 2026-09-20) to start a session, transitioning Off Watch/Asleep →
+On Watch. Also detects the separate go-to-sleep phrase **"Goodnight,
+Jack"** (Off Watch → Asleep). No engine has been chosen yet, and exact
+match/variant tolerance for both phrases is still undecided.
 
-**Interfaces**: listens to the XVF3800's audio stream; on detection,
-signals the [Conversation Orchestrator](#43-conversation-orchestrator) to
-start a session and hands off to [STT](#42-speech-to-text-stt).
+**Interfaces**: listens to the XVF3800's audio stream; on detecting the
+wake phrase, signals the
+[Conversation Orchestrator](#43-conversation-orchestrator) to start a
+session and hands off to [STT](#42-speech-to-text-stt). On detecting the
+sleep phrase, signals the
+[Sleep-Mode State Machine](#411-sleep-mode-state-machine) directly — no
+Haiku call involved.
 
 ### 4.2 Speech to Text (STT)
 
@@ -445,7 +471,7 @@ start a session and hands off to [STT](#42-speech-to-text-stt).
 not a firm choice.
 
 **Intended function**: transcribe household speech to text for the
-orchestrator during an Online session.
+orchestrator during an On Watch session.
 
 **Interfaces**: reads audio from the XVF3800 (via the Pi); outputs
 transcribed text to the
@@ -652,9 +678,9 @@ Jack responses, are expected to be added over time, including after
 project end. Playback code itself is still unwritten.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
-movie quotes, pirate sayings) during Offline mode.
+movie quotes, pirate sayings) during Off Watch mode.
 
-**Intended function**: drive Offline-mode behavior — periodic playback of a
+**Intended function**: drive Off-Watch behavior — periodic playback of a
 clip, paired with either a random gesture or a predefined gesture script,
 beak-synced via the same [RMS envelope path](#48-beak-sync-rms-envelope-extraction)
 used for live TTS.
@@ -662,18 +688,73 @@ used for live TTS.
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
 [Gesture Engine](#412-gesture-engine-and-catalog); orchestrated by whatever
-implements the [Offline/Online/Asleep mode logic](#411-sleep-mode-state-machine),
+implements the [On Watch/Off Watch/Asleep mode logic](#411-sleep-mode-state-machine),
 which doesn't yet exist as a discrete module.
 
 ### 4.11 Sleep-Mode State Machine
 
-**Status: Not started, not fully designed.**
+**Status: Transition design specified 2026-09-20 (Chip's proposal,
+discussed and refined); not implemented.** Mode names renamed from
+Offline/Online/Asleep to Off Watch/On Watch/Asleep — see
+[Operational Modes](#24-operational-modes).
 
-**Description**: the mode-transition logic implied by
-[Use Case 2.4](#24-operational-modes) — Offline ⇄ Online on wake-word/
-session-end, and Offline → Asleep after a randomized idle timeout, with its
-own quieter gesture/sound subset. No timeout values, sleep-trigger phrase,
-or Asleep-specific catalog subset are defined yet.
+**Description**: the mode-transition logic among the three
+[Operational Modes](#24-operational-modes). This section covers
+transitions only — each mode's own internal behavior (Off Watch's idle
+catalog, Asleep's quieter subset, On Watch's conversation loop) is
+specified elsewhere ([4.10](#410-idle-and-ambient-audio-player),
+[4.12](#412-gesture-engine-and-catalog),
+[4.3](#43-conversation-orchestrator)).
+
+Key design principle: the local, always-on
+[Wake Word Spotter](#41-wake-word-spotter) only needs to listen for a
+small fixed set of exact phrases, and only while Jack **isn't** On
+Watch — while On Watch, Haiku is already in the loop for every turn, so
+mode-exit intent is read from the model's own understanding of whatever
+phrasing a household member actually used (a meta-tag on the reply,
+same mechanism as the `MEMORY:` line — see
+[Memory Subsystem](#45-memory-subsystem)), not a second fixed-phrase
+listener running in parallel. This keeps the zero-marginal-cost local
+spotter simple while still tolerating varied phrasing where it matters
+(mid-conversation), consistent with the project's local-spotting-only,
+network-for-the-LLM-turn-only principle (see `CLAUDE.md`).
+
+**Transitions:**
+
+- **→ On Watch**
+  - From Off Watch or Asleep: wake phrase **"Ahoy, Captain Jack"**
+    detected by the local spotter. Same phrase from either mode — Asleep
+    always wakes directly into a full conversation, never into Off
+    Watch first (Chip's call: no reason to pass through ambient idle
+    behavior on the way out of a nap).
+- **→ Off Watch**
+  - From On Watch: no fixed phrase. Haiku recognizes session-end intent
+    from natural phrasing (e.g. "Thanks, Jack, that's enough," "Goodbye,
+    Jack," or any equivalent) and emits an end-session meta-tag with its
+    reply; that reply *is* the in-context exit line — see
+    [Session Boundaries](#25-session-boundaries). No transition into Off
+    Watch from Asleep exists (see Asleep, below).
+  - From On Watch, also on a **2-minute no-prompt timeout**. The clock
+    starts when Jack's reply (including TTS playback) finishes, not when
+    the household member's last prompt was received — so a slow reply
+    doesn't eat into the timeout window. **Not yet validated against a
+    real long-form reply** (see the deferred community-lecture scenario,
+    [2.8](#28-deferred-and-speculative-scenarios)).
+- **→ Asleep**
+  - From On Watch: no fixed phrase, same meta-tag mechanism as the Off
+    Watch exit above, but for nap/sleep intent (e.g. "Time for a nap,
+    Jack," "Go to sleep, Jack.") — reply carries the sleep-flavored exit
+    line.
+  - From Off Watch: fixed phrase **"Goodnight, Jack"**, detected by the
+    local spotter (no Haiku call).
+  - From Off Watch, also on an **idle timeout of 15 minutes** with no
+    wake phrase detected.
+
+Timeout values (2 minutes On Watch, 15 minutes Off Watch) are Chip's
+initial numbers, not yet tuned against real use. Still undefined: exact
+match/variant tolerance for the two fixed phrases (see
+[Wake Word Spotter](#41-wake-word-spotter)), and the Asleep-specific
+gesture/sound catalog subset (see [Open Issues](#5-open-issues) issue 5).
 
 **Intended function**: own overall mode state, gate which of
 [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)'s
@@ -683,8 +764,8 @@ catalogs is active, and hand off to/from the
 
 **Interfaces**: would sit "above" the orchestrator, wake-word spotter, and
 idle player, coordinating all three — no such coordinating module currently
-exists; `orchestrate.py` today only implements the Online conversation loop
-in isolation.
+exists; `orchestrate.py` today only implements the On Watch conversation
+loop in isolation.
 
 ### 4.12 Gesture Engine and Catalog
 
@@ -937,12 +1018,28 @@ session.
   [Possible Future Enhancements](#6-possible-future-enhancements) rather
   than solved here. Appointment/calendar was a separate concern bundled
   into this issue by mistake — split out to issue 23 below.
-5. Only the Online mode is implemented; Offline idle-catalog behavior and a
-  distinct Asleep behavior/state machine
-  ([4.11](#411-sleep-mode-state-machine)) are undesigned.
-6. Wake word, end-session phrase, and go-to-sleep phrase are all unchosen —
-  no mode-transition trigger exists yet (see
-  [Session Boundaries](#25-session-boundaries)).
+5. ~~Only the Online mode is implemented; Offline idle-catalog behavior and
+  a distinct Asleep behavior/state machine
+  ([4.11](#411-sleep-mode-state-machine)) are undesigned.~~ **Partially
+  resolved 2026-09-20**: the state-machine/transition-logic half is now
+  designed — see [Sleep-Mode State Machine](#411-sleep-mode-state-machine)
+  — and modes renamed Off Watch/On Watch/Asleep. Left open, narrowed to
+  the part this issue was actually about beyond transitions: the
+  Off-Watch idle catalog's specific content/script pairing and the
+  Asleep-specific quieter gesture/sound subset are still undesigned; only
+  On Watch (the conversation loop) is implemented.
+6. ~~Wake word, end-session phrase, and go-to-sleep phrase are all
+  unchosen — no mode-transition trigger exists yet (see
+  [Session Boundaries](#25-session-boundaries)).~~ **Resolved 2026-09-20**,
+  though not the way originally framed as "three phrases to pick": wake
+  phrase = "Ahoy, Captain Jack" (fixed, locally spotted, works from
+  either dormant mode); go-to-sleep phrase = "Goodnight, Jack" (fixed,
+  locally spotted, Off Watch → Asleep only); end-session and the
+  On-Watch → Asleep nap request are *not* fixed phrases at all — Haiku
+  reads the intent from natural phrasing via a meta-tag on its reply. See
+  [Sleep-Mode State Machine](#411-sleep-mode-state-machine). The
+  mode-transition trigger *logic* is now designed; still not
+  implemented.
 7. ~~Gesture storage location is unresolved — Arduino-resident (interpreted
   from a `GESTURE <id>`) vs. Pi-composed primitive sequences — blocking a
   final [serial protocol](#413-pi-to-arduino-serial-link) spec; see
