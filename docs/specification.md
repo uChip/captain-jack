@@ -863,6 +863,31 @@ Known gaps, left for a later pass (not blocking this one):
   explicit request); picking a gesture programmatically from any of
   those will eventually need more structure than a free-text name.
 
+**Mapped 2026-09-20**: every entry in
+[gesture-library.md](gesture-library.md) has been translated into this
+structure — see [gesture-catalog.yaml](gesture-catalog.yaml). Doing that
+translation surfaced two more gaps beyond the two above (both noted
+inline in the catalog file):
+- Two entries ("Vowel Drift," "Turn Toward Speaker") aren't actually
+  expressible as fixed data at all — their timing/target depends on
+  live TTS phoneme timing or the live DoA azimuth respectively, not
+  anything knowable when the catalog is authored. Both are stubbed with
+  a fixed fallback so the id exists, marked `NEEDS-RUNTIME-PARAM`, not
+  treated as done.
+- Gesture has no loop/repeat field, but several Off Watch/Asleep entries
+  (Idle Breathing, Ambient Scanning) are meant to play continuously, not
+  once — currently an assumption the caller has to implement, not
+  something the data declares.
+
+Also surfaced: `PITCH_RESTING`/`ROLL_RESTING` in
+`arduino/ServoControl/ServoControl.ino` leave less headroom on the "up"
+and "tipped right" sides (+15/+20) than several gesture-library.md
+entries assume (some ask for +25/+30) — those are clamped to the real
+headroom in the catalog (marked `CLAMPED`), a toned-down motion rather
+than the originally brainstormed one. Getting the fuller motion back
+would mean re-centering those resting constants, trading off headroom
+elsewhere — a real hardware tradeoff, not a data-structure problem.
+
 ### 4.13 Pi to Arduino Serial Link
 
 **Status: Command syntax locked down 2026-09-15, servo actuation validated

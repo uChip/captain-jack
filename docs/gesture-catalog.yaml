@@ -1,0 +1,369 @@
+# Gesture and Wav-Gesture catalog
+#
+# First-pass mapping of docs/gesture-library.md's brainstormed entries into
+# the data structure agreed 2026-09-20 (see specification.md section 4.12).
+# This is a mechanical translation, not hardware-validated — every number
+# below should be treated as a starting point to tune once it can actually
+# be watched on the real bird, not a final calibration.
+#
+# --- Field mapping to the agreed structs ---
+#   Gesture.id    -> id           (stable key; never reuse/renumber)
+#   Gesture.name  -> name         (kept close to gesture-library.md's wording)
+#   Move.cmd      -> moves[].cmd      (verbatim string sent to the Arduino)
+#   Move.wait_ms  -> moves[].wait_ms  (ms to hold before the next Move/exit)
+#   Wav.file      -> wavs[].file
+#   Wav.gesture   -> wavs[].gesture   (id of a Wav-Paired gesture, or null)
+#
+# --- Assumptions made doing this mapping (flag for review) ---
+#
+# 1. Servo baseline, from arduino/ServoControl/ServoControl.ino as tuned
+#    2026-09-20 (incoming command range, not the offset-adjusted PWM value):
+#      pitch: resting=35, range=0-50  (headroom: -35 down / +15 up)
+#      roll:  resting=30, range=0-50  (headroom: -30 left / +20 right)
+#      yaw:   resting=70, range=0-130 (headroom: -70 right / +60 left)
+#      beak:  range=0-60 (0=open, 60=closed); gesture-library.md's beak
+#             numbers are treated as absolute values on this scale, not
+#             deltas from a resting point, since they're already small
+#             integers in-range (e.g. "0 -> 3 -> 0 -> 3").
+#
+# 2. gesture-library.md never defined a sign convention for its +/- deltas
+#    (it was brainstormed without the real hardware in mind). Sign
+#    convention established here, matching ServoControl.ino's own comments:
+#      pitch: + = up,          - = down
+#      roll:  + = tipped right, - = tipped left
+#      yaw:   + = turned left,  - = turned right
+#    All deltas are relative to resting, then clamped into [0, range].
+#
+# 3. Pitch's +15 headroom and roll's +20 headroom are both smaller than
+#    several gesture-library.md entries assume (some ask for +25/+30).
+#    Those are clamped to the real headroom below and flagged inline with
+#    "CLAMPED" — the choreography is toned down versus the original
+#    brainstormed motion, not a bug. If the fuller motion matters, the
+#    fix is re-centering PITCH_RESTING/ROLL_RESTING, not this catalog.
+#
+# 4. Every head-moving Move spells out p, r, y, and t explicitly, even for
+#    axes the gesture doesn't care about (set to resting) — the Arduino
+#    keeps the last value sent for any axis not included in a command, so
+#    a Move that only sends e.g. "y" would silently inherit whatever
+#    pitch/roll a previous gesture left behind. Never send a partial
+#    p/r/y/t command as a Move in this catalog.
+#
+# 5. Every non-idle gesture ends with a Move back to resting
+#    (p35 r30 y70 t<ms>s) so the head doesn't hang at an off-neutral pose
+#    between gestures.
+#
+# 6. wait_ms = t + 30 throughout (flat margin, not proportional) — a
+#    placeholder safety pad against ServoEasing's unverified behavior on
+#    an early new command (see specification.md Open Issue 24). Needs
+#    real measurement once actuation can be watched/timed.
+#
+# 7. Frequency/oscillation-based entries (Excited Bob, Idle Breathing) and
+#    "random pulse" entries (Micro-Twitch) have no native representation
+#    in the Move-array structure (see specification.md 4.12 "known gaps").
+#    They're hand-unrolled into a fixed number of repeated Moves here —
+#    every playback will look identical, not actually random/oscillating.
+#
+# 8. Two entries can't actually be expressed as static data at all, and
+#    are marked NEEDS-RUNTIME-PARAM instead of given a normal moves list:
+#      - Vowel Drift: gesture-library.md gives its duration as "vowel
+#        length," i.e. it must track real TTS phoneme timing, not a fixed
+#        ms value baked in ahead of time.
+#      - Turn Toward Speaker: its yaw target is "toward mic" — i.e. the
+#        live DoA azimuth (see specification.md 4.9), not a fixed angle.
+#    Both are stubbed with a plausible fixed fallback so the id exists and
+#    something plays if triggered before real parameterization exists, but
+#    that fallback is not the intended behavior.
+#
+# 9. Idle/ambient gestures (Idle Breathing, Ambient Scanning) are written
+#    as a single play-through, but are meant to be looped continuously
+#    while off watch/asleep. There's no loop/repeat field on Gesture yet
+#    (another gap alongside #7/#8 above) — looping is currently an
+#    assumption the *caller* has to implement, not something this data
+#    declares.
+#
+# 10. Asleep's two entries are not copies of Off Watch's Idle gestures —
+#     per specification.md 2.4, Asleep needs a quieter subset, so these
+#     are independently scaled-down variants (smaller amplitude, slower),
+#     sharing a name root but a different id and different numbers.
+#
+# 11. Rapid Chatter is the one gesture that moves the beak — its Move
+#     strings combine an immediate `b` write with an eased `p/r/y/t/s`
+#     head move in one concatenated command string, which the Arduino
+#     parser accepts (each recognized character acts independently
+#     regardless of order).
+#
+# 12. The Wav-Paired library and all Wav entries are left empty. Nothing
+#     in gesture-library.md pairs a gesture with a specific wav file —
+#     that's real content curation against actual files in wavFiles/,
+#     out of scope for "map gesture-library.md's entries."
+
+resting:
+  pitch: 35
+  roll: 30
+  yaw: 70
+  beak: 60   # closed
+
+on_watch:
+  # --- Speech-Driven (docs/gesture-library.md "Speech-Driven Gestures") ---
+
+  - id: sd-beat-pulse
+    name: "Beat Pulse — yaw pulse + micro-roll"
+    moves:
+      - cmd: p35r35y80t100s
+        wait_ms: 130
+      - cmd: p35r30y70t100s
+        wait_ms: 130
+
+  - id: sd-emphasis-nod
+    name: "Emphasis Nod — pitch dip + slight roll"
+    moves:
+      - cmd: p20r35y70t120s
+        wait_ms: 150
+      - cmd: p35r30y70t120s
+        wait_ms: 150
+
+  - id: sd-vowel-drift
+    name: "Vowel Drift — slow yaw drift + subtle roll"
+    status: NEEDS-RUNTIME-PARAM   # duration must track live TTS phoneme timing (see assumption 8)
+    moves:
+      - cmd: p35r38y85t300s
+        wait_ms: 330
+      - cmd: p35r30y70t200s
+        wait_ms: 230
+
+  - id: sd-sentence-start-lift
+    name: "Sentence Start Lift — pitch lift + roll"
+    moves:
+      - cmd: p45r40y70t150s
+        wait_ms: 180
+      - cmd: p35r30y70t150s
+        wait_ms: 180
+
+  - id: sd-sentence-end-settle
+    name: "Sentence End Settle — pitch settle + roll relaxation"
+    moves:
+      - cmd: p25r22y70t200s
+        wait_ms: 230
+      - cmd: p35r30y70t150s
+        wait_ms: 180
+
+  # --- Emotional (docs/gesture-library.md "Emotional Gestures") ---
+
+  - id: em-curious-tilt
+    name: "Curious Tilt — roll + pitch + slight yaw"
+    moves:
+      - cmd: p50r50y80t400s   # CLAMPED: roll +25 -> +20 (headroom), pitch +15 is exactly at headroom
+        wait_ms: 430
+      - cmd: p35r30y70t300s
+        wait_ms: 330
+
+  - id: em-skeptical-lean
+    name: "Skeptical Lean — roll + yaw"
+    moves:
+      - cmd: p35r10y85t400s
+        wait_ms: 430
+      - cmd: p35r30y70t300s
+        wait_ms: 330
+
+  - id: em-excited-bob
+    name: "Excited Bob — pitch oscillation + roll pulses"
+    moves:   # CLAMPED: pitch +20 -> +15 (headroom); oscillation hand-unrolled, see assumption 7
+      - cmd: p50r40y70t100s
+        wait_ms: 130
+      - cmd: p15r20y70t100s
+        wait_ms: 130
+      - cmd: p50r40y70t100s
+        wait_ms: 130
+      - cmd: p15r20y70t100s
+        wait_ms: 130
+      - cmd: p50r40y70t100s
+        wait_ms: 130
+      - cmd: p35r30y70t100s
+        wait_ms: 130
+
+  - id: em-thinking-sway
+    name: "Thinking Sway — yaw sweep + roll modulation"
+    moves:
+      - cmd: p35r20y50t750s
+        wait_ms: 780
+      - cmd: p35r40y90t750s
+        wait_ms: 780
+      - cmd: p35r30y70t300s
+        wait_ms: 330
+
+  - id: em-affirmation-nod
+    name: "Affirmation Nod — pitch nod + roll stabilization"
+    moves:
+      - cmd: p15r35y70t150s
+        wait_ms: 180
+      - cmd: p35r35y70t150s
+        wait_ms: 180
+      - cmd: p15r35y70t150s
+        wait_ms: 180
+      - cmd: p35r30y70t150s
+        wait_ms: 180
+
+  - id: em-negation-shake
+    name: "Negation Shake — yaw shake + roll counter-tilt"
+    moves:
+      - cmd: p35r20y95t150s
+        wait_ms: 180
+      - cmd: p35r20y45t150s
+        wait_ms: 180
+      - cmd: p35r20y95t150s
+        wait_ms: 180
+      - cmd: p35r30y70t150s
+        wait_ms: 180
+
+  # --- Conversational (docs/gesture-library.md "Conversational Gestures") ---
+
+  - id: cv-listening-lean
+    name: "Listening Lean — pitch forward + roll"
+    moves:
+      - cmd: p25r40y70t300s
+        wait_ms: 330
+      - cmd: p35r30y70t200s
+        wait_ms: 230
+
+  - id: cv-turn-toward-speaker
+    name: "Turn Toward Speaker — yaw toward mic + roll stabilization"
+    status: NEEDS-RUNTIME-PARAM   # yaw target is the live DoA azimuth, not a fixed angle (see assumption 8)
+    moves:
+      - cmd: p35r35y100t300s   # placeholder: fixed "turn left" fallback
+        wait_ms: 330
+      - cmd: p35r30y70t200s
+        wait_ms: 230
+
+  - id: cv-agreement-motion
+    name: "Agreement Motion — nod + roll"
+    moves:
+      - cmd: p25r40y70t300s
+        wait_ms: 330
+      - cmd: p35r30y70t200s
+        wait_ms: 230
+
+  - id: cv-disagreement-motion
+    name: "Disagreement Motion — shake + roll counter-tilt"
+    moves:
+      - cmd: p35r20y85t130s
+        wait_ms: 160
+      - cmd: p35r20y55t130s
+        wait_ms: 160
+      - cmd: p35r20y85t130s
+        wait_ms: 160
+      - cmd: p35r30y70t130s
+        wait_ms: 160
+
+  # --- Expressive (docs/gesture-library.md "Expressive Gestures") ---
+
+  - id: ex-showmanship-bob
+    name: "Showmanship Bob — exaggerated pitch bob + roll"
+    moves:   # CLAMPED: pitch +25 -> +15 (headroom)
+      - cmd: p50r45y70t190s
+        wait_ms: 220
+      - cmd: p10r15y70t190s
+        wait_ms: 220
+      - cmd: p50r45y70t190s
+        wait_ms: 220
+      - cmd: p35r30y70t190s
+        wait_ms: 220
+
+  - id: ex-head-cock
+    name: "Head Cock — classic parrot tilt"
+    moves:   # CLAMPED: roll +30 -> +20 (headroom)
+      - cmd: p45r50y80t400s
+        wait_ms: 430
+      - cmd: p35r30y70t300s
+        wait_ms: 330
+
+  - id: ex-rapid-chatter
+    name: "Rapid Chatter — beak pulses + roll"
+    moves:   # combines immediate beak writes with eased head moves, see assumption 11
+      - cmd: b3r40p35y70t60s
+        wait_ms: 90
+      - cmd: b0r30p35y70t60s
+        wait_ms: 90
+      - cmd: b3r40p35y70t60s
+        wait_ms: 90
+      - cmd: b0r30p35y70t60s
+        wait_ms: 90
+
+  - id: ex-look-away
+    name: "Look Away — disengagement"
+    moves:
+      - cmd: p25r10y110t600s
+        wait_ms: 630
+      - cmd: p35r30y70t400s
+        wait_ms: 430
+
+  - id: ex-look-back
+    name: "Look Back — re-engagement"
+    moves:
+      - cmd: p35r45y70t500s
+        wait_ms: 530
+      - cmd: p35r30y70t200s
+        wait_ms: 230
+
+off_watch:
+  # --- Idle (docs/gesture-library.md "Idle Gestures") ---
+  # Meant to loop continuously while off watch — see assumption 9.
+
+  - id: id-idle-breathing
+    name: "Idle Breathing — pitch oscillation + micro-roll"
+    moves:
+      - cmd: p40r33y70t2000s
+        wait_ms: 2030
+      - cmd: p30r27y70t2000s
+        wait_ms: 2030
+
+  - id: id-ambient-scanning
+    name: "Ambient Scanning — yaw drift + roll tilt"
+    moves:
+      - cmd: p35r40y40t2000s
+        wait_ms: 2030
+      - cmd: p35r40y100t2000s
+        wait_ms: 2030
+      - cmd: p35r30y70t1000s
+        wait_ms: 1030
+
+  - id: id-micro-twitch
+    name: "Micro-Twitch — tiny random pulses"
+    moves:   # "random" not represented — single fixed instance, see assumption 7
+      - cmd: p37r34y73t50s
+        wait_ms: 80
+      - cmd: p35r30y70t50s
+        wait_ms: 80
+
+  - id: id-preen-motion
+    name: "Preen Motion — bird-like grooming"
+    moves:
+      - cmd: p20r50y80t750s
+        wait_ms: 780
+      - cmd: p35r30y70t400s
+        wait_ms: 430
+
+asleep:
+  # Quieter subset, not copies of off_watch's Idle gestures — see assumption 10.
+
+  - id: sl-idle-breathing-quiet
+    name: "Idle Breathing (Asleep) — smaller, slower than off-watch version"
+    moves:
+      - cmd: p38r32y70t3000s
+        wait_ms: 3030
+      - cmd: p32r28y70t3000s
+        wait_ms: 3030
+
+  - id: sl-micro-twitch-quiet
+    name: "Micro-Twitch (Asleep) — smaller, slower than off-watch version"
+    moves:
+      - cmd: p36r32y71t70s
+        wait_ms: 100
+      - cmd: p35r30y70t70s
+        wait_ms: 100
+
+wav_paired: []   # empty — no source content to map yet, see assumption 12
+
+wavs:
+  on_watch: []
+  off_watch: []
+  asleep: []

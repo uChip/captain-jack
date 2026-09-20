@@ -39,3 +39,26 @@ when it was last confirmed passing.
   deterministic parse/save code, same scope limit as the joke/automation
   tags' existing live-API testing noted in
   [captain-jack-memory-design.md](captain-jack-memory-design.md).
+
+## Gesture Engine and Catalog
+
+### `gesture-catalog.yaml` servo bounds
+
+- **Covers**: [Gesture Engine and Catalog](specification.md#412-gesture-engine-and-catalog)
+  — every Move command string in
+  [`gesture-catalog.yaml`](gesture-catalog.yaml) (the first-pass mapping
+  of [gesture-library.md](gesture-library.md) into the agreed Gesture/Move
+  structure).
+- **Script**: [`../tests/test_gesture_catalog_bounds.py`](../tests/test_gesture_catalog_bounds.py)
+- **Run**: `venv/bin/python tests/test_gesture_catalog_bounds.py`
+- **Expected**: prints `PASS: gesture-catalog.yaml stays within servo
+  bounds, no duplicate ids` and exits 0. Checks every `p`/`r`/`y`/`b`/`t`
+  value against the real ranges in `arduino/ServoControl/ServoControl.ino`
+  (pitch/roll 0-50, yaw 0-130, beak 0-60, duration 0-9999ms), every
+  `wait_ms` is positive, and no gesture `id` is duplicated across
+  On Watch/Off Watch/Asleep.
+- **Last confirmed passing**: 2026-09-20.
+- **Not covered**: whether any gesture actually looks right on the real
+  bird — this only checks the data won't ask a servo to go somewhere it
+  can't. Also doesn't check the two `NEEDS-RUNTIME-PARAM` entries'
+  fallback values, which are known placeholders, not real behavior.
