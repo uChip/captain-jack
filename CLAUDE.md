@@ -140,6 +140,25 @@ separate stack:
    2-pin JST connector is on order, ETA ~2026-09-27. A first batch of
    idle/ambient `.wav` clips has been added under `wavFiles/`, including
    an `AlignmentTone.wav` for later beak-sync timing calibration.
+8. **Added 2026-09-20**: `exercise_hardware.py` — a standalone hardware
+   test harness (not part of the real orchestration/state machine) that
+   drives the servos through `gesture-catalog.yaml`'s Off Watch/Asleep
+   ambient/excursion behavior, switching modes on a blind random 2-5
+   minute timer. Gestures/wavs/mode-transitions are otherwise untested
+   against real actuation beyond what §4.13's code review covered — this
+   is the first real exercise of the gesture data itself. No audio, no
+   DoA (see item below), no wake-phrase logic — `venv/bin/python
+   exercise_hardware.py --dry-run` runs the same logic without a serial
+   port, for checking behavior before running it against the real bird.
+   DoA investigated the same day: the XVF3800 exposes a generic USB-HID
+   interface (`/dev/hidraw0`, already bound by the kernel's stock hidraw
+   driver — no separate driver needed) plus a vendor-specific USB
+   interface, but no `xvf_host` tool or equivalent exists on this Pi,
+   and the actual command protocol for reading `AEC_AZIMUTH_VALUES` over
+   that channel isn't something to guess at — needs Seeed's real
+   documentation/reference host application. `read_doa_azimuth()` in the
+   script is a stub (always `None`) so wiring in a real reading later is
+   additive, not a rewrite.
 
 ## Work list — split by hardware dependency
 
@@ -188,10 +207,20 @@ XVF3800, still on order.
    joke/automation/NONE-case testing from this session.
 8. **New 2026-09-20, unblocked by the XVF3800's arrival**: with the board
    USB-connected to the Pi (even unmounted and without a speaker), start
-   on the mic/DoA-only half of the stack — reading DoA via
-   `xvf_host AEC_AZIMUTH_VALUES`, and wake-word/STT groundwork. Audio
-   *output* (TTS, idle clips, beak-sync, AEC validation) still needs the
-   speaker wired — see "Blocked" below.
+   on the mic/DoA-only half of the stack — wake-word/STT groundwork.
+   Audio *output* (TTS, idle clips, beak-sync, AEC validation) still
+   needs the speaker wired — see "Blocked" below.
+9. **Investigated 2026-09-20, real gap found**: reading DoA via
+   `xvf_host AEC_AZIMUTH_VALUES` turned out not to be doable with what's
+   on hand — no `xvf_host` tool (or equivalent) exists on this Pi. The
+   XVF3800 exposes a generic USB-HID interface (`/dev/hidraw0`, already
+   bound by the kernel's stock driver) and a vendor-specific USB
+   interface, but the actual command protocol for reading azimuth over
+   that channel needs Seeed's real reference host application or
+   protocol documentation — not something to reverse-engineer/guess at.
+   Next step: track down Seeed's official XVF3800 control tool/docs (not
+   found via `apt`/`pip`/filesystem search on this Pi) and get it
+   running here.
 
 ### Blocked until the XVF3800 arrives
 
