@@ -73,9 +73,11 @@
 # - wait_ms = t + 30 (flat margin) — still an unverified safety pad
 #   against ServoEasing's behavior on an early new command; see
 #   specification.md Open Issue 24.
-# - Snore/snort clips and the going-to-sleep entry gesture are still
-#   named (in specification.md 4.10) but not authored — no matching
-#   audio exists in wavFiles/ yet.
+# - Snore clips are still named (specification.md 4.10) but not
+#   authored — no matching audio exists in wavFiles/ yet. Snort now has
+#   a gesture (sl-snort) and the going-to-sleep entry gesture now has
+#   one too (sl-settle-to-sleep, added later 2026-09-20) — both still
+#   lack a paired wav clip for the same reason.
 # - Wav-Paired library and all Wav entries are still empty — no source
 #   content to map them from yet.
 # - Rapid Chatter still combines an absolute `beak` write with delta
@@ -109,8 +111,9 @@
 # weren't — both read as strong candidates for the still-unauthored
 # going-to-sleep transition gesture instead (a stretch/yawn and a
 # fighting-sleepiness beat are natural "getting ready to sleep"
-# material), which is a separate, not-yet-tackled task, not something to
-# fold in here by inference.
+# material). That gesture (sl-settle-to-sleep, below) was authored later
+# the same day — inspired by the yawn/droop concept, not a literal reuse
+# of either gesture's exact values.
 
 resting:
   pitch: 35
@@ -419,6 +422,14 @@ asleep:
     moves:
       - {beak: 10, dr: 5, dp: 5, dy: 5, t: 200, wait_ms: 230}
       - {beak: 60, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+
+  - id: sl-settle-to-sleep
+    name: "Settle to Sleep — yawn, release the stretch, gentle settle, droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
+    moves:   # deliberately doesn't return dp to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
+      - {beak: 0, dp: 12, t: 600, wait_ms: 630}
+      - {beak: 60, dp: 5, t: 400, wait_ms: 430}
+      - {dr: 6, dy: -4, dp: 2, t: 500, wait_ms: 530}
+      - {dr: 0, dy: 0, dp: -12, t: 800, wait_ms: 830}
 
 wav_paired: []   # empty — no source content to map yet
 

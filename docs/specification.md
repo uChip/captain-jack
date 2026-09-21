@@ -702,32 +702,36 @@ issue 24, which remains open for On Watch):
 
 ```
 On entering Asleep:
-    play the going-to-sleep transition wav/gesture pair (not yet authored)
+    play the going-to-sleep transition gesture (sl-settle-to-sleep)
 
 Loop:
-    play the "breath" wav/gesture pair (sl-idle-breathing-quiet in
+    play the "breath" gesture (sl-idle-breathing-quiet in
       gesture-catalog.yaml) all the way through
     if wake phrase "Ahoy, Captain Jack" detected:
-        play the "waking up" wav/gesture pair (sl-waking-up)
+        play the "waking up" gesture (sl-waking-up)
         go to On Watch state
     else, with some (tunable) chance:
-        play one random extra pair from {snore, snort,
-          "shift to get comfortable" (sl-micro-twitch-quiet stands in
-          for this one)}
+        play one random extra gesture from {snore (not yet authored),
+          sl-snort, sl-micro-twitch-quiet ("shift to get comfortable")}
         if wake phrase detected: play "waking up", go to On Watch
     # otherwise loop back to the next breath
 ```
 
-The wake-phrase check happens only *between* completed
-wav/gesture pairs, never mid-playback — nothing here needs true
-interruption (see issue 24), since everything is a few seconds long at
-most. Playing "waking up" in full before actually transitioning is
-deliberate, not a latency compromise: a real animal is slow to react
-right out of sleep, so the delay reads as in-character. Snore/snort clips
-and the going-to-sleep transition gesture are named here but not yet
-authored — no matching audio exists in `wavFiles/` yet, and
-`sl-waking-up` is the only new gesture added
-([gesture-catalog.yaml](gesture-catalog.yaml) assumption 13).
+The wake-phrase check happens only *between* completed gestures, never
+mid-playback — nothing here needs true interruption (see issue 24),
+since everything is a few seconds long at most. Playing "waking up" in
+full before actually transitioning is deliberate, not a latency
+compromise: a real animal is slow to react right out of sleep, so the
+delay reads as in-character. `sl-settle-to-sleep` deliberately runs
+longer (~2.3s: yawn, release the stretch, gentle settle, then a droop
+that isn't forced back to neutral — physically continuous either way,
+since ServoEasing always eases from wherever the servo actually is, not
+from a stored baseline) than `sl-waking-up`'s ~530ms startle, matching
+how falling asleep is gradual while waking is a quick reflex. A snore
+clip/gesture is still named here but not authored; all of Asleep's named
+gestures are now wired to a real `sl-*` id in
+[gesture-catalog.yaml](gesture-catalog.yaml), but none has a paired wav
+clip yet — no matching audio exists in `wavFiles/`.
 
 **Off Watch's (and On Watch's) behavior loop, resolved 2026-09-20**: not
 Asleep's plain sequence — an earlier sketch of independent random-interval
