@@ -454,4 +454,24 @@ wav_paired: []   # empty — no source content to map yet
 wavs:
   on_watch: []
   off_watch: []
-  asleep: []
+  asleep:
+    # Brainstormed 2026-09-20, lines not yet recorded — none of these
+    # files exist in wavFiles/ yet. All pair with sl-settle-to-sleep,
+    # split by `context` (see specification.md 4.12) into two pools per
+    # how Asleep was entered — see specification.md 4.10's "On entering
+    # Asleep" pseudocode. Not played at all on the On-Watch nap-intent
+    # path — Haiku's own live reply already covers it there.
+
+    # context: idle_timeout — unprompted, narrating to himself, nobody
+    # to address.
+    - {file: "EightBellsWatchDone.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "FurlTheSails.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "OldParrotPerch.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "DroppinAnchor.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "SleepyMumble.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+
+    # context: goodnight_phrase — direct reciprocal reply to whoever
+    # just said "Goodnight, Jack." Generic "Matey" — no speaker ID.
+    - {file: "GoodnightMatey.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}
+    - {file: "NightMateySleepTight.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}
+    - {file: "SweetDreamsScallywag.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}

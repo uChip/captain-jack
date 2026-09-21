@@ -702,7 +702,18 @@ issue 24, which remains open for On Watch):
 
 ```
 On entering Asleep:
-    play the going-to-sleep transition gesture (sl-settle-to-sleep)
+    play the going-to-sleep transition gesture (sl-settle-to-sleep) —
+      always, regardless of how Asleep was entered
+    if entered via the "Goodnight, Jack" phrase (Off Watch):
+        play one random wav from the "goodnight acknowledgment" pool
+          (context: goodnight_phrase) alongside it
+    else if entered via Off Watch's 15-minute idle timeout:
+        play one random wav from the "drifting off" pool
+          (context: idle_timeout) alongside it
+    else (entered via On Watch's nap-intent meta-tag):
+        no wav — Haiku's own live reply already gave the sleep-flavored
+          exit line moments earlier (see Session Boundaries, 2.5);
+          playing a second canned line here would step on it
 
 Loop:
     play the "breath" gesture (sl-idle-breathing-quiet in
@@ -733,8 +744,35 @@ gradual while waking is a quick reflex. `sl-snore` is a slow pitch lift
 with a little beak movement, settling back; `sl-snort` is snappier — a
 small twitch, a sharp pitch jerk, a beak flap, then resettle. All of
 Asleep's named gestures are now wired to a real `sl-*` id in
-[gesture-catalog.yaml](gesture-catalog.yaml); none has a paired wav clip
-yet — no matching audio exists in `wavFiles/`. One open question noted
+[gesture-catalog.yaml](gesture-catalog.yaml).
+
+`sl-settle-to-sleep`'s two wav pools (brainstormed 2026-09-20, lines not
+yet recorded — see `wavs.asleep` in
+[gesture-catalog.yaml](gesture-catalog.yaml)):
+- **`idle_timeout`** — unprompted, Jack narrating to himself, nobody to
+  address: "Eight bells... my watch is done." / "Furl the sails, Cap'n's
+  turnin' in." / "Even an old parrot's got to perch and rest sometime."
+  / "Droppin' anchor for the night, mateys." / a trailing mumble that
+  doesn't resolve into a full sentence, e.g. "Mmph... 'nother day
+  done..."
+- **`goodnight_phrase`** — a direct reciprocal reply to whoever just
+  said "Goodnight, Jack," generic since there's no speaker ID (same
+  "Matey" default as the honorific system, [Open Issues](#5-open-issues)
+  issue 3): "Goodnight, Matey." A short courtesy reply tolerates
+  repetition much better than a personality monologue does — real
+  people say "goodnight" the same way every night without it reading as
+  stale — so one line may be enough here, but "'Night, Matey — sleep
+  tight" and "Sweet dreams, ye scallywag" are on hand if more variety is
+  wanted later.
+
+Chip's original "About time they let me get some rest" idea was set
+aside for `sl-settle-to-sleep` specifically — it presumes someone made
+Jack wait, which fits neither `idle_timeout` (nobody did) nor really
+adds anything beyond what Haiku's own live line already covers on the
+On-Watch path. It's a good candidate for `sl-waking-up` instead (grumbling
+about *being* woken), a separate, not-yet-tackled pairing.
+
+One open question noted
 in the catalog: `sl-settle-to-sleep`'s roll tuck will ease back toward
 upright over breath's own oscillation (which is centered on a fixed
 `resting`, not wherever the tuck left off) — worth watching once this
@@ -912,9 +950,16 @@ commands; discussion surfaced that as the wrong model — see below):
 - **Wav Library**: one array of Wavs each for On Watch, Off Watch, and
   Asleep (no Wav-Paired variant — that would be circular).
   - **Wav**: filename of the clip to play (path to `wavFiles/` stored
-    separately), plus the `id` of the Wav-Paired Gesture to play
-    alongside it (empty/`null` means none — an integer sentinel like -1
-    no longer fits now that Gestures are id-keyed, not index-keyed).
+    separately), the `id` of the Wav-Paired Gesture to play alongside it
+    (empty/`null` means none — an integer sentinel like -1 no longer
+    fits now that Gestures are id-keyed, not index-keyed), and an
+    optional `context` tag (added 2026-09-20) distinguishing which
+    Wavs paired to the *same* gesture apply to which trigger — e.g.
+    several Wavs can all pair to `sl-settle-to-sleep` while only being
+    valid for one specific way Asleep was entered. Most Wavs won't need
+    it at all; it only matters where a gesture's wav pairing depends on
+    context, which right now is only true for `sl-settle-to-sleep` (see
+    [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
 
 **Baseline and the ambient/excursion model (added 2026-09-20):** the
 first pass resolved every gesture's deltas into one fixed absolute

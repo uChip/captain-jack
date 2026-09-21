@@ -74,6 +74,16 @@ def check_catalog():
                 f"satisfy 0 < min < max"
             )
 
+    for lib in LIBS:
+        gesture_ids = {g["id"] for g in catalog[lib]}
+        for wav in catalog.get("wavs", {}).get(lib, []):
+            gesture_id = wav.get("gesture")
+            if gesture_id and gesture_id not in gesture_ids:
+                errors.append(
+                    f"wavs['{lib}'] entry '{wav['file']}' references "
+                    f"gesture '{gesture_id}', not found in '{lib}'"
+                )
+
     return errors
 
 
