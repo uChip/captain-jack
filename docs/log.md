@@ -431,3 +431,81 @@ The real `ServoControl.ino` was restored to the board afterward.
   2026-09-20; real gap found (no `xvf_host` tool on this Pi), moved from
   "blocked on the XVF3800" to "blocked on finding Seeed's tool/docs"; see
   "reSpeaker XVF3800 arrival and DoA investigation" above.
+
+## Design History (Specification Sections 1-4)
+
+Design changes, rejected alternatives, and rationale embedded in
+`specification.md` Sections 1-4 that don't tie to a numbered Open Issue.
+Keyed by the spec section they support (2026-09-21 pass).
+
+### 4.10 Idle and Ambient Audio Player
+
+**Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
+independent random-interval timers for wav/gesture playback had real
+bugs, and a fixed "excursion, then return to a hardcoded neutral point"
+model was rejected as too mechanical for something meant to read as
+lifelike. The ambient/excursion model (see
+[specification.md#410-idle-and-ambient-audio-player](specification.md#410-idle-and-ambient-audio-player))
+was adopted instead, resolving Issue 5's remaining Off Watch scope for
+the mechanism.
+
+**Off Watch excursion tuning (2026-09-20)**: landed on a 30-90 second
+random interval between completed ambient-motion steps, plus a rule
+never to pick the same excursion id twice in a row. Chip's first
+instinct was 10-20s; widened because the math didn't work against
+today's library — with only 3 Off Watch excursion gestures and 0 wav
+clips, 10-20s over a full 15-minute Off Watch session would repeat each
+gesture roughly 20 times, reading as mechanical rather than lifelike.
+30-90s is explicitly a starting point to tighten back down as the
+library grows, not a final number — "try it and see," per Chip.
+
+**`sl-settle-to-sleep` wav idea set aside**: Chip's original "About time
+they let me get some rest" idea was set aside for `sl-settle-to-sleep`
+specifically — it presumes someone made Jack wait, which fits neither
+`idle_timeout` (nobody did) nor really adds anything beyond what Haiku's
+own live line already covers on the On-Watch path. It's a good candidate
+for `sl-waking-up` instead (grumbling about *being* woken), a separate,
+not-yet-tackled pairing.
+
+### 4.12 Gesture Engine and Catalog
+
+**`Blink` gesture removed**: a previous draft of the gesture library
+included a `Blink` gesture assuming an eyelid mechanism not present in
+the documented physical build ([3.5](specification.md#35-servos-head-and-beak));
+it was removed.
+
+**First-pass-to-second-pass redesign (2026-09-20)**: the first pass
+resolved every gesture's deltas into one fixed absolute command at
+authoring time — e.g. "+10 yaw" became a specific number computed
+against a hardcoded resting position. Chip's review caught two problems
+with that: (1) a real baseline should track where Jack is actually
+oriented (e.g. toward whoever's speaking, per DoA), not a constant; and
+(2) many gestures don't return to neutral on their own, so sequencing
+several of them without a shared reference point drifts until a servo
+hits its physical travel limit. The fix was the baseline/ambient-excursion
+model now in
+[specification.md#412-gesture-engine-and-catalog](specification.md#412-gesture-engine-and-catalog).
+
+Consequences of that fix, at the time:
+- Composing the wire string at send time (`P = clamp(baseline.pitch +
+  dp, 0, 50)`, not pre-clamped at authoring time) retired the first
+  pass's `CLAMPED` annotations entirely.
+- What actually fixed the "too mechanical" complaint was the drifting
+  baseline (not a hardcoded return point), not the removal of return
+  moves themselves — most excursions still end with an explicit
+  delta-(0,0,0) Move.
+- The first pass's "anchor gesture" idea (should some excursions
+  permanently relocate the baseline?) was retired — the ambient/
+  excursion split replaced it. Off Watch's Ambient Scanning, for
+  example, became just a normal (larger) excursion, not a special case.
+- "Turn Toward Speaker" no longer needed runtime parameterization, since
+  continuous DoA-tracked baseline yaw already does the subtle following;
+  it was re-scoped to a deliberate, fixed-delta *emphasis* turn layered
+  on top, resolving one of two `NEEDS-RUNTIME-PARAM` cases at the time
+  (the other, "Vowel Drift," remains open — its duration is tied to live
+  TTS phoneme timing, not knowable at authoring time).
+
+**Mapped 2026-09-20 (both passes)**: every entry in
+`gesture-library.md` was translated into the second-pass structure — see
+`gesture-catalog.yaml`, including its own header comments for the full
+first-pass-to-second-pass changelog.
