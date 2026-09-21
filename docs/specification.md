@@ -336,7 +336,7 @@ empirically against the real mechanism — see
 preceded validation. The old MY1690 + electret-mic
 hardware has been removed (it lived on the original board, not this one)
 — see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware).
-Previously owned all "intelligence,"
+The Arduino previously owned all "intelligence,"
 peripherals, and sensor input in the pre-Pi design; those roles are removed
 and it shrinks to real-time servo execution only. The real-time PWM loop
 itself deliberately stays on the Arduino rather than the Pi, so it stays
@@ -666,8 +666,8 @@ for whichever mode has `doa_yaw_tracking` enabled
 
 ### 4.10 Idle and Ambient Audio Player
 
-**Status: Not started; clip library seeded; Asleep's own behavior loop is
-designed (Off Watch's is not, see below).** The `wavFiles/`
+**Status: Not started; clip library seeded; both Asleep's and Off
+Watch's own behavior loops are designed (see below).** The `wavFiles/`
 folder now holds a first batch of mono, 41000Hz signed-16-bit-PCM clips
 (movie lines, song snippets with music removed, etc.) plus
 `AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
@@ -1256,9 +1256,11 @@ a resolved issue keeps its number and is tagged **[RESOLVED]** in place.
   [Gesture Engine](#412-gesture-engine-and-catalog) question, not a
   link/firmware-level one (per issue 7). **Resolved for Asleep**
   specifically — its [behavior loop](#410-idle-and-ambient-audio-player)
-  is a plain sequence with no concurrency. **Left open** for On Watch and
-  for whatever Off Watch's own behavior loop ends up being. History:
-  [log.md#issue-24](log.md#issue-24).
+  is a plain sequence with no concurrency. Off Watch's ambient/excursion
+  loop is also sequential, not concurrent, so it doesn't reopen this
+  issue either (see [4.12](#412-gesture-engine-and-catalog)). **Left
+  open** for On Watch, where true simultaneous layering/blending is
+  still a live question. History: [log.md#issue-24](log.md#issue-24).
 25. Small-amplitude, slow gestures (e.g. `id-idle-breathing`'s 5° pitch
   swing over 2000ms) visibly move in discrete steps on the real bird
   rather than gliding smoothly — root-caused to servo pulse-width
