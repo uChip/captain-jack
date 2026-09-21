@@ -1530,18 +1530,42 @@ session.
 
   This is a real tension for the ambient/breathing-style gestures
   specifically (small amplitude *and* slow duration are both central to
-  how they're meant to read) — left open, not resolved, because the fix
-  is a content/design tradeoff, not a code fix:
+  how they're meant to read) — the fix is a content/design tradeoff, not
+  a code fix:
     - Increase amplitude (less subtle, but each tick covers more
       distance).
     - Shorten duration for the same amplitude (faster ticks cover more
       distance each, but "slow gentle breathing" is the whole point).
     - Accept the stepped look for very subtle idle motion — it may
       simply read as a small twitchy/alert quality rather than a defect.
-  See [gesture-catalog.yaml](gesture-catalog.yaml) for which gestures
-  this affects most (anything with single-digit-degree deltas and
-  multi-second durations — Idle Breathing on all three modes,
-  Micro-Twitch, Vowel Drift, Beat Pulse).
+
+  **Resolved for `id-idle-breathing` specifically, 2026-09-20**, through
+  live tuning against `exercise_hardware.py` on the real bird. Shortening
+  duration alone didn't work: halving `t` from 2000ms to 300ms (same 5°
+  amplitude) was "smoother but still not smooth" and read as panting
+  (~100 breaths/min) — confirming that a move's *total* achievable
+  positions (≈ swing distance ÷ servo resolution) is what governs
+  smoothness, and duration alone can't increase that. Amplitude was the
+  real lever: doubling it to 10° at a calmer 800ms looked "much
+  smoother," but at Chip's preferred slower ~19-breath/min pace (1600ms)
+  the same 10° dropped back below the resolvable threshold — steady-state
+  breathing swings between the *two extremes* each move (e.g. target 48
+  to target 7), not out from rest and back, so doubling duration at fixed
+  amplitude halves microseconds-per-tick just like it did in the first
+  test. Landed on an asymmetric swing (up +13°, down -28°, ~41° total) at
+  1600ms, since pitch only has +15° of headroom above resting versus
+  -35° below it — a large enough *symmetric* swing wasn't available.
+  Confirmed smooth on the real bird. Roll (a secondary "micro-roll"
+  flourish) was dropped from the gesture entirely rather than scaled up
+  the same way, since a roll swing large enough to fix its own smoothness
+  would stop reading as "micro."
+
+  **Still open**: the same underlying issue affects `sl-idle-breathing-quiet`
+  (Asleep), `sl-snore`, and any other single-digit-degree/multi-second
+  gesture in [gesture-catalog.yaml](gesture-catalog.yaml) — none of those
+  have been retuned yet. Asleep's case is sharper than Off Watch's, since
+  its whole design intent is to be *quieter and slower* than Off Watch,
+  which cuts directly against "more amplitude and/or less duration."
 
 ## 6. Possible Future Enhancements
 

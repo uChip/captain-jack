@@ -326,10 +326,23 @@ off_watch:
   # --- Ambient (default/base state, always running) ---
 
   - id: id-idle-breathing
-    name: "Idle Breathing — pitch oscillation + micro-roll; Off Watch's default/base state"
-    moves:
-      - {dp: 5, dr: 3, t: 2000, wait_ms: 2030}
-      - {dp: -5, dr: -3, t: 2000, wait_ms: 2030}
+    name: "Idle Breathing — pitch oscillation only; Off Watch's default/base state"
+    moves:   # Resolved 2026-09-20 (Open Issue 25) after live hardware tuning against
+             # exercise_hardware.py - see specification.md for the full history
+             # (duration alone couldn't fix it; fixed via amplitude instead).
+             # Steady-state swings between the two extremes each move (target 48 to
+             # target 7 = 41deg), not from rest each time. At 1600ms (~19 breaths/min,
+             # confirmed as a reasonable pace) that's ~5.3us of pulse-width change per
+             # ~20ms tick, above the resolvable threshold found in Open Issue 25's
+             # diagnostic - confirmed "much smoother" on the real bird.
+             # Asymmetric because pitch only has +15deg of headroom above resting
+             # (up+13, near that ceiling) versus -35deg below it (down-28, well within
+             # it) - a symmetric swing large enough to be smooth isn't available here.
+             # Roll dropped entirely (was a "micro-roll" flourish): matching this same
+             # fix would need a roll swing large enough to stop reading as "micro" -
+             # simpler to cut it than force it into a size that defeats its purpose.
+      - {dp: 13, t: 1600, wait_ms: 1630}
+      - {dp: -28, t: 1600, wait_ms: 1630}
 
   # --- Idle excursions (docs/gesture-library.md "Idle Gestures") ---
   # Engine rule (2026-09-20): never pick the same excursion id twice in a
