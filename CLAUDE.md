@@ -16,14 +16,20 @@ system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
 The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
-`docs/specification.md` section 4.13) — **confirmed 2026-09-20**: the
-Arduino is now wired to all four servos (head pitch/roll/yaw + beak) and
-drives them correctly from real commands. The reSpeaker XVF3800 has
-arrived and is connected to the Pi via USB, but isn't mounted to the
-statue yet and has no speaker wired (2-pin JST connector on order, ETA
-~2026-09-27) — so wake-word/DoA/STT work can start, but audio output and
-AEC validation can't yet. No home-automation tool calling yet either —
-the intent allowlist (next-step below) isn't defined.
+`docs/specification.md` section 4.13); the Arduino drives all four servos
+(head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
+XVF3800 is connected to the Pi via USB but isn't mounted to the statue yet
+and has no speaker wired (2-pin JST connector on order, ETA ~2026-09-27)
+— so wake-word/DoA/STT work can start, but audio output and AEC
+validation can't yet. No home-automation tool calling yet either — the
+intent allowlist (next-step below) isn't wired into a tool schema.
+
+**This file and `docs/specification.md` describe current state and
+project definition only.** For design changes, what didn't work,
+learnings from implementation/testing, alternatives considered, and why a
+decision was made the way it was, see `docs/log.md` — read it before
+answering questions about project history, direction, or trade-offs, not
+just when doing narrow implementation.
 
 ### Running it
 
@@ -95,90 +101,57 @@ separate stack:
 
 ## Decisions already made — don't re-litigate without new information
 
-- Trust model is deliberately Alexa-like: no voice-ID firewall between
-  household members; Captain Jack's capabilities are bounded by a small
-  explicit intent allowlist instead of a security/mode-switching layer.
-- **Two physically separate birds** (one per persona) — decided. Jarvis is
-  a separate project on separate hardware; its implementation details live
-  in `docs/jarvis-handoff-notes.md`, not tracked in this repo.
-- Electret mics + Arduino-side sound triangulation, and the MY1690 audio
-  player, are both removed — superseded by the reSpeaker's onboard DoA and
-  Pi-side idle-clip playback, respectively.
+See `docs/parrot-project-brief.md`'s "Decisions already made" section —
+the single canonical list (trust model, two separate birds, removed
+electret mics/MY1690, speaker-ID deferral, conversational-privacy stance,
+automation-authoring scope, cost/billing approach). Don't re-litigate any
+of it without new information.
 
 ## Done so far
+
+Full narrative (dates, root-causing, specific numbers) for every item
+below is in `docs/log.md`'s "CLAUDE.md History" section.
 
 1. Memory scaffold + save/skip ruleset — `memory/identity.md` +
    `memory/memory.md`, design + ruleset in
    `docs/captain-jack-memory-design.md`.
 2. Orchestration script's conversation loop — `orchestrate.py` has the
    system-prompt/memory-loading and Haiku call/response loop (text-only,
-   no tools yet), live-tested end to end including several bugs found and
-   fixed (see git log).
+   no tools yet), live-tested end to end against the real API.
 3. Home-automation intent allowlist — `docs/home-automation-allowlist.md`,
    one section per device category against the real device inventory, with
    bounded actions and per-vendor bridge status. Not yet wired to any tool
    schema or vendor API.
-4. **Confirmed 2026-09-13**: `arduino-cli` toolchain installed and tested
-   against an Arduino Uno connected to the Pi — `arduino/TestBlink`
-   compiles and downloads successfully. Servo and ServoEasing libraries are
-   installed and ready for real sketch development.
-5. **Confirmed 2026-09-14**: `arduino-cli` compile + upload verified
-   end-to-end against a freshly connected Arduino Uno — doubled
-   `TestBlink`'s blink rate, compiled, uploaded via `/dev/ttyUSB0`, and
-   Chip visually confirmed the LED blinks at the new rate.
-6. **Confirmed 2026-09-20**: Arduino wired to all four servos (head
-   pitch/roll/yaw + beak) and `ServoControl.ino` drives them correctly.
-   Erratic behavior was traced to an undersized 500mA power supply,
-   fixed with a 2000mA supply (which meant removing the power-enable
-   line — the new supply has no 5V-compatible enable). Beak switched
-   from `ServoEasing` to plain `Servo`; resting/offset/range constants
-   for all four axes tuned empirically. See `docs/specification.md`
-   Open Issues issue 21 (closed) and section 4.14.
-7. **Received 2026-09-20**: the reSpeaker XVF3800 has arrived and is
-   connected to the Pi via USB, sitting on a table in front of the
-   parrot (not yet mounted to the statue). No speaker connected yet — a
-   2-pin JST connector is on order, ETA ~2026-09-27. A first batch of
-   idle/ambient `.wav` clips has been added under `wavFiles/`, including
-   an `AlignmentTone.wav` for later beak-sync timing calibration.
-8. **Added 2026-09-20**: `exercise_hardware.py` — a standalone hardware
-   test harness (not part of the real orchestration/state machine) that
-   drives the servos through `gesture-catalog.yaml`'s Off Watch/Asleep
-   ambient/excursion behavior, switching modes on a blind random 2-5
-   minute timer. Gestures/wavs/mode-transitions are otherwise untested
-   against real actuation beyond what §4.13's code review covered — this
-   is the first real exercise of the gesture data itself. No audio, no
-   DoA (see item below), no wake-phrase logic — `venv/bin/python
-   exercise_hardware.py --dry-run` runs the same logic without a serial
-   port, for checking behavior before running it against the real bird.
-   DoA investigated the same day: the XVF3800 exposes a generic USB-HID
-   interface (`/dev/hidraw0`, already bound by the kernel's stock hidraw
-   driver — no separate driver needed) plus a vendor-specific USB
-   interface, but no `xvf_host` tool or equivalent exists on this Pi,
-   and the actual command protocol for reading `AEC_AZIMUTH_VALUES` over
-   that channel isn't something to guess at — needs Seeed's real
-   documentation/reference host application. `read_doa_azimuth()` in the
-   script is a stub (always `None`) so wiring in a real reading later is
-   additive, not a rewrite.
-9. **Diagnosed 2026-09-20**: running `exercise_hardware.py` against the
-   real bird surfaced visible "discrete steps" in small/slow gestures
-   (e.g. `id-idle-breathing`). Root-caused with a one-off diagnostic
-   sketch, `arduino/EasingDiagnostic/EasingDiagnostic.ino`, which logs
-   the servo's actual microsecond-level position on every internal
-   update instead of relying on counting visible steps by eye — the
-   easing code itself updates correctly and on schedule; a 5° move
-   only produces ~1 microsecond per update, apparently below what the
-   physical servo can resolve, while a 30° move (~3 microseconds/update)
-   looks smooth. See `specification.md` Open Issues issue 25 — this is a
-   real design tradeoff (amplitude vs. duration vs. accepting the
-   stepped look for subtle motion), not a bug to fix in code. The real
-   `ServoControl.ino` was restored to the board afterward.
+4. `arduino-cli` toolchain (compile + upload) confirmed working end-to-end
+   against a real Arduino Uno.
+5. Arduino wired to all four servos (head pitch/roll/yaw + beak);
+   `ServoControl.ino` drives them correctly. Beak uses plain `Servo`, not
+   `ServoEasing`. See `docs/specification.md` Open Issues issue 21
+   (resolved) and section 4.14.
+6. reSpeaker XVF3800 received and USB-connected to the Pi — not yet
+   mounted to the statue or wired to a speaker (2-pin JST connector on
+   order, ETA ~2026-09-27). A first batch of idle/ambient `.wav` clips is
+   in `wavFiles/`, including `AlignmentTone.wav` for later beak-sync
+   timing calibration.
+7. `exercise_hardware.py` — a standalone hardware test harness (not part
+   of the real orchestration/state machine) driving `gesture-catalog.yaml`'s
+   Off Watch/Asleep ambient/excursion behavior. `--dry-run` runs the same
+   logic without a serial port. `read_doa_azimuth()` is a stub (always
+   `None`) — wiring in a real DoA reading later is additive, not a
+   rewrite.
+8. The "discrete steps" visible on small/slow gestures (e.g.
+   `id-idle-breathing`) were root-caused to servo PWM resolution, not an
+   easing bug — see `docs/specification.md` Open Issues issue 25.
+   `id-idle-breathing` has been retuned and confirmed smooth on the real
+   bird; other single-digit-degree/multi-second gestures haven't been yet.
 
 ## Work list — split by hardware dependency
 
 Everything below "doable now" needs nothing that isn't already on hand —
 including the smart-home devices themselves, which already exist and are
 controllable today. Everything under "blocked" specifically needs the
-XVF3800, still on order.
+XVF3800's speaker, still on order (the board itself already arrived and
+is USB-connected).
 
 ### Doable now
 
@@ -188,72 +161,38 @@ XVF3800, still on order.
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.
-3. ~~Design the Pi↔Arduino serial protocol precisely — framing is still
-   TBD per the brief; pure spec work, no audio board needed.~~ **Resolved,
-   locked down 2026-09-15**: variable-length, self-delimiting `b`/`p`/`r`/
-   `y`/`t`/`s` syntax — see `docs/specification.md` section 4.13.
-4. ~~Confirm the `arduino-cli` toolchain (compile + upload) end-to-end.~~
-   Done — see "Done so far" items 4-5. **Resolved 2026-09-14**: the
-   connected Arduino Uno is a fresh/new board, not the original one — the
-   old MY1690 + electret-mic hardware has already been removed.
-   ~~Still open: this new board isn't yet wired to the head/beak servos,
-   so the real servo-only sketch (using the now-installed Servo/ServoEasing
-   libraries, matching the serial protocol from item 3 above) can be
-   written, compiled, and uploaded, but not validated against real
-   actuation until that wiring is done — Chip may write this sketch
-   himself rather than hand it to a future session.~~ **Written and
-   reviewed 2026-09-15**: `arduino/ServoControl/ServoControl.ino` exists,
-   compiles clean, and had two bugs (angle-clamp overflow, unbounded
-   duration) caught and fixed in code review — see `specification.md`
-   Open Issues issue 21. ~~Still open: real actuation still can't be
-   validated until the board is wired to the head/beak servos, which
-   hasn't happened yet.~~ **Resolved 2026-09-20**: board wired to all
-   four servos, actuation validated — see "Done so far" item 6.
-5. Prototype speaker-ID code (voice-embedding model + enrollment flow)
+3. Prototype speaker-ID code (voice-embedding model + enrollment flow)
    against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
    the software approach even though real accuracy needs the XVF3800's
    cleaned audio eventually (see the deferred decision in the brief).
-6. Flesh out the vendor-executed automation-authoring idea (the "lights off
+4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.
-7. More conversational/memory test vectors as they come up — continuing the
+5. More conversational/memory test vectors as they come up — continuing the
    joke/automation/NONE-case testing from this session.
-8. **New 2026-09-20, unblocked by the XVF3800's arrival**: with the board
-   USB-connected to the Pi (even unmounted and without a speaker), start
-   on the mic/DoA-only half of the stack — wake-word/STT groundwork.
-   Audio *output* (TTS, idle clips, beak-sync, AEC validation) still
-   needs the speaker wired — see "Blocked" below.
-9. **Investigated 2026-09-20, real gap found**: reading DoA via
-   `xvf_host AEC_AZIMUTH_VALUES` turned out not to be doable with what's
-   on hand — no `xvf_host` tool (or equivalent) exists on this Pi. The
-   XVF3800 exposes a generic USB-HID interface (`/dev/hidraw0`, already
-   bound by the kernel's stock driver) and a vendor-specific USB
-   interface, but the actual command protocol for reading azimuth over
-   that channel needs Seeed's real reference host application or
-   protocol documentation — not something to reverse-engineer/guess at.
-   Next step: track down Seeed's official XVF3800 control tool/docs (not
-   found via `apt`/`pip`/filesystem search on this Pi) and get it
-   running here.
+6. With the reSpeaker USB-connected to the Pi (even unmounted and without
+   a speaker), start on the mic/DoA-only half of the stack — wake-word/STT
+   groundwork. Audio *output* (TTS, idle clips, beak-sync, AEC validation)
+   still needs the speaker wired — see "Blocked" below.
+7. Track down Seeed's official XVF3800 control tool/protocol docs — no
+   `xvf_host` tool or equivalent exists on this Pi (not found via
+   `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
+   the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
+   needs Seeed's real reference application, not reverse-engineering.
 
-### Blocked until the XVF3800 arrives
+### Blocked until the XVF3800's speaker is wired
 
-**The XVF3800 itself arrived 2026-09-20** and is connected to the Pi via
-USB, so items needing only its mic/DoA input (not its speaker output) are
-now unblocked — see "Doable now" below. Still blocked on the speaker
-being wired (2-pin JST connector on order, ETA ~2026-09-27) and on
-mounting the board to the statue:
+Blocked on the speaker being wired (2-pin JST connector on order, ETA
+~2026-09-27) and on mounting the board to the statue:
 
 1. Validate AEC quality against the bird's own speaker — can't test
    self-echo cancellation without the speaker wired.
-2. ~~Validate reading DoA (`xvf_host AEC_AZIMUTH_VALUES`) from Pi-side
-   code.~~ **Unblocked 2026-09-20** — XVF3800 is USB-connected; move to
-   "Doable now."
-3. Real-time RMS beak-sync extraction from live audio playback/TTS through
+2. Real-time RMS beak-sync extraction from live audio playback/TTS through
    the reSpeaker's output — needs the speaker wired.
-4. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
+3. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
    tested for real — needs the speaker wired for the TTS/beak-sync half.
-5. Speaker-ID accuracy validation against real household voices — a
+4. Speaker-ID accuracy validation against real household voices — a
    stand-in mic won't fairly test what the AEC-cleaned audio actually buys;
    AEC itself needs the speaker wired first.
-6. Idle/ambient audio playback tuning through the reSpeaker's own output —
+5. Idle/ambient audio playback tuning through the reSpeaker's own output —
    needs the speaker wired.

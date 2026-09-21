@@ -113,9 +113,6 @@ projects (same Anthropic account) stay in "Decisions already made" below.
 
 ## Decisions already made (don't re-litigate these without new information)
 
-This is the single canonical list — `CLAUDE.md` points here rather than
-keeping its own copy.
-
 - Trust/security model: deliberately Alexa-like. No voice-ID firewall between
   household members — the home is treated as a trusted environment, same
   assumption behind most smart speakers. This is *why* Captain Jack doesn't need
@@ -185,10 +182,6 @@ keeping its own copy.
   account, it competes with Jarvis-the-parrot-adjacent-assistant's usage for the
   same 5-hour session budget. Worth monitoring via `/status` before assuming Pro
   is sufficient long-term.
-- Electret mics (Arduino-side sound triangulation) and the MY1690 audio
-  player are both removed outright — superseded by the XVF3800's onboard
-  direction-of-arrival output and Pi-side idle-clip playback, respectively
-  (see "Planned hardware upgrade" above).
 
 ## Suggested next steps for Claude Code
 
