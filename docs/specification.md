@@ -1495,6 +1495,53 @@ session.
   layering/blending doesn't arise there at all. Still fully open for
   On Watch, and for whatever Off Watch's own behavior loop ends up being
   once that's designed.
+25. **Added 2026-09-20**: small-amplitude, slow gestures (e.g.
+  `id-idle-breathing`'s 5° pitch swing over 2000ms) visibly move in
+  discrete steps on the real bird rather than gliding smoothly, even
+  though [Open Issues](#5-open-issues) issue 22's timing-budget analysis
+  and this issue's own investigation both confirm the Arduino-side
+  easing code itself is not the problem.
+
+  Diagnosed against real hardware using
+  `arduino/EasingDiagnostic/EasingDiagnostic.ino` (a one-off diagnostic
+  sketch, not part of the real firmware) — it polls a ServoEasing
+  servo's own internal current position in microseconds (finer than
+  `getCurrentAngle()`'s whole degrees) every loop iteration and logs a
+  timestamp every time that value changes, giving an objective trace
+  instead of relying on counting visible steps by eye. Two moves
+  compared, same code path as `ServoControl.ino`'s `s` handler, same
+  ~2000ms duration:
+    - 5° move (matching `id-idle-breathing`): ~53 updates, ~20-40ms
+      apart, each only **~1 microsecond**. Visibly steps on the bird.
+    - 30° move: ~99 updates, similar cadence, each **~3 microseconds**.
+      Looks smooth.
+
+  Conclusion: the update mechanism itself is firing on schedule and
+  advancing monotonically in both cases — this isn't a timer/interrupt
+  bug. The servo's own physical resolution just can't reliably resolve
+  ~1 microsecond pulse-width changes, so a move that's both small in
+  amplitude *and* slow (many small ticks, none individually big enough
+  to move the shaft) will look stepped no matter how correctly the
+  easing math runs. Calibration from this test: roughly **10.4
+  microseconds of pulse width per commanded degree** on this pitch
+  servo, and the visible-smoothness threshold sits somewhere between 1
+  and 3 microseconds per ~20ms tick (not pinned down more precisely than
+  that yet).
+
+  This is a real tension for the ambient/breathing-style gestures
+  specifically (small amplitude *and* slow duration are both central to
+  how they're meant to read) — left open, not resolved, because the fix
+  is a content/design tradeoff, not a code fix:
+    - Increase amplitude (less subtle, but each tick covers more
+      distance).
+    - Shorten duration for the same amplitude (faster ticks cover more
+      distance each, but "slow gentle breathing" is the whole point).
+    - Accept the stepped look for very subtle idle motion — it may
+      simply read as a small twitchy/alert quality rather than a defect.
+  See [gesture-catalog.yaml](gesture-catalog.yaml) for which gestures
+  this affects most (anything with single-digit-degree deltas and
+  multi-second durations — Idle Breathing on all three modes,
+  Micro-Twitch, Vowel Drift, Beat Pulse).
 
 ## 6. Possible Future Enhancements
 

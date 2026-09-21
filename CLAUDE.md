@@ -159,6 +159,19 @@ separate stack:
    documentation/reference host application. `read_doa_azimuth()` in the
    script is a stub (always `None`) so wiring in a real reading later is
    additive, not a rewrite.
+9. **Diagnosed 2026-09-20**: running `exercise_hardware.py` against the
+   real bird surfaced visible "discrete steps" in small/slow gestures
+   (e.g. `id-idle-breathing`). Root-caused with a one-off diagnostic
+   sketch, `arduino/EasingDiagnostic/EasingDiagnostic.ino`, which logs
+   the servo's actual microsecond-level position on every internal
+   update instead of relying on counting visible steps by eye — the
+   easing code itself updates correctly and on schedule; a 5° move
+   only produces ~1 microsecond per update, apparently below what the
+   physical servo can resolve, while a 30° move (~3 microseconds/update)
+   looks smooth. See `specification.md` Open Issues issue 25 — this is a
+   real design tradeoff (amplitude vs. duration vs. accepting the
+   stepped look for subtle motion), not a bug to fix in code. The real
+   `ServoControl.ino` was restored to the board afterward.
 
 ## Work list — split by hardware dependency
 
