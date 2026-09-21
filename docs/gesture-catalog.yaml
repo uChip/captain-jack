@@ -87,6 +87,30 @@
 #   must never omit an axis from what it actually transmits (this is now
 #   the engine's responsibility, not the catalog's, since deltas resolve
 #   to full values before sending).
+#
+# --- Added 2026-09-20 (second round): more Off Watch excursions ---
+#
+# Six new Off Watch excursions brainstormed to grow the pool (Ruffle
+# Shake, Neck Stretch, Alert Perk, Beak Wipe, Soft Chatter, Doze
+# Flicker) — deliberately more than needed right now ("more is better at
+# this stage," per Chip; cut/tune later if any don't look right in
+# practice, especially once excursion_interval_seconds gets tightened
+# back down as this pool grows further.
+#
+# Two are deliberately mirrored into other libraries under their own
+# ids, per the existing duplicate-don't-share convention:
+#   - em-alert-perk (On Watch): "noticing something" reads as a
+#     reasonable Emotional-category reaction, not just an idle quirk.
+#   - sl-snort (Asleep): a smaller/slower derivative of Soft Chatter
+#     finally fills the "snort" slot that's been named but unauthored
+#     since the Asleep breath-cycle design (specification.md 4.10).
+#
+# Neck Stretch and Doze Flicker were considered for mirroring too, but
+# weren't — both read as strong candidates for the still-unauthored
+# going-to-sleep transition gesture instead (a stretch/yawn and a
+# fighting-sleepiness beat are natural "getting ready to sleep"
+# material), which is a separate, not-yet-tackled task, not something to
+# fold in here by inference.
 
 resting:
   pitch: 35
@@ -120,6 +144,9 @@ excursion_interval_seconds:
   # with only 3 off_watch excursion gestures and 0 wav clips today,
   # 10-20s would repeat each gesture ~20x in a single 15-minute Off
   # Watch session — tighten back toward 10-20s as the library grows.
+  # (Grew to 9 excursions later the same day — "Added 2026-09-20 (second
+  # round)" below — still worth watching in practice before tightening;
+  # more content alone doesn't guarantee it stops feeling repetitive.)
   off_watch: [30, 90]
 
 on_watch:
@@ -210,6 +237,12 @@ on_watch:
       - {dy: -25, dr: -10, t: 150, wait_ms: 180}
       - {dy: 25, dr: -10, t: 150, wait_ms: 180}
       - {dy: 0, dr: 0, t: 150, wait_ms: 180}
+
+  - id: em-alert-perk
+    name: "Alert Perk — sharp upward pitch lift, brief hold, settle (mirrors id-alert-perk, see header comment 'Added 2026-09-20 (second round)')"
+    moves:
+      - {dp: 15, t: 150, wait_ms: 400}
+      - {dp: 0, t: 150, wait_ms: 180}
 
   # --- Conversational (docs/gesture-library.md "Conversational Gestures") ---
 
@@ -307,6 +340,53 @@ off_watch:
       - {dr: 20, dp: -15, dy: 10, t: 750, wait_ms: 780}
       - {dr: 0, dp: 0, dy: 0, t: 400, wait_ms: 430}
 
+  # --- More idle excursions (brainstormed 2026-09-20, see header comment
+  #     "Added 2026-09-20 (second round)" — "more is better at this
+  #     stage," per Chip; cut/tune later if any don't look right) ---
+
+  - id: id-ruffle-shake
+    name: "Ruffle Shake — quick shake-off/resettle"
+    moves:
+      - {dr: 12, dy: 8, t: 80, wait_ms: 110}
+      - {dr: -12, dy: -8, t: 80, wait_ms: 110}
+      - {dr: 12, dy: 8, t: 80, wait_ms: 110}
+      - {dr: 0, dy: 0, t: 80, wait_ms: 110}
+
+  - id: id-neck-stretch
+    name: "Neck Stretch — slow held extension, beak cracked open, then release"
+    moves:
+      - {dp: 25, beak: 20, t: 700, wait_ms: 730}
+      - {dp: 0, beak: 60, t: 500, wait_ms: 530}
+
+  - id: id-alert-perk
+    name: "Alert Perk — sharp upward pitch lift, brief hold, settle"
+    moves:
+      - {dp: 15, t: 150, wait_ms: 400}
+      - {dp: 0, t: 150, wait_ms: 180}
+
+  - id: id-beak-wipe
+    name: "Beak Wipe — miming wiping the beak on a perch"
+    moves:
+      - {dp: -8, beak: 15, t: 100, wait_ms: 130}
+      - {beak: 45, t: 100, wait_ms: 130}
+      - {beak: 15, t: 100, wait_ms: 130}
+      - {dp: 0, beak: 60, t: 150, wait_ms: 180}
+
+  - id: id-soft-chatter
+    name: "Soft Chatter — quiet beak flutter, minimal head motion, self-talk"
+    moves:
+      - {beak: 8, t: 80, wait_ms: 110}
+      - {beak: 12, t: 80, wait_ms: 110}
+      - {beak: 8, t: 80, wait_ms: 110}
+      - {beak: 12, t: 80, wait_ms: 110}
+
+  - id: id-doze-flicker
+    name: "Doze Flicker — head droops, catches itself, settles"
+    moves:
+      - {dp: -12, t: 400, wait_ms: 430}
+      - {dp: 5, t: 100, wait_ms: 130}
+      - {dp: 0, t: 150, wait_ms: 180}
+
 asleep:
   # --- Ambient (default/base state, always running) ---
   # Sequenced per specification.md 4.10: breath plays through, then with
@@ -326,6 +406,13 @@ asleep:
     moves:
       - {dy: 1, dp: 1, dr: 2, t: 70, wait_ms: 100}
       - {dy: 0, dp: 0, dr: 0, t: 70, wait_ms: 100}
+
+  - id: sl-snort
+    name: "Snort (Asleep) — smaller, slower beak flutter derived from id-soft-chatter; fills the previously-missing 'snort' slot (see specification.md 4.10)"
+    moves:
+      - {beak: 6, t: 150, wait_ms: 180}
+      - {beak: 10, t: 150, wait_ms: 180}
+      - {beak: 6, t: 150, wait_ms: 180}
 
   - id: sl-waking-up
     name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
