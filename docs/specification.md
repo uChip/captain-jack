@@ -711,8 +711,8 @@ Loop:
         play the "waking up" gesture (sl-waking-up)
         go to On Watch state
     else, with some (tunable) chance:
-        play one random extra gesture from {snore (not yet authored),
-          sl-snort, sl-micro-twitch-quiet ("shift to get comfortable")}
+        play one random extra gesture from {sl-snore, sl-snort,
+          sl-micro-twitch-quiet ("shift to get comfortable")}
         if wake phrase detected: play "waking up", go to On Watch
     # otherwise loop back to the next breath
 ```
@@ -723,15 +723,22 @@ since everything is a few seconds long at most. Playing "waking up" in
 full before actually transitioning is deliberate, not a latency
 compromise: a real animal is slow to react right out of sleep, so the
 delay reads as in-character. `sl-settle-to-sleep` deliberately runs
-longer (~2.3s: yawn, release the stretch, gentle settle, then a droop
-that isn't forced back to neutral — physically continuous either way,
-since ServoEasing always eases from wherever the servo actually is, not
-from a stored baseline) than `sl-waking-up`'s ~530ms startle, matching
-how falling asleep is gradual while waking is a quick reflex. A snore
-clip/gesture is still named here but not authored; all of Asleep's named
-gestures are now wired to a real `sl-*` id in
-[gesture-catalog.yaml](gesture-catalog.yaml), but none has a paired wav
-clip yet — no matching audio exists in `wavFiles/`.
+longer (~2.3s: yawn, release the stretch, a tuck toward one side —
+loosely evoking the head-under-wing stereotype, which the fixed-wing
+build can't actually do — then a droop that isn't forced back to
+neutral, physically continuous either way since ServoEasing always
+eases from wherever the servo actually is, not from a stored baseline)
+than `sl-waking-up`'s ~530ms startle, matching how falling asleep is
+gradual while waking is a quick reflex. `sl-snore` is a slow pitch lift
+with a little beak movement, settling back; `sl-snort` is snappier — a
+small twitch, a sharp pitch jerk, a beak flap, then resettle. All of
+Asleep's named gestures are now wired to a real `sl-*` id in
+[gesture-catalog.yaml](gesture-catalog.yaml); none has a paired wav clip
+yet — no matching audio exists in `wavFiles/`. One open question noted
+in the catalog: `sl-settle-to-sleep`'s roll tuck will ease back toward
+upright over breath's own oscillation (which is centered on a fixed
+`resting`, not wherever the tuck left off) — worth watching once this
+can actually run.
 
 **Off Watch's (and On Watch's) behavior loop, resolved 2026-09-20**: not
 Asleep's plain sequence — an earlier sketch of independent random-interval

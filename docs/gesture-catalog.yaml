@@ -73,11 +73,22 @@
 # - wait_ms = t + 30 (flat margin) — still an unverified safety pad
 #   against ServoEasing's behavior on an early new command; see
 #   specification.md Open Issue 24.
-# - Snore clips are still named (specification.md 4.10) but not
-#   authored — no matching audio exists in wavFiles/ yet. Snort now has
-#   a gesture (sl-snort) and the going-to-sleep entry gesture now has
-#   one too (sl-settle-to-sleep, added later 2026-09-20) — both still
-#   lack a paired wav clip for the same reason.
+# - All of Asleep's named gestures now exist (sl-snore/sl-snort/
+#   sl-settle-to-sleep added later 2026-09-20) — only a paired wav clip
+#   is still missing for any of them; no matching audio exists in
+#   wavFiles/ yet.
+#
+# - **Open question, 2026-09-20**: sl-settle-to-sleep ends with a
+#   persistent roll tilt (the head-under-wing tuck), but Asleep's breath
+#   cycle (sl-idle-breathing-quiet) oscillates around fixed `resting`,
+#   not around wherever settle-to-sleep left off — so the tuck will
+#   gradually ease back toward upright over breath's first ~3s move,
+#   since delta targets are computed against the constant, not the
+#   gesture that just played. Whether that reads fine (a natural
+#   settling-in) or undercuts the tucked look before it's had time to
+#   register is worth watching once this can actually run — if it looks
+#   wrong, the fix is giving Asleep its own tilted baseline for the
+#   whole mode, not just the transition gesture.
 # - Wav-Paired library and all Wav entries are still empty — no source
 #   content to map them from yet.
 # - Rapid Chatter still combines an absolute `beak` write with delta
@@ -410,12 +421,19 @@ asleep:
       - {dy: 1, dp: 1, dr: 2, t: 70, wait_ms: 100}
       - {dy: 0, dp: 0, dr: 0, t: 70, wait_ms: 100}
 
-  - id: sl-snort
-    name: "Snort (Asleep) — smaller, slower beak flutter derived from id-soft-chatter; fills the previously-missing 'snort' slot (see specification.md 4.10)"
+  - id: sl-snore
+    name: "Snore (Asleep) — slow pitch lift with a bit of beak movement, then settle back"
     moves:
-      - {beak: 6, t: 150, wait_ms: 180}
-      - {beak: 10, t: 150, wait_ms: 180}
-      - {beak: 6, t: 150, wait_ms: 180}
+      - {dp: 8, beak: 20, t: 900, wait_ms: 930}
+      - {dp: 0, beak: 60, t: 600, wait_ms: 630}
+
+  - id: sl-snort
+    name: "Snort (Asleep) — revised 2026-09-20: twitch, jerk pitch up, beak flap, resettle"
+    moves:   # replaces the original soft-chatter-derived version; kept the id, not the shape
+      - {dy: 2, dr: 2, t: 60, wait_ms: 90}
+      - {dp: 10, t: 80, wait_ms: 110}
+      - {dp: 5, beak: 15, t: 100, wait_ms: 130}
+      - {dp: 0, dy: 0, dr: 0, beak: 60, t: 150, wait_ms: 180}
 
   - id: sl-waking-up
     name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
@@ -424,12 +442,12 @@ asleep:
       - {beak: 60, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
 
   - id: sl-settle-to-sleep
-    name: "Settle to Sleep — yawn, release the stretch, gentle settle, droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
-    moves:   # deliberately doesn't return dp to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
+    name: "Settle to Sleep — yawn, release the stretch, tuck (head-under-wing stereotype, can't really get there), droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
+    moves:   # deliberately doesn't return dp or dr to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
       - {beak: 0, dp: 12, t: 600, wait_ms: 630}
       - {beak: 60, dp: 5, t: 400, wait_ms: 430}
-      - {dr: 6, dy: -4, dp: 2, t: 500, wait_ms: 530}
-      - {dr: 0, dy: 0, dp: -12, t: 800, wait_ms: 830}
+      - {dr: 20, dy: -6, dp: 2, t: 600, wait_ms: 630}   # revised 2026-09-20: bigger, more deliberate roll — reads as tucking toward one side
+      - {dr: 20, dy: 0, dp: -12, t: 800, wait_ms: 830}   # roll holds at the tuck; only pitch/yaw finish settling
 
 wav_paired: []   # empty — no source content to map yet
 
