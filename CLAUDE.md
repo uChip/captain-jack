@@ -153,6 +153,14 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
    (ECAPA-TDNN speaker embeddings for tier-1 voice ID) — all design
    decisions, not yet implemented. See `docs/specification.md` sections
    4.1/4.2/4.15 and Open Issues 1/16.
+10. Verified the connected XVF3800's actual playback/capture format via
+    ALSA `hw_params` (not just vendor docs): fixed at `S16_LE`, 16kHz, 2
+    channels on both directions — the board is running Seeed's 16kHz
+    "standard" firmware, not the 48kHz Home-Assistant variant. Locked in
+    16kHz/16-bit/S16_LE/2ch as the canonical Pi-side audio-output format
+    for TTS and idle clips; corrected a spec typo along the way (existing
+    `wavFiles/` clips are actually 44100Hz, not the previously-documented
+    41000Hz). See `docs/specification.md` sections 3.2/4.7/4.8/4.10.
 
 ## Work list — split by hardware dependency
 
@@ -200,6 +208,10 @@ worked in parallel if priorities change.
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
+8. Batch-convert the existing `wavFiles/` clips from 44100Hz down to the
+   canonical 16kHz/16-bit/S16_LE output format (see
+   `docs/specification.md` sections 4.7/4.10) — a one-time resampling
+   pass, doesn't need the speaker wired.
 
 ### Blocked until the XVF3800's speaker is wired
 

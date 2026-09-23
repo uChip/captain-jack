@@ -320,6 +320,16 @@ actual input, but AEC/echo-cancellation validation and idle/TTS audio
 output remain blocked until the speaker is wired — see CLAUDE.md's
 "Blocked until the XVF3800's speaker is wired" list.
 
+Verified directly against the connected board (ALSA `hw_params` on both
+its playback and capture subdevices): the currently-flashed firmware
+exposes a **fixed** format on both directions — `S16_LE`, 16kHz, 2
+channels — not a negotiable range. Seeed also ships a 48kHz-oriented
+firmware variant (aimed at Home Assistant use); reflashing to it is a
+possible future option for higher output fidelity, not pursued now given
+the board is already connected and working. See
+[4.7](#47-text-to-speech-tts) for the resulting canonical Pi-side audio
+format.
+
 **Intended function**: captures conversational audio for STT, echo-cancels
 the bird's own speech out of that input using its own played-back audio as
 reference, exposes per-beam direction-of-arrival for head-turn cues
@@ -654,7 +664,7 @@ schema is currently passed to the Anthropic API call in `orchestrate.py`.
 
 ### 4.7 Text to Speech (TTS)
 
-History: [log.md#issue-16](log.md#issue-16).
+History: [log.md#issue-16](log.md#issue-16), [log.md#47-text-to-speech-tts](log.md#47-text-to-speech-tts).
 
 **Status: Blocked** (needs hardware not yet on hand — specifically, needs
 the speaker wired to judge the deciding factor, voice quality).
@@ -676,6 +686,19 @@ considered and set aside for now: at 0.5B params and built for GPU
 inference, with no Pi-optimized port available, it doesn't fit this
 project's CPU-only hardware today.
 
+**Output format — decided 2026-09-23**: 16kHz, 16-bit signed PCM
+(`S16_LE`), 2 channels (mono content duplicated across both) — the
+connected XVF3800 board has a fixed, non-negotiable playback format at
+exactly that spec (verified via ALSA `hw_params`, see
+[3.2](#32-seeed-respeaker-xvf3800)), not a range to choose within.
+Neither TTS candidate outputs this natively (Kokoro-82M: 24kHz;
+Supertonic-3: 44.1kHz), so both need a resample-down step regardless of
+which wins the bake-off — this isn't itself a factor in that decision.
+The same canonical format applies to
+[idle/ambient clips](#410-idle-and-ambient-audio-player), so
+[beak-sync](#48-beak-sync-rms-envelope-extraction) has one uniform PCM
+stream to process regardless of source.
+
 **Intended function**: convert the orchestrator's spoken-text output to an
 audio stream for playback through the XVF3800/speaker, feeding both the
 listener and the [beak-sync](#48-beak-sync-rms-envelope-extraction) module.
@@ -695,7 +718,10 @@ the design itself doesn't strictly require the board to begin building.
 **Description**: real-time RMS amplitude envelope extraction from whatever
 audio is currently playing — idle clip or live TTS — at roughly 30–50Hz,
 replacing the MY1690's old dual-channel pre-encoded beak-track trick with
-one code path for both cases.
+one code path for both cases. Operates on the canonical 16kHz/16-bit PCM
+stream established in [TTS](#47-text-to-speech-tts) — both sources are
+normalized to that one format before playback, so this module never
+needs source-specific handling.
 
 **Intended function**: produce a live beak-position value from audio
 amplitude and stream it to the Arduino as `BEAK <0–255>` commands. Because
@@ -744,13 +770,17 @@ History: [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-
 
 **Status: Not started; clip library seeded; both Asleep's and Off
 Watch's own behavior loops are designed (see below).** The `wavFiles/`
-folder now holds a first batch of mono, 41000Hz signed-16-bit-PCM clips
+folder now holds a first batch of mono, 44100Hz signed-16-bit-PCM clips
 (movie lines, song snippets with music removed, etc.) plus
 `AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
 intended for measuring timing offset between audio output and beak
 movement once beak-sync exists. More clips, including short recordings of
 notable live Captain Jack responses, are expected to be added over time,
 including after project end. Playback code itself is still unwritten.
+These are still at their original 44100Hz; per [TTS](#47-text-to-speech-tts)'s
+canonical 16kHz output format, they'll need a one-time batch conversion
+before playback through the XVF3800, rather than live-resampling on
+every play.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser

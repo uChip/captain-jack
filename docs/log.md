@@ -592,6 +592,17 @@ speaker sits inches from its own mics, which a cruder echo-cancellation
 stage might not handle well enough. Roughly 2x the Lite's cost and a
 larger footprint, accepted as the tradeoff for that AEC quality.
 
+**Verified directly, 2026-09-23**: queried the connected board's ALSA
+`hw_params` for both its playback and capture subdevices (`aplay
+--dump-hw-params` / `arecord --dump-hw-params` against `hw:2,0`) rather
+than trust Seeed's general docs alone — the currently-flashed firmware
+reports a fixed, non-range format on both directions: `S16_LE`, 16000Hz,
+2 channels. Seeed's docs describe two firmware options (a 16kHz
+"standard" USB firmware and a 48kHz Home-Assistant-oriented one); this
+board is running the 16kHz one. See
+[specification.md#47-text-to-speech-tts](specification.md#47-text-to-speech-tts)
+for the resulting canonical output-format decision.
+
 ### 3.4 Arduino Servo Controller
 
 **Pre-Pi role**: in the original (pre-Pi) design, the Arduino owned all
@@ -619,6 +630,22 @@ triangulation on the original Arduino. Superseded by the XVF3800's
 onboard direction-of-arrival output, read directly by the Pi (see
 [specification.md#49-direction-of-arrival-doa-reader](specification.md#49-direction-of-arrival-doa-reader)).
 
+### 4.7 Text to Speech (TTS)
+
+**Output format decided, 2026-09-23**: rather than pick a sample
+rate/format on paper, queried the connected XVF3800's actual ALSA
+`hw_params` directly (see [3.2](#32-seeed-respeaker-xvf3800)) and found a
+fixed, non-negotiable playback format — `S16_LE`, 16kHz, 2 channels.
+Locked that in as the canonical Pi-side output format for both TTS and
+idle clips. Neither TTS bake-off candidate (Kokoro-82M: 24kHz native;
+Supertonic-3: 44.1kHz native) matches it natively, so a resample-down
+step is needed regardless of which wins — the format decision doesn't
+favor either candidate. 16kHz ("wideband" voice quality, the modern
+VoIP/voice-call standard) was judged sufficient for a voice-focused
+companion device, not a hi-fi concern; reflashing to Seeed's 48kHz
+Home-Assistant-oriented firmware remains a possible future option, not
+pursued now.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
@@ -639,6 +666,15 @@ clips, 10-20s over a full 15-minute Off Watch session would repeat each
 gesture roughly 20 times, reading as mechanical rather than lifelike.
 30-90s is explicitly a starting point to tighten back down as the
 library grows, not a final number — "try it and see," per Chip.
+
+**Sample rate correction, 2026-09-23**: `specification.md` had described
+the `wavFiles/` clips as 41000Hz; verified directly against
+`AlignmentTone.wav`'s actual header (Python's `wave` module) and found
+they're really 44100Hz, mono, 16-bit signed PCM — the spec text was
+wrong, not the files. The real number matters now because of the new
+canonical 16kHz output format (see
+[4.7](#47-text-to-speech-tts)): these clips need a one-time batch
+conversion down to 16kHz, not live resampling on every play.
 
 **`sl-settle-to-sleep` wav idea set aside**: Chip's original "About time
 they let me get some rest" idea was set aside for `sl-settle-to-sleep`
