@@ -211,3 +211,8 @@ Blocked on the speaker being wired (2-pin JST connector on order, ETA
    AEC itself needs the speaker wired first.
 5. Idle/ambient audio playback tuning through the reSpeaker's own output —
    needs the speaker wired.
+6. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
+   hardware (see `docs/specification.md` section 4.7 and Open Issues
+   issue 16), judged primarily on voice quality (the deciding factor per
+   Chip's call) with real-time throughput as a secondary check; needs the
+   speaker wired to actually listen to the output.

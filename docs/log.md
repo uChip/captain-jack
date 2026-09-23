@@ -274,6 +274,55 @@ and far more cheaply.
 
 **Left open**: TTS engine is still unselected.
 
+**Narrowed further, 2026-09-23 (same day)**: TTS engine research turned
+up a real quality-vs-edge-feasibility landscape, not a clean pick. Chip's
+deciding criterion, stated explicitly: voice quality is critical to the
+project being perceived as a success by a non-technical listener —
+movies set the expectation, and seeing Jarvis (via jaredrhod's backtalk)
+already meet that bar for a similar local-only voice reinforced it as
+achievable, not just aspirational.
+
+Findings, broadest first:
+- **Chatterbox** (Resemble AI, MIT): the actual open-model quality
+  ceiling right now — beat ElevenLabs in blind preference tests, 65.3%
+  to 24.5%. Set aside for this project regardless: 0.5B params, built
+  for GPU inference, no Pi-optimized port exists. Worth remembering if
+  the project ever gains a GPU budget; not viable on Pi 5's CPU-only
+  hardware today.
+- **Kokoro-82M** (Apache 2.0) — independently validated (not just
+  because backtalk/Jarvis uses it) as the best realistic choice for
+  actually-local/edge deployment among current open models; separately
+  reported at a 4.5 MOS, beating every proprietary model tested on one
+  benchmark. The catch: stock Kokoro-82M benchmarks at only ~0.91-0.93x
+  real-time on 2 ARM cores — can't reliably keep up with live speech on
+  stock Pi-class CPU. `kokoro-pi` (a community ARM-optimized fork: fused
+  int8 kernel + clause-by-clause streaming) closes that gap — ~2x faster
+  synthesis, ~6x faster time-to-first-audio — at the cost of being a
+  small, single-maintainer project rather than a well-trodden one.
+- **Piper** (MIT) — the well-trodden, rock-solid Pi choice (same
+  Rhasspy/Home-Assistant-voice ecosystem as openWakeWord), 8x+ real-time
+  on the same ARM cores, but the more robotic/"classic TTS"-sounding
+  option. Kept in mind as a fallback, not chosen as a candidate for the
+  bake-off — quality is the deciding criterion here, and Piper is the
+  known-weaker voice on that axis.
+- **Supertonic-3** (ONNX-native, 99M params): comparable size to Kokoro,
+  independently competitive-or-faster in CPU benchmarks (official: 5x
+  real-time on a 16-thread CPU; an independent bench found ~3.2x
+  real-time at a usable quality setting) — but no confirmed
+  Raspberry-Pi/4-core-ARM-specific benchmark was found, unlike
+  `kokoro-pi`'s real ARM numbers. A genuine open question, not dismissed
+  on suspicion alone.
+
+**Plan of record**: an empirical bake-off on the real Pi — `kokoro-pi`
+vs. stock Supertonic-3 — judged primarily by ear (voice quality, per
+Chip's stated priority) with real-time throughput as a secondary check.
+Chatterbox and Piper are not part of the bake-off (former hardware-
+infeasible now, latter a known-quality fallback, not a quality-optimizing
+candidate). **Blocked** on the XVF3800's speaker being wired (2-pin JST
+connector in transit, ETA ~2026-09-27) — can't judge voice quality
+without being able to hear the output. See
+[specification.md#47-text-to-speech-tts](specification.md#47-text-to-speech-tts).
+
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,

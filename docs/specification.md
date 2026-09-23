@@ -654,12 +654,27 @@ schema is currently passed to the Anthropic API call in `orchestrate.py`.
 
 ### 4.7 Text to Speech (TTS)
 
-History: none yet.
+History: [log.md#issue-16](log.md#issue-16).
 
-**Status: Not started.**
+**Status: Blocked** (needs hardware not yet on hand — specifically, needs
+the speaker wired to judge the deciding factor, voice quality).
 
-**Description**: local TTS rendering Jack's spoken reply to audio. No
-engine chosen.
+**Description**: local TTS rendering Jack's spoken reply to audio.
+Candidates narrowed to two, both local/offline/no-API-key, comparably
+small (Kokoro-82M vs. Supertonic-3's 99M params): **`kokoro-pi`** (a
+Raspberry-Pi-optimized build of Kokoro — the same engine
+[jaredrhod/backtalk](https://github.com/jaredrhod/backtalk) uses for
+Jarvis, independently validated elsewhere as the best available choice
+for genuinely local/edge deployment, not chosen just because Jarvis uses
+it) and **Supertonic-3** (ONNX-native, competitive-or-faster than Kokoro
+in CPU benchmarks, but without a confirmed Pi/ARM-specific benchmark the
+way `kokoro-pi` has one). Final choice deferred to an empirical bake-off
+on the real Pi rather than decided on paper — see [Open
+Issues](#5-open-issues) issue 16. A clearly higher-quality option,
+Chatterbox (MIT, beats ElevenLabs in blind preference tests), was
+considered and set aside for now: at 0.5B params and built for GPU
+inference, with no Pi-optimized port available, it doesn't fit this
+project's CPU-only hardware today.
 
 **Intended function**: convert the orchestrator's spoken-text output to an
 audio stream for playback through the XVF3800/speaker, feeding both the
@@ -1312,8 +1327,13 @@ and is tagged **[RESOLVED]** in place.
 16. **Narrowed 2026-09-23**: wake-word engine (openWakeWord) and STT engine
   (Whisper via `whisper.cpp` + Silero VAD; model size tiny vs. base still
   pending on-device experimentation) are now chosen — see
-  [4.1](#41-wake-word-spotter)/[4.2](#42-speech-to-text-stt). **Left
-  open**: TTS engine is still unselected. History:
+  [4.1](#41-wake-word-spotter)/[4.2](#42-speech-to-text-stt). **Narrowed
+  further, same day**: TTS candidates narrowed to `kokoro-pi` vs.
+  Supertonic-3 (see [4.7](#47-text-to-speech-tts)); plan of record is an
+  empirical bake-off on the real Pi, judged primarily on voice quality
+  per Chip's call, once the speaker is wired. **Left open**: which of the
+  two wins the bake-off; **Blocked**: the bake-off itself needs the
+  speaker wired to judge output quality. History:
   [log.md#issue-16](log.md#issue-16).
 17. **[RESOLVED]** Idle-audio-on-Pi tradeoff (ambient sound depends on the
   Pi being up, unlike the removed MY1690-on-Arduino design) was noted,
