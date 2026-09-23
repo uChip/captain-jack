@@ -1156,11 +1156,13 @@ validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 
 ## 5. Open Issues
 
+History: [log.md#open-issues-history](log.md#open-issues-history).
+
 Full resolution history, rationale, and alternatives considered for every
-issue below — including the ones still marked open here — live in
-[log.md](log.md#open-issues-history), keyed by issue number. Issue numbers
-are permanent identifiers, assigned once and never reused or renumbered;
-a resolved issue keeps its number and is tagged **[RESOLVED]** in place.
+issue below — including the ones still marked open here — live there,
+keyed by issue number. Issue numbers are permanent identifiers, assigned
+once and never reused or renumbered; a resolved issue keeps its number
+and is tagged **[RESOLVED]** in place.
 
 1. Resolving who's speaking uses a three-tier priority: (1) voice ID —
   preferred, pending the XVF3800's scheduled accuracy test; (2) explicit
