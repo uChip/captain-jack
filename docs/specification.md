@@ -699,6 +699,14 @@ The same canonical format applies to
 [beak-sync](#48-beak-sync-rms-envelope-extraction) has one uniform PCM
 stream to process regardless of source.
 
+Storage and processing (idle clips, beak-sync's RMS extraction, and TTS
+engine output) stay **mono** throughout — the 2-channel requirement above
+is purely this board's USB-audio-interface quirk, not real stereo
+content (Jack has one physical speaker, see [3.3](#33-speaker)), so
+duplication to 2 channels happens as a single shared step at the point
+of writing to the ALSA device, not baked into stored assets or done
+per-source.
+
 **Intended function**: convert the orchestrator's spoken-text output to an
 audio stream for playback through the XVF3800/speaker, feeding both the
 listener and the [beak-sync](#48-beak-sync-rms-envelope-extraction) module.
@@ -778,9 +786,11 @@ movement once beak-sync exists. More clips, including short recordings of
 notable live Captain Jack responses, are expected to be added over time,
 including after project end. Playback code itself is still unwritten.
 These are still at their original 44100Hz; per [TTS](#47-text-to-speech-tts)'s
-canonical 16kHz output format, they'll need a one-time batch conversion
-before playback through the XVF3800, rather than live-resampling on
-every play.
+canonical output format, they'll need a one-time batch conversion to
+16kHz — staying **mono**, not the 2-channel format the XVF3800 needs at
+playback time, since that duplication happens once, shared, in the
+playback code rather than being baked into the converted files — rather
+than live-resampling on every play.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser

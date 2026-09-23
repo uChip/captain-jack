@@ -646,6 +646,23 @@ companion device, not a hi-fi concern; reflashing to Seeed's 48kHz
 Home-Assistant-oriented firmware remains a possible future option, not
 pursued now.
 
+**Mono vs. stereo storage, 2026-09-23 (Chip's question while planning the
+`wavFiles/` conversion)**: the XVF3800's 2-channel requirement is a
+USB-audio-interface quirk of this specific board, not real stereo
+content — Jack has exactly one physical speaker (3.3), so there's
+nothing for a second channel to meaningfully carry beyond a duplicate of
+the first. Decided to keep stored clips and TTS engine output mono
+throughout, and do the mono→stereo duplication as a single shared step
+right at the ALSA write, not baked into the asset library. Reasoning:
+(1) it's the only way both sources (pre-recorded clips and live TTS,
+which is inherently mono at the engine) go through genuinely identical
+code, matching 4.8's "one code path for both cases" design, instead of
+beak-sync's RMS extraction needing to know which channel to read; (2)
+mono storage is half the size for identical content, and the clip
+library is expected to keep growing; (3) it decouples the stored assets
+from this board's specific quirk, so a future firmware/hardware change
+only touches the one small duplication step, not the whole library.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

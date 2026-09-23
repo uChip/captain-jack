@@ -208,8 +208,10 @@ worked in parallel if priorities change.
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
-8. Batch-convert the existing `wavFiles/` clips from 44100Hz down to the
-   canonical 16kHz/16-bit/S16_LE output format (see
+8. Batch-convert the existing `wavFiles/` clips from 44100Hz down to
+   16kHz/16-bit/S16_LE, staying **mono** — not the 2-channel format the
+   XVF3800 needs at playback time, which is a single shared duplication
+   step in the playback code, not something baked into the files (see
    `docs/specification.md` sections 4.7/4.10) — a one-time resampling
    pass, doesn't need the speaker wired.
 
