@@ -164,6 +164,12 @@ is USB-connected).
 
 ### Doable now
 
+Everything below is hardware-unblocked, but items 1/2/4 (home-automation)
+are being deliberately sequenced *after* items 3/6/7 (the core audio
+conversation loop) — Chip's own priority call, not a technical
+dependency between them. Nothing here stops home-automation from being
+worked in parallel if priorities change.
+
 1. Wire orchestrate.py's tool calls for the vendors with known APIs (Govee,
    Tuya/SmartLife, ecobee, Rachio) per the allowlist, and test live against
    the real devices — none of this touches the parrot's own audio hardware.
