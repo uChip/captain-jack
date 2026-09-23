@@ -526,7 +526,7 @@ Haiku call involved.
 
 ### 4.2 Speech to Text (STT)
 
-History: [log.md#issue-16](log.md#issue-16).
+History: [log.md#issue-16](log.md#issue-16), [log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt).
 
 **Status: Engine chosen, not implemented.**
 
@@ -547,6 +547,42 @@ language understanding, so a dedicated local corrector mostly duplicates
 that at extra latency on CPU-only hardware, and the technique itself is
 documented to risk paraphrasing away already-correct text except when the
 underlying transcript's error rate is already high.
+
+**Confidence/no-speech threshold methodology — decided 2026-09-23**: same
+approach as the wake/sleep-phrase thresholds ([4.1](#41-wake-word-spotter)) —
+mechanism and starting point decided now, specific numbers deliberately
+deferred. Mechanism is whisper.cpp-native, no custom code needed: its
+`whisper_full_params` already exposes `no_speech_thold` (silence
+probability, reference default 0.6), `logprob_thold` (decode confidence,
+default -1.0), and `entropy_thold` (repetition/hallucination-loop
+detector, default 2.4) — OpenAI's own reference defaults, not invented
+for this project. Numbers aren't set yet because the model size (tiny
+vs. base, above) isn't chosen and there's no real household audio to
+calibrate against.
+
+This is a second, distinct layer from Silero VAD, not redundant with it:
+VAD decides *when to record at all*, cheaply, before whisper.cpp ever
+runs; these three thresholds catch what slips past VAD post-transcription
+— a noise burst energetic enough to trigger VAD but not actual words, or
+genuinely garbled speech.
+
+Same asymmetric bias as [4.1](#41-wake-word-spotter), same direction:
+start from the reference defaults and bias stricter (more willing to
+discard/ask-again) rather than looser, since trusting a garbled/
+hallucinated transcript and sending it to Haiku as real speech wastes an
+API call and produces an immersion-breaking non-sequitur reply — worse
+than a false reject, which only costs a repeat.
+
+One STT-specific implication beyond the number itself: unlike a
+wake-word false reject (invisible — the household member just tries the
+phrase again), silently dropping a low-confidence segment mid-conversation
+(On Watch) would read as Jack being broken, not as "didn't hear that." The
+reject path needs an explicit, in-character prompt (e.g., "Arr, didn't
+catch that over the wind — say again?") rather than silence — the same
+kind of canned-response pattern already used for idle/Asleep clips.
+
+Calibration rides on the same real-audio testing already queued for
+wake-word groundwork (see `CLAUDE.md`'s work list), not a separate task.
 
 **Intended function**: transcribe household speech to text for the
 orchestrator during an On Watch session.

@@ -166,6 +166,12 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     point, wake phrase biased stricter than sleep) without picking actual
     numbers — those still need real audio to calibrate against. See
     `docs/specification.md` section 4.1.
+12. Decided STT's confidence/no-speech threshold methodology the same
+    way: whisper.cpp already exposes `no_speech_thold`/`logprob_thold`/
+    `entropy_thold` natively (OpenAI's reference defaults), biased
+    stricter same as 4.1, with rejects needing an in-character prompt
+    rather than silence during On Watch. Numbers deferred to the same
+    real-audio testing. See `docs/specification.md` section 4.2.
 
 ## Work list — split by hardware dependency
 
@@ -207,8 +213,9 @@ worked in parallel if priorities change.
    Whisper via `whisper.cpp` + Silero VAD; ECAPA-TDNN — see
    `docs/specification.md` sections 4.1/4.2/4.15). Includes collecting
    real positive/negative audio to calibrate the wake/sleep phrase
-   confidence thresholds (methodology decided, see section 4.1 — actual
-   numbers still pending this testing). Audio *output* (TTS, idle clips,
+   confidence thresholds and STT's no_speech/logprob/entropy thresholds
+   (methodology decided for both, see sections 4.1/4.2 — actual numbers
+   for both still pending this testing). Audio *output* (TTS, idle clips,
    beak-sync, AEC validation) still needs the speaker wired — see
    "Blocked" below.
 7. Track down Seeed's official XVF3800 control tool/protocol docs — no

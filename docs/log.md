@@ -353,6 +353,46 @@ it. Actual calibration happens as part of the wake-word groundwork
 already queued once the board can be exercised for real (see
 `CLAUDE.md`'s work list) — not a separate task.
 
+### 4.2 Speech to Text (STT)
+
+**Confidence/no-speech threshold methodology, 2026-09-23**: same
+treatment as [4.1](#41-wake-word-spotter), decided the same day and
+explicitly asked to apply the same philosophy — mechanism and starting
+point now, specific numbers deferred to real testing. Found the
+mechanism is already built into whisper.cpp, not something to add:
+`whisper_full_params` exposes `no_speech_thold` (silence probability,
+reference default 0.6), `logprob_thold` (decode confidence, default
+-1.0), and `entropy_thold` (whisper.cpp's repetition/hallucination-loop
+detector, default 2.4, functionally equivalent to the Python reference's
+`compression_ratio_threshold`) — OpenAI's own reference defaults,
+confirmed present in whisper.cpp specifically (not assumed from the
+Python API), not invented for this project.
+
+Numbers aren't set because the model size (tiny vs. base, still open —
+see [4.2](specification.md#42-speech-to-text-stt)) isn't chosen and
+there's no real household audio to calibrate against yet.
+
+Clarified this is a second, distinct layer from Silero VAD, not
+redundant with it: VAD decides *when to record at all*, cheaply, before
+whisper.cpp ever runs; these three thresholds catch what slips past VAD
+post-transcription — a noise burst energetic enough to trigger VAD but
+not actual words, or genuinely garbled speech.
+
+Same asymmetric bias as the wake/sleep thresholds, same direction and
+same underlying reasoning (continuing the project's fail-closed
+throughline — memory saves, self-ID, now both threshold decisions): bias
+toward the reference defaults' stricter side, since trusting a garbled/
+hallucinated transcript and sending it to Haiku wastes an API call and
+produces an immersion-breaking non-sequitur reply, worse than a false
+reject costing a repeat.
+
+One STT-specific point beyond the number itself: a wake-word false
+reject is invisible (try the phrase again), but silently dropping a
+low-confidence segment mid-conversation (On Watch) would read as Jack
+being broken rather than "didn't hear that." Decided the reject path
+needs an explicit, in-character prompt rather than silence — the same
+kind of canned-response pattern already used for idle/Asleep clips.
+
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
