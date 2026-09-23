@@ -54,13 +54,14 @@ manufacturing, life, or certification testing, no multi-unit concerns.
   expression, driven by STT → chat model → TTS, triggered by a wake
   word/phrase, with movement produced in concert with speech and personality.
   Home automation is a defined secondary capability (see
-  [Home Automation](#26-home-automation)). Further secondary capabilities
-  are **not** open-ended ("anything Haiku can do") — email, calendar, and
-  financial access in particular are explicitly out of scope for now,
-  deferred until much later, Chip's call. Candidate ideas for eventual
-  secondary capabilities are brainstormed, not designed, in
-  [Possible Future Enhancements](#6-possible-future-enhancements). History:
-  [log.md#issue-19](log.md#issue-19).
+  [Home Automation](#26-home-automation)). **Decided 2026-09-14** (former
+  [Open Issue](#5-open-issues) 19): further secondary capabilities are
+  **not** open-ended ("anything Haiku can do") — that framing is dropped.
+  Email, calendar, and financial access in particular are explicitly out
+  of scope for now, deferred until much later, Chip's call. Candidate
+  ideas for eventual secondary capabilities are brainstormed, not
+  designed, in
+  [Possible Future Enhancements](#6-possible-future-enhancements).
 
 **Testing philosophy**: at least one test per use case and per hardware/
 software functional block, developed alongside each block as it's
@@ -68,8 +69,8 @@ implemented — not an exhaustive or product-grade test suite. Tests, their
 procedures, and any needed test data/scripts are recorded in
 [tests.md](tests.md) (per-test scripts and input files live in
 [`tests/`](../tests), named after the test) as functional blocks come
-online. Coverage today is tracked in [Open Issues](#5-open-issues)
-issue 15.
+online. **Added 2026-09-14** with its first entry (the `home` memory tag);
+still only one test recorded — see [Open Issues](#5-open-issues).
 
 ## 2. Use Cases and Scenarios
 
@@ -106,16 +107,15 @@ course for [pirate-y Caribbean destination — or Pittsburgh, or Albuquerque,
 without exclusion]!"). He's interested in treasure, ready to plunder, and
 wary of "His Majesty's Navy." Kath is never to be called "Captain."
 
-**Correctly gendering the "Captain"/"Mistress" address** uses hand-set
-`gender`/`honorific` facts in `memory.md` (see [Memory
-Subsystem](#45-memory-subsystem)) — see [Open Issues](#5-open-issues)
-issue 3 for the still-open question of whether gender leaks into broader
-tone.
+**Correctly gendering the "Captain"/"Mistress" address requires knowing the
+speaker's gender**, which has no home in the current memory schema — see
+[Open Issues](#5-open-issues).
 
-This backstory, speech-pattern detail, and deference behavior are
-implemented in [`identity.md`](../memory/identity.md)'s `## Persona`
-section — see [Persona and Identity Prompt](#44-persona-and-identity-prompt).
-Untested against the live API; treated as a first baseline, not final.
+**Updated 2026-09-14**: this backstory, speech-pattern detail, and
+deference behavior are now in
+[`identity.md`](../memory/identity.md)'s `## Persona` section — see
+[Persona and Identity Prompt](#44-persona-and-identity-prompt). Untested
+against the live API; treated as a first baseline, not final.
 
 ### 2.3 Environmental and Self Awareness
 
@@ -133,7 +133,7 @@ can acknowledge he's mechanical/servo-driven/3D-printed and talk about
 Haiku's capabilities, but defaults back to character rather than dwelling on
 either.
 
-"home" is a memory category (see
+**Updated 2026-09-14**: "home" is now a memory category (see
 [Memory Subsystem](#45-memory-subsystem)) — durable, low-frequency-change,
 fits the existing append-only design. "Current location" remains
 unimplemented; it changes too often for that pattern and needs an
@@ -142,9 +142,12 @@ overwrite-style save instead — deferred, see
 
 ### 2.4 Operational Modes
 
-Three modes are defined, with nautical naming chosen to fit Jack's
-persona (renamed from an earlier Offline/Online/Asleep naming — see
-[log.md#issue-5](log.md#issue-5)):
+Three modes are defined — **renamed 2026-09-20** from the original
+Offline/Online/Asleep naming (Chip's call: Offline and Asleep were both,
+in fact, "offline" and both ran idle behavior off local catalogs, just
+different ones, so "Offline" didn't actually distinguish anything;
+"Asleep" was always the right name for what it describes). Nautical
+naming was chosen to fit Jack's persona:
 
 - **On Watch** (formerly "Online"): actively in a Haiku conversation. On
   request, Jack can play a catalog sound while still on watch.
@@ -181,7 +184,8 @@ above; their transition logic is designed but unimplemented — see
 
 ### 2.5 Session Boundaries
 
-See [Sleep-Mode State Machine](#411-sleep-mode-state-machine) for the full
+**Updated 2026-09-20** — see
+[Sleep-Mode State Machine](#411-sleep-mode-state-machine) for the full
 transition design; summary: a fixed wake phrase ("Ahoy, Captain Jack",
 spotted locally, not by Haiku) starts a session from either Off Watch or
 Asleep. Ending a session or going to sleep *while already On Watch* is
@@ -224,11 +228,12 @@ Kath, Liz — pre-seeded subsections, not auto-created), running jokes, and
 stated home-automation preferences, across sessions, via a plain-markdown
 memory file the model itself never writes directly. Full design in
 [Memory Subsystem](#45-memory-subsystem) /
-[captain-jack-memory-design.md](captain-jack-memory-design.md). Voice ID
-is the *preferred* mechanism for resolving which household member is
-speaking, pending hardware validation (see [Open
-Issues](#5-open-issues) issue 1); explicit self-identification is today's
-working fallback, not the intended end state.
+[captain-jack-memory-design.md](captain-jack-memory-design.md).
+**Clarified 2026-09-14** (former "conflict," see
+[Open Issues](#5-open-issues) issue 1): voice ID is the *preferred*
+mechanism for resolving which household member is speaking, pending
+hardware validation; explicit self-identification is today's working
+fallback, not the intended end state.
 
 Appointment/reminder recall ("Jack remembers appointments he's been told
 about and can be asked about later") is a related use case named in the
@@ -281,7 +286,7 @@ ambient audio playback, and the outbound serial link to the Arduino. See
 [Section 4](#4-software-architecture) for the module breakdown.
 
 **Interconnect**: USB to the reSpeaker XVF3800 (audio I/O + DoA); serial
-(UART, framing locked down — see
+(UART, exact framing TBD — see
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link)) to the
 Arduino; outbound network to the Anthropic API for each conversation turn.
 
@@ -289,14 +294,14 @@ Arduino; outbound network to the Anthropic API for each conversation turn.
 
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
-and dynamic noise suppression. **Status: connected to the Pi via USB**,
-but not yet physically mounted to the statue — currently sits on a table
-in front of the parrot. No speaker is connected yet (see
-[Speaker](#33-speaker)), so wake-word spotting, DoA, and STT can start
-now, but AEC/echo-cancellation validation and idle/TTS audio output
+and dynamic noise suppression. **Status: received and connected to the Pi
+via USB (2026-09-20)**, but not yet physically mounted to the statue —
+currently sits on a table in front of the parrot. No speaker is connected
+yet (see [Speaker](#33-speaker)), so wake-word spotting, DoA, and STT can
+start now, but AEC/echo-cancellation validation and idle/TTS audio output
 remain blocked until the speaker is wired — see CLAUDE.md's "Blocked
-until the XVF3800's speaker is wired" list. Chosen over the 2-mic
-ReSpeaker Lite (XU316) and the older WM8960-based
+until the XVF3800 arrives" list, now narrowed to the speaker-output items.
+Chosen over the 2-mic ReSpeaker Lite (XU316) and the older WM8960-based
 2-Mic HAT specifically for its newer-generation AEC and 4-mic beamforming,
 needed because the bird's speaker sits inches from its own mics — at
 roughly 2x the Lite's cost and a larger footprint.
@@ -328,15 +333,19 @@ no reference signal to cancel against, defeating the reason it was chosen.
 ### 3.4 Arduino Servo Controller
 
 **Description**: a new Arduino Uno, replacing the original build's board.
-**Status: connected to the Pi, wired to all four servos, and driving them
-correctly.** Resting/offset/range constants for all four axes are tuned
-empirically against the real mechanism — see
-[Arduino Firmware](#414-arduino-firmware); see
-[log.md#issue-21](log.md#issue-21) for the power-supply diagnosis that
-preceded validation. The old MY1690 + electret-mic
+**Status: connected to the Pi, wired to all four servos, and confirmed
+driving them correctly (2026-09-20)** — compile and upload verified
+end-to-end (2026-09-13/2026-09-14 via `arduino/TestBlink`); Servo and
+ServoEasing libraries are installed. Real actuation was initially
+erratic — traced to an inadequate 500mA servo power supply for 4 servos
+running simultaneously, fixed by swapping in a 2000mA supply (which
+required removing a power-enable line the old supply had and the new one
+doesn't support at 5V). Resting/offset/range constants for all four axes
+are now tuned empirically against the real mechanism — see
+[Arduino Firmware](#414-arduino-firmware). The old MY1690 + electret-mic
 hardware has been removed (it lived on the original board, not this one)
 — see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware).
-The Arduino previously owned all "intelligence,"
+Previously owned all "intelligence,"
 peripherals, and sensor input in the pre-Pi design; those roles are removed
 and it shrinks to real-time servo execution only. The real-time PWM loop
 itself deliberately stays on the Arduino rather than the Pi, so it stays
@@ -404,12 +413,12 @@ current build:
   envelope extraction as live TTS (see
   [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
   Tradeoff: idle sound now depends on the Pi being up, unlike the old
-  design where ambient noise ran independent of Pi health. This is a
-  special case of the Arduino-thin decision (issue 7) — the Arduino has
-  no autonomous behavior at all, so a Pi outage already means total
+  design where ambient noise ran independent of Pi health.
+  **Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 17): this
+  is a special case of the Arduino-thin decision in issue 7 — the Arduino
+  has no autonomous behavior at all, so a Pi outage already means total
   silence and stillness, not just silence. No separate mitigation for
-  idle audio specifically; accepted as correct behavior. History:
-  [log.md#issue-17](log.md#issue-17).
+  idle audio specifically; accepted as correct behavior, not revisited.
 - **Electret microphones** (2x, ADC input) — used for crude sound-direction
   triangulation on the original Arduino. **Status: removed.** Superseded by
   the XVF3800's onboard direction-of-arrival output, read directly by the
@@ -427,11 +436,8 @@ driven independently by DoA, text content, or gesture triggers — all
 motion commands going out over one serial link to the Arduino. Today, only
 the text-in/text-out core of the orchestrator and its memory read/write
 loop are implemented; every audio- and motion-facing module below is
-designed (to varying depth) but not yet built. The Arduino is wired and
-validated ([3.4](#34-arduino-servo-controller)) and the XVF3800 is
-USB-connected ([3.2](#32-seeed-respeaker-xvf3800)); the remaining
-hardware blocker for audio-output/AEC-facing modules specifically is the
-speaker not yet being wired ([3.3](#33-speaker)).
+designed (to varying depth) but not yet built, mostly because the XVF3800
+hasn't arrived and the Arduino isn't yet connected.
 
 ### 4.1 Wake Word Spotter
 
@@ -498,11 +504,12 @@ none of that wiring exists yet.
 ### 4.4 Persona and Identity Prompt
 
 **Status: Implemented, including the full persona design** —
-`memory/identity.md`'s `## Persona` section, encoding the backstory,
-pirate speech style, deference protocol, and conversational-intensity
-fade from [Use Case 2.2](#22-persona-captain-jack-the-parrot)/
+`memory/identity.md`. **Updated 2026-09-14**: added a `## Persona` section
+encoding the backstory, pirate speech style, deference protocol, and
+conversational-intensity fade from
+[Use Case 2.2](#22-persona-captain-jack-the-parrot)/
 [2.1](#21-companionable-conversation) — see
-[Open Issues](#5-open-issues) issue 2 for history. Written as concrete traits + a
+[Open Issues](#5-open-issues) issue 2. Written as concrete traits + a
 handful of example lines rather than narrative prose, on the theory that a
 small model like Haiku follows short, concrete instructions more reliably
 than it "acts out" backstory lore. Untested against the live API; treated
@@ -520,7 +527,7 @@ prompt every turn, establishing tone and hard behavioral rules.
 **Interfaces**: read by the [Conversation Orchestrator](#43-conversation-orchestrator)
 every turn.
 
-**Persona portability**: `orchestrate.py` treats
+**Persona portability**: confirmed 2026-09-14 — `orchestrate.py` treats
 `identity.md` as an opaque file it reads and injects verbatim
 (`load_system_prompt` in orchestrate.py:34-37); nothing in the orchestration
 code or the `memory.md` schema (household/joke/automation sections) is
@@ -544,7 +551,7 @@ by the separate Jarvis project). Exactly four allowed tags:
 `household:<Name>`, `joke`, `automation`, `home`; anything else is
 discarded. Household facts can only be filed under a name with a
 pre-existing `###` heading — Jack can never mint a new household member
-himself. Each household subsection may also carry
+himself. **Added 2026-09-14**: each household subsection may also carry
 leading `- gender: ...` and `- honorific: ...` lines — hand-set only,
 same as the heading itself, never proposed or inferred by the model, and
 independent of each other (honorific is not derived from gender); see
@@ -569,7 +576,7 @@ is itself non-deterministic model behavior (an identical automation-
 preference statement got `NONE` once and a correct tag on retry) — accepted
 as normal model variance, not a bug.
 
-The `home` tag covers the durable-location
+**Updated 2026-09-14**: added the `home` tag, covering the durable-location
 half of [Use Case 2.3](#23-environmental-and-self-awareness). Still doesn't
 cover "current location" (deferred — see
 [Possible Future Enhancements](#6-possible-future-enhancements)) or
@@ -632,11 +639,11 @@ audio playback likely needs a small deliberate delay to keep beak motion in
 sync — accounting for RMS processing, command generation/transmission, and
 Arduino-side parsing/mechanical response time.
 
-All beak smoothing happens here, as part of extracting the envelope itself
+**Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 8): all beak
+smoothing happens here, as part of extracting the envelope itself
 (attack/release-style shaping) — not as a separate easing step on either
-side (see [Open Issues](#5-open-issues) issue 8). The Arduino applies the
-`BEAK` value it receives directly to PWM, no interpolation; see
-[Arduino Firmware](#414-arduino-firmware).
+side. The Arduino applies the `BEAK` value it receives directly to PWM,
+no interpolation; see [Arduino Firmware](#414-arduino-firmware).
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the
@@ -645,9 +652,9 @@ commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
-**Status: Not started** — the XVF3800 is USB-connected to the Pi, so this
-needs no hardware that isn't on hand, just code and Seeed's control-tool
-documentation (see `CLAUDE.md`'s work list).
+**Status: Not started; unblocked 2026-09-20** — the XVF3800 has arrived
+and is USB-connected to the Pi (see `CLAUDE.md`), so this no longer needs
+hardware that isn't on hand, just code.
 
 **Description**: Pi-side code reading per-beam azimuth from the XVF3800 via
 `xvf_host AEC_AZIMUTH_VALUES`.
@@ -666,8 +673,8 @@ for whichever mode has `doa_yaw_tracking` enabled
 
 ### 4.10 Idle and Ambient Audio Player
 
-**Status: Not started; clip library seeded; both Asleep's and Off
-Watch's own behavior loops are designed (see below).** The `wavFiles/`
+**Status: Not started; clip library seeded; Asleep's own behavior loop
+designed 2026-09-20 (Off Watch's is not, see below).** The `wavFiles/`
 folder now holds a first batch of mono, 41000Hz signed-16-bit-PCM clips
 (movie lines, song snippets with music removed, etc.) plus
 `AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
@@ -686,7 +693,7 @@ predefined gesture script, beak-synced via the same
 [RMS envelope path](#48-beak-sync-rms-envelope-extraction) used for live
 TTS.
 
-**Asleep's behavior loop**: a plain repeating
+**Asleep's behavior loop (designed 2026-09-20)**: a plain repeating
 sequence, not independent wav/gesture timers — deliberately simpler than
 Off Watch's, since Asleep only has a handful of clips/gestures and
 nothing in it ever needs to play at the same time as anything else (no
@@ -739,8 +746,9 @@ small twitch, a sharp pitch jerk, a beak flap, then resettle. All of
 Asleep's named gestures are now wired to a real `sl-*` id in
 [gesture-catalog.yaml](gesture-catalog.yaml).
 
-`sl-settle-to-sleep`'s two wav pools (lines not yet recorded — see
-`wavs.asleep` in [gesture-catalog.yaml](gesture-catalog.yaml)):
+`sl-settle-to-sleep`'s two wav pools (brainstormed 2026-09-20, lines not
+yet recorded — see `wavs.asleep` in
+[gesture-catalog.yaml](gesture-catalog.yaml)):
 - **`idle_timeout`** — unprompted, Jack narrating to himself, nobody to
   address: "Eight bells... my watch is done." / "Furl the sails, Cap'n's
   turnin' in." / "Even an old parrot's got to perch and rest sometime."
@@ -757,9 +765,12 @@ Asleep's named gestures are now wired to a real `sl-*` id in
   tight" and "Sweet dreams, ye scallywag" are on hand if more variety is
   wanted later.
 
-A grumbling-about-being-woken line is a candidate for `sl-waking-up`'s
-wav pairing, not yet tackled. History (an earlier idea considered and set
-aside for `sl-settle-to-sleep`): [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+Chip's original "About time they let me get some rest" idea was set
+aside for `sl-settle-to-sleep` specifically — it presumes someone made
+Jack wait, which fits neither `idle_timeout` (nobody did) nor really
+adds anything beyond what Haiku's own live line already covers on the
+On-Watch path. It's a good candidate for `sl-waking-up` instead (grumbling
+about *being* woken), a separate, not-yet-tackled pairing.
 
 One open question noted
 in the catalog: `sl-settle-to-sleep`'s roll tuck will ease back toward
@@ -767,9 +778,12 @@ upright over breath's own oscillation (which is centered on a fixed
 `resting`, not wherever the tuck left off) — worth watching once this
 can actually run.
 
-**Off Watch's (and On Watch's) behavior loop**: not Asleep's plain
-sequence — both Off Watch and On Watch use the **ambient/excursion
-model** described in
+**Off Watch's (and On Watch's) behavior loop, resolved 2026-09-20**: not
+Asleep's plain sequence — an earlier sketch of independent random-interval
+timers for wav/gesture playback had real bugs, and a fixed "excursion,
+then return to a hardcoded neutral point" model was rejected as too
+mechanical for something meant to read as lifelike. Instead, both Off
+Watch and On Watch use the **ambient/excursion model** now described in
 [Gesture Engine and Catalog](#412-gesture-engine-and-catalog): a
 designated ambient gesture runs continuously as the default state (Idle
 Breathing for Off Watch, Attentive Sway for On Watch —
@@ -778,16 +792,21 @@ baseline drifting with live DoA yaw rather than sitting at a fixed point
 ([DoA Reader](#49-direction-of-arrival-doa-reader)), and excursion
 gestures/wavs are chosen at random intervals to briefly interrupt it,
 handing control back to the ambient gesture's own next step when they
-finish rather than snapping to a stored constant. History (rejected
-earlier designs): [log.md#issue-5](log.md#issue-5) and
-[log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+finish rather than snapping to a stored constant. This resolves former
+[Open Issues](#5-open-issues) issue 5's remaining scope (Off Watch's
+behavior was undesigned) for the mechanism.
 
-**Off Watch excursion tuning**: a random interval of 30-90 seconds
-between completed ambient-motion steps (`excursion_interval_seconds` in
+**Off Watch excursion tuning (2026-09-20)**: a random interval of
+30-90 seconds between completed ambient-motion steps
+(`excursion_interval_seconds` in
 [gesture-catalog.yaml](gesture-catalog.yaml)), plus a rule never to pick
-the same excursion id twice in a row — an explicit starting point to
-tighten as the gesture library grows, not a final number. History:
-[log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+the same excursion id twice in a row. Chip's first instinct was 10-20s;
+widened because the math didn't work against today's library — with only
+3 Off Watch excursion gestures and 0 wav clips, 10-20s over a full
+15-minute Off Watch session would repeat each gesture roughly 20 times,
+reading as mechanical rather than lifelike. 30-90s is explicitly a
+starting point to tighten back down as the library grows, not a final
+number — "try it and see," per Chip.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
@@ -797,7 +816,8 @@ which doesn't yet exist as a discrete module.
 
 ### 4.11 Sleep-Mode State Machine
 
-**Status: Transition design specified; not implemented.** Mode names renamed from
+**Status: Transition design specified 2026-09-20 (Chip's proposal,
+discussed and refined); not implemented.** Mode names renamed from
 Offline/Online/Asleep to Off Watch/On Watch/Asleep — see
 [Operational Modes](#24-operational-modes).
 
@@ -879,11 +899,12 @@ emotional, idle, conversational, and "expressive" categories) — each a
 short timed sequence of pitch/roll/yaw/beak targets — drafted in
 [gesture-library.md](gesture-library.md).
 
-Gestures are stored and composed on the **Pi**, not the Arduino, to keep
-the Arduino as thin as possible (see [Open Issues](#5-open-issues) issue
-7) — the catalog lives in `gesture-library.md`/its eventual code form,
-entirely Pi-side. The Arduino never sees a gesture as a named unit, only
-the same primitive timed servo commands it always takes. A consequence:
+**Resolved 2026-09-14** (former [Open Issue](#5-open-issues) 7): gestures
+are stored and composed on the **Pi**, not the Arduino, to keep the
+Arduino as thin as possible — the catalog lives in
+`gesture-library.md`/its eventual code form, entirely Pi-side. The
+Arduino never sees a gesture as a named unit, only the same primitive
+timed servo commands it always takes. A consequence, noted 2026-09-14:
 since the Arduino has no queue and acts on each command immediately as it
 arrives, gesture **interruptibility/preemption and layering/blending are
 entirely this engine's problem to solve, Pi-side** — not something the
@@ -902,11 +923,14 @@ or [DoA](#49-direction-of-arrival-doa-reader); emits a decomposed sequence
 of `HEAD`/`BEAK` commands with timing over the
 [serial link](#413-pi-to-arduino-serial-link), per
 [Arduino-command-structure.md](Arduino-command-structure.md) — never a
-single opaque `GESTURE <id>`. History (an eyelid-assuming `Blink` gesture
-considered and removed):
-[log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+single opaque `GESTURE <id>`, now that storage location is resolved (see
+above). A previous draft of the library included a `Blink` gesture
+assuming an eyelid mechanism not present in the
+[documented physical build](#35-servos-head-and-beak); it has been removed.
 
-**Data structures**:
+**Data structures — second pass, 2026-09-20** (first pass mapped
+[gesture-library.md](gesture-library.md) into resolved absolute servo
+commands; discussion surfaced that as the wrong model — see below):
 
 - **Gesture Library**: one array of Gestures each for **On Watch**,
   **Off Watch**, and **Asleep**, plus a fourth, separate **Wav-Paired**
@@ -921,7 +945,7 @@ considered and removed):
     absolute `beak` value (0-60; omitted = don't touch the beak, which is
     normally RMS-driven, not gesture-driven), a duration `t` (ms), and a
     `wait_ms` before advancing to the next Move or exiting the gesture.
-    Not a literal Arduino command string — see "Baseline and
+    **No longer a literal Arduino command string** — see "Baseline and
     the ambient/excursion model" below for why.
 - **Wav Library**: one array of Wavs each for On Watch, Off Watch, and
   Asleep (no Wav-Paired variant — that would be circular).
@@ -929,7 +953,7 @@ considered and removed):
     separately), the `id` of the Wav-Paired Gesture to play alongside it
     (empty/`null` means none — an integer sentinel like -1 no longer
     fits now that Gestures are id-keyed, not index-keyed), and an
-    optional `context` tag distinguishing which
+    optional `context` tag (added 2026-09-20) distinguishing which
     Wavs paired to the *same* gesture apply to which trigger — e.g.
     several Wavs can all pair to `sl-settle-to-sleep` while only being
     valid for one specific way Asleep was entered. Most Wavs won't need
@@ -937,14 +961,17 @@ considered and removed):
     context, which right now is only true for `sl-settle-to-sleep` (see
     [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
 
-**Baseline and the ambient/excursion model**: baseline tracks the ambient
-gesture's own live center rather than a fixed resting position, so a
-sequence of gestures composes without drifting into a servo's physical
-travel limit. History (the rejected alternative — resolving deltas into
-fixed absolute commands at authoring time — and why it didn't work):
-[log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+**Baseline and the ambient/excursion model (added 2026-09-20):** the
+first pass resolved every gesture's deltas into one fixed absolute
+command at authoring time — e.g. "+10 yaw" became a specific number
+computed against a hardcoded resting position. Chip's review caught two
+problems with that: (1) a real baseline should track where Jack is
+actually oriented (e.g. toward whoever's speaking, per DoA), not a
+constant; and (2) many gestures don't return to neutral on their own, so
+sequencing several of them without a shared reference point drifts until
+a servo hits its physical travel limit.
 
-Applied uniformly to all three mode libraries:
+The fix, applied uniformly to all three mode libraries:
 - Each mode has exactly one designated **ambient gesture** (see
   `ambient:` in [gesture-catalog.yaml](gesture-catalog.yaml)) that the
   engine treats as its default/base state — it never "finishes"; the
@@ -970,21 +997,27 @@ Applied uniformly to all three mode libraries:
   meaning a gesture's authored delta is the *original* magnitude from
   gesture-library.md, and how much of it actually lands depends on
   where baseline is right now, not a value pre-clamped against an
-  assumed-resting baseline.
+  assumed-resting baseline. This retires the first pass's `CLAMPED`
+  annotations entirely.
 - Most excursions still end with an explicit delta-(0,0,0) Move for
   tight control over how fast they snap back — but "back" now means
-  "current baseline," which is always drifting, not a hardcoded number.
-  A few gestures (Look Back) don't need a separate return move at all,
-  because "recover to baseline" is already their described motion.
-- Off Watch's Ambient Scanning is an ordinary (larger) excursion, not a
-  special case.
-- Turn Toward Speaker is realized via continuous DoA-tracked baseline yaw
-  plus a deliberate, fixed-delta *emphasis* turn layered on top (e.g.
-  noticeably acknowledging a new speaker) — not runtime parameterization.
-  Vowel Drift is unrelated (duration tied to live TTS phoneme timing) and
-  is marked `NEEDS-RUNTIME-PARAM` (see Known gaps below), still open.
+  "current baseline," which is always drifting, not a hardcoded number,
+  which is what actually fixes the "too mechanical" complaint, not the
+  removal of return moves themselves. A few gestures (Look Back) don't
+  need a separate return move at all, because "recover to baseline" is
+  already their described motion.
+- The first pass's "anchor gesture" idea (should some excursions
+  permanently relocate the baseline?) is retired — this ambient/excursion
+  split replaces it. Off Watch's Ambient Scanning, for example, is just
+  a normal (larger) excursion now, not a special case.
+- "Turn Toward Speaker" no longer needs runtime parameterization —
+  continuous DoA-tracked baseline yaw already does the subtle following.
+  Re-scoped to a deliberate, fixed-delta *emphasis* turn layered on top
+  of that (e.g. noticeably acknowledging a new speaker), resolving one of
+  the two `NEEDS-RUNTIME-PARAM` cases below. "Vowel Drift" is unrelated
+  (duration tied to live TTS phoneme timing) and stays open.
 
-Other design decisions:
+Design decisions carried over from the first pass, unchanged:
 - Gestures usable in more than one mode are **duplicated** into each
   mode's library rather than shared via a common catalog + per-mode
   allowlist. Deliberate: the system isn't memory-constrained, and
@@ -1018,24 +1051,31 @@ Known gaps, left for a later pass (not blocking this one):
   real TTS phoneme timing, not knowable at authoring time. Still marked
   `NEEDS-RUNTIME-PARAM`.
 
-Every entry in [gesture-library.md](gesture-library.md) is translated
-into this structure — see [gesture-catalog.yaml](gesture-catalog.yaml).
+**Mapped 2026-09-20 (both passes)**: every entry in
+[gesture-library.md](gesture-library.md) is translated into this
+structure — see [gesture-catalog.yaml](gesture-catalog.yaml), including
+its own header comments for the full first-pass-to-second-pass changelog.
 
 ### 4.13 Pi to Arduino Serial Link
 
-**Status: Command syntax locked down, servo actuation validated.**
-Implemented in `arduino/ServoControl/ServoControl.ino` and code-reviewed
-(see [Open Issues](#5-open-issues) issue 21) — the wire format below is
-Chip's call as settled: further testing is expected to change
+**Status: Command syntax locked down 2026-09-15, servo actuation validated
+2026-09-20.** Implemented in `arduino/ServoControl/ServoControl.ino` and
+code-reviewed (former [Open Issue](#5-open-issues) 21) — the wire format
+below is Chip's call as settled: further testing is expected to change
 implementation details (calibration offsets, exact timing bounds), not
 the syntax itself. If that assumption turns out wrong, that's a bug to
 call out and deal with when found, not a reason to hold the syntax open
 now.
 
 **Description**: one-directional serial protocol, Pi → Arduino only (no
-upstream sensor relay in the new design). See [Open
-Issues](#5-open-issues) issue 9 for how this syntax was reached from the
-project brief's original loose sketch:
+upstream sensor relay in the new design). **Locked down 2026-09-15**,
+superseding the fixed-width framing reconciled here on 2026-09-14
+(former [Open Issue](#5-open-issues) 9) — which itself had superseded
+both the [project brief](parrot-project-brief.md)'s loose, word-prefixed
+sketch (`HEAD p:<pitch> r:<roll> y:<yaw>`, `BEAK <0–255>`, `GESTURE
+<id>`) and
+[Arduino-command-structure.md](Arduino-command-structure.md)'s
+fixed-width proposal:
 
 - Variable-length, self-delimiting integers — no fixed field width, no
   zero-padding. Each field is a command-type character immediately
@@ -1045,7 +1085,7 @@ project brief's original loose sketch:
   keyword — the leading character *is* the command type, same principle
   as the superseded fixed-width design, just without the fixed width:
   - **Beak position**: `b<BB>` — moves the beak servo immediately on
-    receipt, no easing (per [Open Issues](#5-open-issues) issue 8). `BB`
+    receipt, no easing (per former [Open Issue](#5-open-issues) 8). `BB`
     is a nominal 0–45 value, clamped, then offset in firmware onto the
     physical 80–125 PWM range.
   - **Head motion axes**: `p<PP>` (nominal 0–60), `r<RR>` (nominal 0–60),
@@ -1059,7 +1099,7 @@ project brief's original loose sketch:
   - **Move trigger**: `s` — starts an eased, synchronized pitch/roll/yaw
     move to the currently staged targets over the currently staged
     duration. Sending `s` alone repeats the last staged move. `b` is
-    independent of `s` and never eased, per Open Issues issue 8.
+    independent of `s` and never eased, per former Open Issue 8.
   - Any character that isn't a recognized command char or digit
     (including `\r`/`\n` and stray digits not immediately following a
     command char) is simply discarded — the stream is self-resyncing by
@@ -1070,17 +1110,22 @@ project brief's original loose sketch:
     `arduino/ServoControl/ServoControl.ino`: beak 0–45 → 80–125, pitch
     0–60 → 60–120, roll 0–60 → 60–120, yaw 0–90 → 45–135.
   - `GESTURE <id>` is still dropped entirely, not just superseded in
-    wording: gesture storage lives on the Pi (issue 7), so the
+    wording: gesture storage lives on the Pi (former issue 7), so the
     Arduino never receives anything but the primitives above, whether a
     given line came from a gesture sequence, DoA, or beak-sync makes no
     difference to it.
-- Worst-case transmission time and ACK/timeout-retry are accepted as
-  non-blocking — see [Open Issues](#5-open-issues) issue 9.
-- Gesture interruptibility/preemption vs.
+- **Resolved 2026-09-15, Chip's call**: worst-case transmission time and
+  ACK/timeout-retry are no longer open. Chip's rough estimate (well under
+  2ms per command) is accepted as-is even allowing up to 2x error —
+  nothing in the design is timing-critical enough for that margin to
+  matter, so a formal re-derivation isn't worth doing. ACK/timeout-retry
+  is judged unnecessary: the self-resyncing design above is robust enough
+  on its own.
+- **Reclassified 2026-09-14**: gesture interruptibility/preemption vs.
   queuing and layering/blending are **not** link-level or Arduino-level
   concerns. Each line the Arduino receives is acted on immediately, as
   soon as it arrives — the Arduino has no queue, no concept of "gesture"
-  as a unit, and nothing to preempt (per
+  as a unit, and nothing to preempt (per former
   [Open Issues](#5-open-issues) issue 7). Whatever "interruptibility"
   means is entirely a question of what the Pi chooses to send and when —
   see [Gesture Engine and Catalog](#412-gesture-engine-and-catalog) and
@@ -1099,14 +1144,19 @@ lines, per above); read by [Arduino Firmware](#414-arduino-firmware).
 
 ### 4.14 Arduino Firmware
 
-**Status: Implemented and validated against real actuation** —
-`arduino/ServoControl/ServoControl.ino`, written by Chip. `arduino/TestBlink/TestBlink.ino`
-is a minimal onboard-LED blink sketch used earlier to confirm the
-`arduino-cli` toolchain — see [Arduino Servo
-Controller](#34-arduino-servo-controller). See [Open
-Issues](#5-open-issues) issue 21 for the code-review history (an
-angle-clamp overflow and an unbounded duration value, both fixed) and the
-power-supply diagnosis that preceded validation.
+**Status: Written and code-reviewed 2026-09-15, actuation unvalidated.**
+`arduino/TestBlink/TestBlink.ino` is a minimal onboard-LED blink sketch;
+`arduino-cli` compile/download was confirmed 2026-09-13, and a full
+compile+upload cycle (including a visually-confirmed blink-rate edit) was
+confirmed 2026-09-14 against the new Arduino Uno — see
+[Arduino Servo Controller](#34-arduino-servo-controller). The real
+servo-control sketch, `arduino/ServoControl/ServoControl.ino`, has since
+been written by Chip and code-reviewed — two bugs were caught and fixed
+(an angle-clamp overflow and an unbounded duration value; see former
+[Open Issue](#5-open-issues) 21) — and it compiles clean, including with
+its `DEBUG` path enabled. It still can't be validated against real
+actuation until the board is wired to the servos (still pending) — see
+[Open Issues](#5-open-issues).
 
 **Description**: the real-time sketch that parses incoming serial
 commands and drives the four servos, layering the ServoEasing library
@@ -1122,75 +1172,187 @@ easing pitch/roll/yaw transitions together (cubic easing, kept to integer
 math where possible for speed) once triggered by `s`. Beak (`b`) is
 applied directly to PWM with **no** easing — that smoothing is done
 Pi-side, in [Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see
-[Open Issues](#5-open-issues) issue 8. Notably must **not** reintroduce
+former [Open Issue](#5-open-issues) 8. Notably must **not** reintroduce
 SoftwareSerial alongside the easing library without further research —
 the two were observed to interfere with each other in the prior MY1690-era
-design, and SoftwareSerial was removed along with the MY1690. The beak
-servo is attached as a plain `Servo` rather than `ServoEasing` (it was
-only ever driven via `.write()`, never eased).
+design, and SoftwareSerial was removed along with the MY1690. **Resolved
+2026-09-20**: the beak servo is now attached as a plain `Servo` rather
+than `ServoEasing` (it was only ever driven via `.write()`, never eased),
+closing the code-review question of whether the `ServoEasing` object had
+side effects worth avoiding.
 
 **Interfaces**: reads the
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link); writes PWM to
 the [head and beak servos](#35-servos-head-and-beak) — wired and
 validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
+Chip wrote this sketch himself rather than handing it to a future
+session.
 
 ## 5. Open Issues
 
-Full resolution history, rationale, and alternatives considered for every
-issue below — including the ones still marked open here — live in
-[log.md](log.md#open-issues-history), keyed by issue number. Issue numbers
-are permanent identifiers, assigned once and never reused or renumbered;
-a resolved issue keeps its number and is tagged **[RESOLVED]** in place.
+1. ~~Voice-ID conflict: [Use Case 2.7](#27-personalized-memory)/the goals
+  document assume voice ID identifies which household member is speaking,
+  but the brief and memory design explicitly defer speaker ID and rely on
+  self-reported names instead — see
+  [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
+  vs.
+  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).~~
+  **Reframed 2026-09-14, Chip's clarification**: not actually a conflict
+  between two docs — a three-tier priority for resolving who's speaking,
+  clarified rather than newly decided:
+   1. **Voice ID (preferred)**: whether it actually works well enough is
+      unknown until the XVF3800 arrives and the scheduled accuracy test
+      runs (see `CLAUDE.md`, "Blocked until XVF3800 arrives" item 5) — not
+      a documentation gap, just hardware-gated.
+   2. **Explicit self-identification (today's working fallback)**: what's
+      actually implemented now — fail-closed by design (see
+      [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+      Flagged 2026-09-14 as workable but awkward in practice — untested
+      against real conversation at any length.
+   3. **Contextual inference (fallback of last resort)**: guessing who's
+      speaking without being told. Not implemented, not designed, and in
+      direct tension with the project's established fail-closed principle
+      (Haiku is already known to invent placeholder names rather than
+      admit it doesn't know — see
+      [captain-jack-memory-design.md](captain-jack-memory-design.md)).
+      Flagged 2026-09-14 as the riskiest tier — genuinely open, not just
+      unwritten.
 
-1. Resolving who's speaking uses a three-tier priority: (1) voice ID —
-  preferred, pending the XVF3800's scheduled accuracy test; (2) explicit
-  self-identification — today's working fallback, fail-closed by design,
-  workable but untested against real conversation at length; (3)
-  contextual inference — not implemented, in tension with the project's
-  fail-closed memory principle, the riskiest tier. **Left open**: whether
-  tier 1 works well enough that tiers 2–3 rarely matter in practice is an
-  empirical question for the XVF3800 test, not a design question. History:
-  [log.md#issue-1](log.md#issue-1).
-2. **[RESOLVED]** Persona and Identity Prompt was a minimal stub, missing
-  backstory, pirate speech style, deference protocol, and
-  conversational-intensity fade. History: [log.md#issue-2](log.md#issue-2).
-3. Gendered deference phrasing ("Captain" vs. "Mistress") is resolved via
-  explicit, hand-set `gender`/`honorific` facts in `memory.md`, independent
-  of each other (Jack never proposes or infers either) — default
-  honorific for anyone unset is the gender-neutral "Matey." **Left open**,
-  a genuinely harder question Chip is still thinking through: even given
-  only as an explicit, narrowly-instructed fact, does gender still leak
-  into broader conversational tone/word choice no instruction ever asked
-  for? A real, not fully predictable LLM-behavior question — Liz's case is
-  a live, deliberate test of exactly this, not yet observed in practice.
-  History: [log.md#issue-3](log.md#issue-3).
-4. **[RESOLVED]** No memory category existed for location/environment or
-  appointment/calendar facts, though [Use Cases
-  2.3](#23-environmental-and-self-awareness) and
-  [2.7](#27-personalized-memory) assume Jack tracks both. History:
-  [log.md#issue-4](log.md#issue-4).
-5. Off Watch/Asleep behavior design: transition logic and each mode's
-  behavior-loop mechanism are both designed (ambient/excursion model for
-  Off Watch/On Watch, plain sequence for Asleep — see
-  [4.10](#410-idle-and-ambient-audio-player)/[4.11](#411-sleep-mode-state-machine)).
-  **Left open**: Off Watch's excursion-frequency tuning, and none of this
-  (transitions, ambient/excursion engine, or gesture catalog) is
-  implemented in code yet — only On Watch's conversation loop is. History:
-  [log.md#issue-5](log.md#issue-5).
-6. **[RESOLVED]** Wake word, end-session phrase, and go-to-sleep phrase
-  were all unchosen — no mode-transition trigger existed. History:
-  [log.md#issue-6](log.md#issue-6).
-7. **[RESOLVED]** Gesture storage location (Arduino-resident vs.
-  Pi-composed primitive sequences) was unresolved, blocking a final
-  [serial protocol](#413-pi-to-arduino-serial-link) spec. History:
-  [log.md#issue-7](log.md#issue-7).
-8. **[RESOLVED]** Beak-easing ownership (Pi's RMS extraction vs. the
-  Arduino's easing library vs. both vs. neither) was unresolved. History:
-  [log.md#issue-8](log.md#issue-8).
-9. **[RESOLVED]** The [Pi→Arduino serial
-  framing](#413-pi-to-arduino-serial-link) had two unreconciled
-  descriptions, plus open questions on ACK/retry, per-axis offsets, and
-  worst-case transmission time. History: [log.md#issue-9](log.md#issue-9).
+  Left open: the hope is that tier 1 works well enough that tiers 2 and 3
+  rarely matter in practice — that's an empirical question the XVF3800
+  test will answer, not something to design further now.
+2. ~~[Persona and Identity Prompt](#44-persona-and-identity-prompt) is a
+  minimal stub; the full backstory, pirate speech style, deference
+  protocol, and conversational-intensity fade from
+  [Use Case 2.2](#22-persona-captain-jack-the-parrot) aren't implemented.~~
+  **Resolved 2026-09-14**: all four added to `identity.md` as a `## Persona`
+  section — concrete traits + example lines rather than narrative prose, to
+  suit Haiku. Treated as a first baseline, not final — untested against the
+  live API, and expected to change once Chip hears it in practice. The
+  deference rule was originally a one-off hardcoded exception for Kath;
+  **generalized 2026-09-14** into a memory-driven lookup — see issue 3
+  below.
+3. ~~Gendered deference phrasing ("Captain" vs. "Mistress") needs
+  per-person gender data with no home in the current
+  [household memory schema](#45-memory-subsystem).~~ **Partially resolved
+  2026-09-14**: gender is now an explicit, hand-set fact — a leading
+  `- gender: ...` line in each person's existing `### Name` subsection in
+  `memory.md`, same non-model-writable status as the heading itself (Jack
+  never proposes or infers it, only reads it). Chip: male, Kath: female,
+  Liz: female.
+
+  **Updated same day**: the honorific itself is *not* derived from
+  gender — it's now its own explicit, hand-set `- honorific: ...` fact,
+  same status as gender. Chip: "Captain," Kath: "Mistress," Liz:
+  "Matey" — Liz's gender (female) doesn't determine her honorific,
+  demonstrating they're independent. The default for anyone with no
+  noted honorific, including a guest or stranger not in memory at all,
+  is now the gender-neutral "Matey," replacing the earlier "Captain"
+  default (Chip's own follow-up to a tone concern raised the same day).
+  `identity.md`'s deference rule reads the honorific fact directly, never
+  guessing it from gender.
+
+  Left open, narrowed to a genuinely harder question Chip is still
+  thinking through: even when a trait like gender is given to the model
+  only as an explicit, narrowly-instructed fact (now decoupled from the
+  honorific entirely), does it still leak into broader conversational
+  tone/word choice no instruction ever asked for? That's a real, not
+  fully predictable LLM behavior question, not a design preference —
+  Liz's case is a live, deliberate test of exactly this, not yet observed
+  in practice.
+4. ~~No memory category exists for location/environment or appointment/
+  calendar facts, though [Use Cases 2.3](#23-environmental-and-self-awareness)
+  and [2.7](#27-personalized-memory) assume Jack tracks both.~~
+  **Resolved/split 2026-09-14**: added a `home` tag for the durable-location
+  half — see [Memory Subsystem](#45-memory-subsystem). "Current location"
+  (volatile, needs overwrite not append) deferred to
+  [Possible Future Enhancements](#6-possible-future-enhancements) rather
+  than solved here. Appointment/calendar was a separate concern bundled
+  into this issue by mistake — split out to issue 23 below.
+5. ~~Only the Online mode is implemented; Offline idle-catalog behavior and
+  a distinct Asleep behavior/state machine
+  ([4.11](#411-sleep-mode-state-machine)) are undesigned.~~ **Partially
+  resolved 2026-09-20**: the state-machine/transition-logic half is now
+  designed — see [Sleep-Mode State Machine](#411-sleep-mode-state-machine)
+  — and modes renamed Off Watch/On Watch/Asleep. **Narrowed further
+  2026-09-20**: Off Watch's and Asleep's behavior-loop *mechanism* is now
+  also designed (ambient/excursion model for Off Watch/On Watch, plain
+  sequence for Asleep — see
+  [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
+  Left open: the actual random-interval tuning for Off Watch's excursion
+  frequency, and none of this (transitions, ambient/excursion engine, or
+  gesture catalog) is implemented in code yet — only On Watch's
+  conversation loop is.
+6. ~~Wake word, end-session phrase, and go-to-sleep phrase are all
+  unchosen — no mode-transition trigger exists yet (see
+  [Session Boundaries](#25-session-boundaries)).~~ **Resolved 2026-09-20**,
+  though not the way originally framed as "three phrases to pick": wake
+  phrase = "Ahoy, Captain Jack" (fixed, locally spotted, works from
+  either dormant mode); go-to-sleep phrase = "Goodnight, Jack" (fixed,
+  locally spotted, Off Watch → Asleep only); end-session and the
+  On-Watch → Asleep nap request are *not* fixed phrases at all — Haiku
+  reads the intent from natural phrasing via a meta-tag on its reply. See
+  [Sleep-Mode State Machine](#411-sleep-mode-state-machine). The
+  mode-transition trigger *logic* is now designed; still not
+  implemented.
+7. ~~Gesture storage location is unresolved — Arduino-resident (interpreted
+  from a `GESTURE <id>`) vs. Pi-composed primitive sequences — blocking a
+  final [serial protocol](#413-pi-to-arduino-serial-link) spec; see
+  [Arduino-command-structure.md](Arduino-command-structure.md).~~
+  **Resolved 2026-09-14**: Pi-composed. Rationale: keep as much off the
+  Arduino as possible. The Arduino ends up with zero autonomous behavior —
+  it only ever executes the most recent command the Pi sent it, so if the
+  Pi is down, crashed, or hasn't booted, Jack is simply motionless and
+  silent (no local idle/gesture fallback of any kind). Accepted as
+  correct behavior, not a gap; updated
+  [Arduino Servo Controller](#34-arduino-servo-controller),
+  [Gesture Engine and Catalog](#412-gesture-engine-and-catalog),
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link),
+  [Operational Modes](#24-operational-modes), and
+  [Arduino-command-structure.md](Arduino-command-structure.md) to remove
+  any wording implying otherwise.
+8. ~~Beak-easing ownership is unresolved: whether smoothing happens in the
+  Pi's [RMS envelope extraction](#48-beak-sync-rms-envelope-extraction),
+  the Arduino's easing library, both, or neither.~~ **Resolved
+  2026-09-14**: all beak smoothing lives in the Pi's RMS envelope
+  extraction; the Arduino applies whatever `BEAK` value it receives
+  directly to PWM, no easing. Rationale: `BEAK` updates already arrive at
+  ~30–50Hz (every 20–33ms), near the Arduino's 20ms PWM floor, so there's
+  barely a gap for a cubic-easing pass to smooth over — unlike a gesture
+  waypoint, which is hundreds of ms from the next. A correct envelope
+  extractor already needs attack/release-style smoothing to produce a
+  good envelope in the first place, so the smoothing effectively already
+  exists on the Pi side, at no extra cost, before a value is ever sent.
+  Consistent with the Arduino-thin principle from issue 7. Untested — this
+  resolves the design question, not a validated one; still blocked on the
+  XVF3800 to confirm it looks smooth enough in practice, per
+  [Beak-Sync](#48-beak-sync-rms-envelope-extraction)'s status.
+9. ~~The [Pi→Arduino serial framing](#413-pi-to-arduino-serial-link) has
+  two unreconciled descriptions (the brief's loose sketch vs.
+  [Arduino-command-structure.md](Arduino-command-structure.md)'s compact
+  format), and that document's own open questions (ACK/retry, gesture
+  interruptibility/preemption, layering/blending, its baud-rate timing
+  math) remain unanswered.~~ **Partially resolved 2026-09-14**: the two
+  framing descriptions are reconciled into one — see
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link). Left open,
+  narrowed to what that section explicitly leaves unpinned: exact per-axis
+  offsets/ranges, worst-case transmission time re-derived against the
+  reconciled format, and ACK/timeout-retry. Gesture interruptibility and
+  layering were dropped from this issue's scope — see issue 24: they're
+  not a link-level concern.
+
+  **Updated 2026-09-15**: command syntax is now locked down and
+  implemented — see
+  [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link) and former
+  issue 21 — superseding the fixed-width framing this issue reconciled
+  the day before; further testing is expected to affect implementation,
+  not syntax. All three items this issue left open are now resolved:
+  per-axis offsets/ranges are pinned by the shipped firmware;
+  worst-case transmission time is accepted as non-blocking even allowing
+  up to 2x error in Chip's informal under-2ms-per-command estimate; and
+  ACK/timeout-retry is judged unnecessary given the self-resyncing
+  design's robustness (both Chip's call, not further measurement).
+  Fully resolved.
 10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
   allowlisted on paper but not wired into `orchestrate.py` — no tool schema
   currently reaches the Anthropic API call.
@@ -1206,30 +1368,82 @@ a resolved issue keeps its number and is tagged **[RESOLVED]** in place.
 14. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.
-15. Test coverage is short of "one test per use case and per functional
-  block" per the goals document — [tests.md](tests.md) exists with its
-  first test (the `home` memory tag), but most implemented blocks (memory
-  save/dedup beyond `home`, the orchestrator's conversation loop, persona/
-  identity behavior) have none yet. History:
-  [log.md#issue-15](log.md#issue-15).
+15. ~~No `tests.md` exists yet, despite the goals document requiring at
+  least one test per use case and per hardware/software functional
+  block.~~ **Partially resolved 2026-09-14**: [tests.md](tests.md) now
+  exists, with its first test (the `home` memory tag). Coverage is still
+  far short of "one test per use case and per functional block" — most
+  implemented blocks (memory save/dedup beyond `home`, the orchestrator's
+  conversation loop, persona/identity behavior) have none yet. Left open,
+  narrowed to a coverage gap rather than a missing file.
 16. TTS and wake-word engines are unselected; STT is only tentatively "local
   Whisper."
-17. **[RESOLVED]** Idle-audio-on-Pi tradeoff (ambient sound depends on the
-  Pi being up, unlike the removed MY1690-on-Arduino design) was noted,
-  unmitigated. History: [log.md#issue-17](log.md#issue-17).
-18. **[RESOLVED]** Conversational-privacy/oversharing risk (a fact told by
-  one household member surfacing in front of another) was listed as an
-  open design question. History: [log.md#issue-18](log.md#issue-18).
-19. **[RESOLVED]** The scope of "anything Haiku can do" beyond home
-  automation was explicitly undefined in the goals document. History:
-  [log.md#issue-19](log.md#issue-19).
-20. **[RESOLVED]** Speculative scenarios (Alexa flirtation, community-
-  lecture demo) were recorded but unscoped. History:
-  [log.md#issue-20](log.md#issue-20).
-21. **[RESOLVED]** Servo-only firmware needed to be written for the new
-  Arduino Uno; couldn't be validated against real actuation until the
-  board was wired to the head/beak servos. History:
-  [log.md#issue-21](log.md#issue-21).
+17. ~~Idle-audio-on-Pi tradeoff: ambient sound now depends on the Pi being
+  up, unlike the removed MY1690-on-Arduino design — noted, not mitigated
+  (see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware)).~~
+  **Resolved 2026-09-14**: subsumed by issue 7's Arduino-thin decision —
+  a Pi outage already means total stillness and silence, not just no
+  idle audio, and that's accepted behavior. No separate fix needed for
+  audio specifically.
+18. ~~Conversational-privacy/oversharing risk (a fact told by one household
+  member surfacing in front of another) is noted with no technical
+  mitigation, per
+  [parrot-project-brief.md](parrot-project-brief.md#decisions-already-made-dont-re-litigate-these-without-new-information).~~
+  **Closed 2026-09-14**: this was never actually an open design question —
+  the brief already made the call (accepted risk, no mitigation, revisit
+  only if it becomes a real annoyance in practice). Listing it here
+  mischaracterized a decision as undecided. Not reopened by the `home`
+  memory category or persona work added since, per Chip's call — flagged
+  and considered, but left as the brief decided it.
+19. ~~The scope of "anything Haiku can do" beyond home automation is
+  explicitly undefined in the goals document — including whether Haiku
+  can be proactive within a session, and what (if anything) carries over
+  between sessions outside of Jack's own `memory.md`.~~ **Resolved
+  2026-09-14**: the open-ended framing is dropped — see
+  [Goals and Objectives](#1-goals-and-objectives). Secondary capabilities
+  beyond home automation are deliberately scoped, not "anything"; email/
+  calendar/finance access deferred until much later. "Whether Haiku can
+  be proactive within a session" is now a brainstormed candidate in
+  [Possible Future Enhancements](#6-possible-future-enhancements), not an
+  open design question. "What carries over between sessions outside
+  memory.md" has a plain answer, not a gap: **nothing** — each API call
+  is stateless; `orchestrate.py` re-sends `identity.md`/`memory.md` fresh
+  every turn, and that's the only persistence there is.
+20. ~~Speculative scenarios (Alexa flirtation, community-lecture demo —
+  see
+  [Deferred and Speculative Scenarios](#28-deferred-and-speculative-scenarios))
+  are recorded but unscoped, including the lecture scenario's own
+  follow-on questions about credential/network provisioning and long-form
+  vs. interactive delivery.~~ **Closed 2026-09-14**: discussed and moved
+  to [Possible Future Enhancements](#6-possible-future-enhancements) item
+  3, with concrete implementation risks noted inline for both scenarios
+  rather than left as bare "undiscussed" flags.
+21. ~~Firmware for servo-only control still needs to be written for
+  the new Arduino Uno (old MY1690/electret-mic hardware already removed —
+  see [Arduino Servo Controller](#34-arduino-servo-controller)); it can be
+  developed and uploaded now, but can't be validated against real
+  actuation until the board is wired to the head/beak servos, which
+  hasn't happened yet. **Noted 2026-09-14**: Chip is writing this sketch
+  himself (he knows the physical wiring) — not a future-session task.
+  Plan: ship it first against the stock ServoEasing library as installed,
+  known-good; trimming that library down to just the easing algorithm(s)
+  actually used is a separate, later optimization — see
+  [Possible Future Enhancements](#6-possible-future-enhancements).~~
+  **Written and reviewed 2026-09-15**: `arduino/ServoControl/ServoControl.ino`
+  exists, parsing the `b`/`p`/`r`/`y`/`t`/`s` command structure against the
+  stock ServoEasing library per the plan above. Code review caught, and
+  Chip fixed, two correctness bugs: the `b`/`p`/`r`/`y` range clamp
+  compared the post-offset sum against the max instead of the raw
+  incoming integer against the defined range, so `uint8_t` wraparound
+  could silently produce an angle below the intended minimum (e.g. `b200`
+  landed at 24, outside the 80-125 beak range); and duration (`t`) had no
+  upper bound at all, now capped at 9999ms — 2x the slowest gesture in
+  [gesture-library.md](gesture-library.md) — so a garbled/huge value
+  can't reach the easing library unbounded.~~ **Closed 2026-09-20**: board
+  wired to all four servos; erratic behavior traced to an undersized
+  500mA power supply (replaced with 2000mA), then resting/offset/range
+  constants tuned empirically. `ServoControl.ino` now drives all four
+  servos correctly from real commands.
 22. **Downgraded 2026-09-14, low risk per analysis, not closed** (pending
   empirical confirmation): the ATmega328P runs at 16MHz with a hardware
   8-bit multiplier; only 3 servos need easing math per update (pitch/
@@ -1248,32 +1462,110 @@ a resolved issue keeps its number and is tagged **[RESOLVED]** in place.
   actually looks *lifelike* — that's a tuning judgment only real servo
   motion can confirm, once the board is wired (see
   [Open Issues](#5-open-issues) issue 21).
-23. **[RESOLVED]** No memory category existed for appointment/calendar
-  facts, split from issue 4. History:
-  [log.md#issue-23](log.md#issue-23).
-24. Gesture interruptibility/preemption vs. queuing, and layering/
-  blending, are undesigned — purely a Pi-side
-  [Gesture Engine](#412-gesture-engine-and-catalog) question, not a
-  link/firmware-level one (per issue 7). **Resolved for Asleep**
-  specifically — its [behavior loop](#410-idle-and-ambient-audio-player)
-  is a plain sequence with no concurrency. Off Watch's ambient/excursion
-  loop is also sequential, not concurrent, so it doesn't reopen this
-  issue either (see [4.12](#412-gesture-engine-and-catalog)). **Left
-  open** for On Watch, where true simultaneous layering/blending is
-  still a live question. History: [log.md#issue-24](log.md#issue-24).
-25. Small-amplitude, slow gestures (e.g. `id-idle-breathing`'s 5° pitch
-  swing over 2000ms) visibly move in discrete steps on the real bird
-  rather than gliding smoothly — root-caused to servo pulse-width
-  resolution (~10.4 microseconds of pulse width per commanded degree on
-  the pitch servo tested), not an easing bug; a real amplitude/duration/
-  stepped-look design tradeoff, not a code fix. **Resolved for
-  `id-idle-breathing`** via an asymmetric swing (+13°/-28°, ~41° total)
-  at 1600ms, confirmed smooth on the real bird; its roll flourish was
-  dropped rather than scaled up. **Left open**: `sl-idle-breathing-quiet`
-  (Asleep), `sl-snore`, and other single-digit-degree/multi-second
-  gestures haven't been retuned — Asleep's case is sharper, since it
-  should read *quieter and slower* than Off Watch, cutting against the
-  amplitude/duration fix. History: [log.md#issue-25](log.md#issue-25).
+23. ~~**Added 2026-09-14, split from former issue 4**: no memory category
+  exists for appointment/calendar facts, though
+  [Use Case 2.7](#27-personalized-memory) assumes Jack tracks them — no
+  allowlist tag, no schema, not scoped.~~ **Closed 2026-09-14, Chip's
+  call**: moved to
+  [Possible Future Enhancements](#6-possible-future-enhancements) item 2
+  — whether it ends up as a new memory tag or a tool call, either is more
+  scope than is worth taking on now. Keeping the current feature set
+  focused improves the odds of actually finishing it.
+24. **Added 2026-09-14, reclassified out of former issue 9's scope**:
+  gesture interruptibility/preemption vs. queuing, and layering/blending,
+  are undesigned. Since the Arduino has no queue and acts on each command
+  immediately on arrival (former issue 7), these are purely questions for
+  the Pi-side [Gesture Engine](#412-gesture-engine-and-catalog) to answer
+  — e.g. whether a new gesture request cuts off one in progress or waits,
+  and whether two gestures can run on different axes at once — not
+  anything the serial link or firmware need to know about.
+
+  **Noted 2026-09-20**: still undesigned, but the
+  [Gesture Engine's data structures](#412-gesture-engine-and-catalog) now
+  pad each Move's wait time past its embedded `t<TTTT>` duration as a
+  safety margin, specifically because whether the ServoEasing library
+  ignores a new command sent before the previous easing finishes, or
+  interrupts it instead, is unverified — either behavior is a real
+  candidate answer to this issue once it's actually tested, not just an
+  edge case to design around blindly.
+
+  **Narrowed 2026-09-20**: resolved for Asleep specifically — its
+  [behavior loop](#410-idle-and-ambient-audio-player) is a plain
+  sequence where nothing ever plays concurrently with anything else, so
+  layering/blending doesn't arise there at all. Still fully open for
+  On Watch, and for whatever Off Watch's own behavior loop ends up being
+  once that's designed.
+25. **Added 2026-09-20**: small-amplitude, slow gestures (e.g.
+  `id-idle-breathing`'s 5° pitch swing over 2000ms) visibly move in
+  discrete steps on the real bird rather than gliding smoothly, even
+  though [Open Issues](#5-open-issues) issue 22's timing-budget analysis
+  and this issue's own investigation both confirm the Arduino-side
+  easing code itself is not the problem.
+
+  Diagnosed against real hardware using
+  `arduino/EasingDiagnostic/EasingDiagnostic.ino` (a one-off diagnostic
+  sketch, not part of the real firmware) — it polls a ServoEasing
+  servo's own internal current position in microseconds (finer than
+  `getCurrentAngle()`'s whole degrees) every loop iteration and logs a
+  timestamp every time that value changes, giving an objective trace
+  instead of relying on counting visible steps by eye. Two moves
+  compared, same code path as `ServoControl.ino`'s `s` handler, same
+  ~2000ms duration:
+    - 5° move (matching `id-idle-breathing`): ~53 updates, ~20-40ms
+      apart, each only **~1 microsecond**. Visibly steps on the bird.
+    - 30° move: ~99 updates, similar cadence, each **~3 microseconds**.
+      Looks smooth.
+
+  Conclusion: the update mechanism itself is firing on schedule and
+  advancing monotonically in both cases — this isn't a timer/interrupt
+  bug. The servo's own physical resolution just can't reliably resolve
+  ~1 microsecond pulse-width changes, so a move that's both small in
+  amplitude *and* slow (many small ticks, none individually big enough
+  to move the shaft) will look stepped no matter how correctly the
+  easing math runs. Calibration from this test: roughly **10.4
+  microseconds of pulse width per commanded degree** on this pitch
+  servo, and the visible-smoothness threshold sits somewhere between 1
+  and 3 microseconds per ~20ms tick (not pinned down more precisely than
+  that yet).
+
+  This is a real tension for the ambient/breathing-style gestures
+  specifically (small amplitude *and* slow duration are both central to
+  how they're meant to read) — the fix is a content/design tradeoff, not
+  a code fix:
+    - Increase amplitude (less subtle, but each tick covers more
+      distance).
+    - Shorten duration for the same amplitude (faster ticks cover more
+      distance each, but "slow gentle breathing" is the whole point).
+    - Accept the stepped look for very subtle idle motion — it may
+      simply read as a small twitchy/alert quality rather than a defect.
+
+  **Resolved for `id-idle-breathing` specifically, 2026-09-20**, through
+  live tuning against `exercise_hardware.py` on the real bird. Shortening
+  duration alone didn't work: halving `t` from 2000ms to 300ms (same 5°
+  amplitude) was "smoother but still not smooth" and read as panting
+  (~100 breaths/min) — confirming that a move's *total* achievable
+  positions (≈ swing distance ÷ servo resolution) is what governs
+  smoothness, and duration alone can't increase that. Amplitude was the
+  real lever: doubling it to 10° at a calmer 800ms looked "much
+  smoother," but at Chip's preferred slower ~19-breath/min pace (1600ms)
+  the same 10° dropped back below the resolvable threshold — steady-state
+  breathing swings between the *two extremes* each move (e.g. target 48
+  to target 7), not out from rest and back, so doubling duration at fixed
+  amplitude halves microseconds-per-tick just like it did in the first
+  test. Landed on an asymmetric swing (up +13°, down -28°, ~41° total) at
+  1600ms, since pitch only has +15° of headroom above resting versus
+  -35° below it — a large enough *symmetric* swing wasn't available.
+  Confirmed smooth on the real bird. Roll (a secondary "micro-roll"
+  flourish) was dropped from the gesture entirely rather than scaled up
+  the same way, since a roll swing large enough to fix its own smoothness
+  would stop reading as "micro."
+
+  **Still open**: the same underlying issue affects `sl-idle-breathing-quiet`
+  (Asleep), `sl-snore`, and any other single-digit-degree/multi-second
+  gesture in [gesture-catalog.yaml](gesture-catalog.yaml) — none of those
+  have been retuned yet. Asleep's case is sharper than Off Watch's, since
+  its whole design intent is to be *quieter and slower* than Off Watch,
+  which cuts directly against "more amplitude and/or less duration."
 
 ## 6. Possible Future Enhancements
 
