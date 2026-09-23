@@ -1,0 +1,490 @@
+# Gesture and Wav-Gesture catalog
+#
+# Second pass (2026-09-20) — revises the first pass after discussion
+# surfaced that resolved absolute servo commands were the wrong model.
+# See specification.md section 4.12 for the struct definitions this
+# implements, and section 4.10 for the ambient/excursion behavior model
+# this data assumes.
+#
+# --- What changed from the first pass, and why ---
+#
+# 1. Move no longer stores a literal Arduino command string. It stores
+#    signed DELTAS per axis (dp/dr/dy), relative to a live BASELINE pose
+#    the engine maintains — not a fixed resting position. The engine
+#    composes the real `p<P>r<R>y<Y>t<T>s` wire string at send time:
+#      P = clamp(baseline.pitch + dp, 0, 50)   (similarly r, y)
+#    Omitted dp/dr/dy = 0 (matches baseline exactly on that axis). `beak`
+#    stays an absolute 0-60 value (open=0, closed=60) when a gesture
+#    touches it at all — beak isn't baseline-relative, and most gestures
+#    omit it entirely (it's normally driven by the RMS envelope during
+#    audio, not by gestures — Rapid Chatter is the one exception).
+#
+# 2. BASELINE is produced continuously by whichever gesture is that
+#    mode's designated AMBIENT gesture (see the `ambient:` map below) —
+#    never a static point. Baseline yaw is pulled toward the live DoA
+#    azimuth where `doa_yaw_tracking` (below) is true for that mode;
+#    baseline pitch/roll has no DoA input and only moves via the ambient
+#    gesture's own gentle oscillation, centered on `resting` as a
+#    fallback before anything has nudged it (e.g. right after boot, or
+#    before DoA exists in code at all).
+#
+# 3. The ambient gesture never "finishes" — the engine just keeps
+#    re-triggering it. An excursion gesture (anything else) temporarily
+#    takes over, and most still end with an explicit delta-(0,0,0) move
+#    for tight control over how fast they snap back — but that target is
+#    now "current baseline," which is always drifting, not a hardcoded
+#    number, so it no longer reads as mechanical the way a fixed return
+#    point did. A few gestures (Look Back) don't need a separate return
+#    move at all, because "recover to baseline" already *is* their
+#    described motion.
+#
+# 4. Deltas are the ORIGINAL, uncapped magnitudes from gesture-library.md
+#    (e.g. Curious Tilt's roll is +25 again, not clamped to +20). The
+#    engine clamps baseline+delta at send time, so whether a gesture
+#    reaches its full expression depends on where baseline actually is
+#    when it plays, not a number pre-computed against an assumed-resting
+#    baseline. This retires the first pass's "CLAMPED" annotations —
+#    they were an artifact of resolving against a fixed baseline too
+#    early.
+#
+# 5. The first pass's "anchor gesture" idea (should Ambient Scanning
+#    permanently move the baseline?) is retired — the ambient/excursion
+#    split replaces it. Ambient Scanning is now just a normal (larger)
+#    Off Watch excursion; Off Watch's actual ambient/base motion is
+#    Idle Breathing (see `ambient:` below).
+#
+# 6. "Turn Toward Speaker" no longer needs runtime parameterization —
+#    continuous DoA-tracked baseline yaw already does the subtle
+#    following. Re-scoped to a deliberate, fixed-delta *emphasis* turn
+#    layered on top of that (e.g. noticeably acknowledging a new
+#    speaker), not the mechanism that does the pointing itself.
+#
+# --- Carried over from the first pass, unchanged ---
+#
+# - Servo baseline constants (arduino/ServoControl/ServoControl.ino):
+#     pitch: resting=35, range=0-50   roll: resting=30, range=0-50
+#     yaw:   resting=70, range=0-130  beak: range=0-60 (0=open, 60=closed)
+# - Sign convention (still gesture-library.md never defined one):
+#     pitch: + = up, - = down. roll: + = tipped right, - = tipped left.
+#     yaw: + = turned left, - = turned right.
+# - Vowel Drift still can't be static data — its duration is real TTS
+#   phoneme timing, not something knowable at authoring time. Still
+#   marked NEEDS-RUNTIME-PARAM, stubbed with a fixed fallback.
+# - wait_ms = t + 30 (flat margin) — still an unverified safety pad
+#   against ServoEasing's behavior on an early new command; see
+#   specification.md Open Issue 24.
+# - All of Asleep's named gestures now exist (sl-snore/sl-snort/
+#   sl-settle-to-sleep added later 2026-09-20) — only a paired wav clip
+#   is still missing for any of them; no matching audio exists in
+#   wavFiles/ yet.
+#
+# - **Open question, 2026-09-20**: sl-settle-to-sleep ends with a
+#   persistent roll tilt (the head-under-wing tuck), but Asleep's breath
+#   cycle (sl-idle-breathing-quiet) oscillates around fixed `resting`,
+#   not around wherever settle-to-sleep left off — so the tuck will
+#   gradually ease back toward upright over breath's first ~3s move,
+#   since delta targets are computed against the constant, not the
+#   gesture that just played. Whether that reads fine (a natural
+#   settling-in) or undercuts the tucked look before it's had time to
+#   register is worth watching once this can actually run — if it looks
+#   wrong, the fix is giving Asleep its own tilted baseline for the
+#   whole mode, not just the transition gesture.
+# - Wav-Paired library and all Wav entries are still empty — no source
+#   content to map them from yet.
+# - Rapid Chatter still combines an absolute `beak` write with delta
+#   head moves in the same conceptual Move — the engine composes both
+#   into one wire string, same as before.
+# - Every wire command the engine actually sends still spells out p, r,
+#   y, and t together, even when a Move's delta on some axis is 0 — the
+#   Arduino keeps the last value for anything not resent, so the engine
+#   must never omit an axis from what it actually transmits (this is now
+#   the engine's responsibility, not the catalog's, since deltas resolve
+#   to full values before sending).
+#
+# --- Added 2026-09-20 (second round): more Off Watch excursions ---
+#
+# Six new Off Watch excursions brainstormed to grow the pool (Ruffle
+# Shake, Neck Stretch, Alert Perk, Beak Wipe, Soft Chatter, Doze
+# Flicker) — deliberately more than needed right now ("more is better at
+# this stage," per Chip; cut/tune later if any don't look right in
+# practice, especially once excursion_interval_seconds gets tightened
+# back down as this pool grows further.
+#
+# Two are deliberately mirrored into other libraries under their own
+# ids, per the existing duplicate-don't-share convention:
+#   - em-alert-perk (On Watch): "noticing something" reads as a
+#     reasonable Emotional-category reaction, not just an idle quirk.
+#   - sl-snort (Asleep): a smaller/slower derivative of Soft Chatter
+#     finally fills the "snort" slot that's been named but unauthored
+#     since the Asleep breath-cycle design (specification.md 4.10).
+#
+# Neck Stretch and Doze Flicker were considered for mirroring too, but
+# weren't — both read as strong candidates for the still-unauthored
+# going-to-sleep transition gesture instead (a stretch/yawn and a
+# fighting-sleepiness beat are natural "getting ready to sleep"
+# material). That gesture (sl-settle-to-sleep, below) was authored later
+# the same day — inspired by the yawn/droop concept, not a literal reuse
+# of either gesture's exact values.
+
+resting:
+  pitch: 35
+  roll: 30
+  yaw: 70
+  beak: 60   # closed; fallback baseline before anything else has moved it
+
+ambient:
+  # The one gesture per mode the engine defaults to whenever nothing
+  # else is queued. Never "finishes" — always re-triggered.
+  on_watch: am-attentive-sway
+  off_watch: id-idle-breathing
+  asleep: sl-idle-breathing-quiet
+
+doa_yaw_tracking:
+  # Whether that mode's baseline yaw is pulled toward the live DoA
+  # azimuth. Asleep deliberately doesn't — a sleeping bird doesn't turn
+  # to face every household noise; that's a judgment call worth
+  # revisiting if it looks wrong in practice, not a hard constraint.
+  on_watch: true
+  off_watch: true
+  asleep: false
+
+excursion_interval_seconds:
+  # Off Watch only — On Watch's excursions are triggered by conversation
+  # content/DoA/emotion, not a wall-clock timer, and Asleep uses its own
+  # per-breath-cycle chance instead (specification.md 4.10). Between
+  # completed ambient-motion steps (~4s granularity, see
+  # id-idle-breathing), pick a random wait in this range before the next
+  # excursion. Widened 2026-09-20 from an original 10-20s instinct:
+  # with only 3 off_watch excursion gestures and 0 wav clips today,
+  # 10-20s would repeat each gesture ~20x in a single 15-minute Off
+  # Watch session — tighten back toward 10-20s as the library grows.
+  # (Grew to 9 excursions later the same day — "Added 2026-09-20 (second
+  # round)" below — still worth watching in practice before tightening;
+  # more content alone doesn't guarantee it stops feeling repetitive.)
+  off_watch: [30, 90]
+
+on_watch:
+  # --- Ambient (default/base state, always running) ---
+
+  - id: am-attentive-sway
+    name: "Attentive Sway — ambient idle motion filling quiet moments; On Watch's default/base state"
+    moves:
+      - {dp: 4, dr: 2, t: 1500, wait_ms: 1530}
+      - {dp: -4, dr: -2, t: 1500, wait_ms: 1530}
+
+  # --- Speech-Driven (docs/gesture-library.md "Speech-Driven Gestures") ---
+
+  - id: sd-beat-pulse
+    name: "Beat Pulse — yaw pulse + micro-roll"
+    moves:
+      - {dy: 10, dr: 5, t: 100, wait_ms: 130}
+      - {dy: 0, dr: 0, t: 100, wait_ms: 130}
+
+  - id: sd-emphasis-nod
+    name: "Emphasis Nod — pitch dip + slight roll"
+    moves:
+      - {dp: -15, dr: 5, t: 120, wait_ms: 150}
+      - {dp: 0, dr: 0, t: 120, wait_ms: 150}
+
+  - id: sd-vowel-drift
+    name: "Vowel Drift — slow yaw drift + subtle roll"
+    status: NEEDS-RUNTIME-PARAM   # duration must track live TTS phoneme timing
+    moves:
+      - {dy: 15, dr: 8, t: 300, wait_ms: 330}
+      - {dy: 0, dr: 0, t: 200, wait_ms: 230}
+
+  - id: sd-sentence-start-lift
+    name: "Sentence Start Lift — pitch lift + roll"
+    moves:
+      - {dp: 10, dr: 10, t: 150, wait_ms: 180}
+      - {dp: 0, dr: 0, t: 150, wait_ms: 180}
+
+  - id: sd-sentence-end-settle
+    name: "Sentence End Settle — pitch settle + roll relaxation"
+    moves:
+      - {dp: -10, dr: -8, t: 200, wait_ms: 230}
+      - {dp: 0, dr: 0, t: 150, wait_ms: 180}
+
+  # --- Emotional (docs/gesture-library.md "Emotional Gestures") ---
+
+  - id: em-curious-tilt
+    name: "Curious Tilt — roll + pitch + slight yaw"
+    moves:
+      - {dr: 25, dp: 15, dy: 10, t: 400, wait_ms: 430}
+      - {dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+
+  - id: em-skeptical-lean
+    name: "Skeptical Lean — roll + yaw"
+    moves:
+      - {dr: -20, dy: 15, t: 400, wait_ms: 430}
+      - {dr: 0, dy: 0, t: 300, wait_ms: 330}
+
+  - id: em-excited-bob
+    name: "Excited Bob — pitch oscillation + roll pulses"
+    moves:   # oscillation hand-unrolled — every playback looks identical, see specification.md 4.12 known gaps
+      - {dp: 20, dr: 10, t: 100, wait_ms: 130}
+      - {dp: -20, dr: -10, t: 100, wait_ms: 130}
+      - {dp: 20, dr: 10, t: 100, wait_ms: 130}
+      - {dp: -20, dr: -10, t: 100, wait_ms: 130}
+      - {dp: 20, dr: 10, t: 100, wait_ms: 130}
+      - {dp: 0, dr: 0, t: 100, wait_ms: 130}
+
+  - id: em-thinking-sway
+    name: "Thinking Sway — yaw sweep + roll modulation"
+    moves:
+      - {dy: -20, dr: -10, t: 750, wait_ms: 780}
+      - {dy: 20, dr: 10, t: 750, wait_ms: 780}
+      - {dy: 0, dr: 0, t: 300, wait_ms: 330}
+
+  - id: em-affirmation-nod
+    name: "Affirmation Nod — pitch nod + roll stabilization"
+    moves:
+      - {dp: -20, dr: 5, t: 150, wait_ms: 180}
+      - {dp: 0, dr: 5, t: 150, wait_ms: 180}
+      - {dp: -20, dr: 5, t: 150, wait_ms: 180}
+      - {dp: 0, dr: 0, t: 150, wait_ms: 180}
+
+  - id: em-negation-shake
+    name: "Negation Shake — yaw shake + roll counter-tilt"
+    moves:
+      - {dy: 25, dr: -10, t: 150, wait_ms: 180}
+      - {dy: -25, dr: -10, t: 150, wait_ms: 180}
+      - {dy: 25, dr: -10, t: 150, wait_ms: 180}
+      - {dy: 0, dr: 0, t: 150, wait_ms: 180}
+
+  - id: em-alert-perk
+    name: "Alert Perk — sharp upward pitch lift, brief hold, settle (mirrors id-alert-perk, see header comment 'Added 2026-09-20 (second round)')"
+    moves:
+      - {dp: 15, t: 150, wait_ms: 400}
+      - {dp: 0, t: 150, wait_ms: 180}
+
+  # --- Conversational (docs/gesture-library.md "Conversational Gestures") ---
+
+  - id: cv-listening-lean
+    name: "Listening Lean — pitch forward + roll"
+    moves:
+      - {dp: -10, dr: 10, t: 300, wait_ms: 330}
+      - {dp: 0, dr: 0, t: 200, wait_ms: 230}
+
+  - id: cv-turn-toward-speaker
+    name: "Turn Toward Speaker (emphasis) — deliberate extra turn layered on already-DoA-tracked baseline, for noticeably acknowledging a new speaker"
+    moves:
+      - {dy: 30, dr: 5, t: 300, wait_ms: 330}
+      - {dy: 0, dr: 0, t: 200, wait_ms: 230}
+
+  - id: cv-agreement-motion
+    name: "Agreement Motion — nod + roll"
+    moves:
+      - {dp: -10, dr: 10, t: 300, wait_ms: 330}
+      - {dp: 0, dr: 0, t: 200, wait_ms: 230}
+
+  - id: cv-disagreement-motion
+    name: "Disagreement Motion — shake + roll counter-tilt"
+    moves:
+      - {dy: 15, dr: -10, t: 130, wait_ms: 160}
+      - {dy: -15, dr: -10, t: 130, wait_ms: 160}
+      - {dy: 15, dr: -10, t: 130, wait_ms: 160}
+      - {dy: 0, dr: 0, t: 130, wait_ms: 160}
+
+  # --- Expressive (docs/gesture-library.md "Expressive Gestures") ---
+
+  - id: ex-showmanship-bob
+    name: "Showmanship Bob — exaggerated pitch bob + roll"
+    moves:
+      - {dp: 25, dr: 15, t: 190, wait_ms: 220}
+      - {dp: -25, dr: -15, t: 190, wait_ms: 220}
+      - {dp: 25, dr: 15, t: 190, wait_ms: 220}
+      - {dp: 0, dr: 0, t: 190, wait_ms: 220}
+
+  - id: ex-head-cock
+    name: "Head Cock — classic parrot tilt"
+    moves:
+      - {dr: 30, dp: 10, dy: 10, t: 400, wait_ms: 430}
+      - {dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+
+  - id: ex-rapid-chatter
+    name: "Rapid Chatter — beak pulses + roll"
+    moves:
+      - {beak: 3, dr: 10, t: 60, wait_ms: 90}
+      - {beak: 0, dr: 0, t: 60, wait_ms: 90}
+      - {beak: 3, dr: 10, t: 60, wait_ms: 90}
+      - {beak: 0, dr: 0, t: 60, wait_ms: 90}
+
+  - id: ex-look-away
+    name: "Look Away — disengagement"
+    moves:
+      - {dy: 40, dr: -20, dp: -10, t: 600, wait_ms: 630}
+      - {dy: 0, dr: 0, dp: 0, t: 400, wait_ms: 430}
+
+  - id: ex-look-back
+    name: "Look Back — re-engagement"
+    moves:   # "recover to baseline" already is the described motion (Yaw: -40 -> 0) — no separate return move needed
+      - {dy: 0, dr: 15, t: 500, wait_ms: 530}
+      - {dr: 0, t: 200, wait_ms: 230}
+
+off_watch:
+  # --- Ambient (default/base state, always running) ---
+
+  - id: id-idle-breathing
+    name: "Idle Breathing — pitch oscillation only; Off Watch's default/base state"
+    moves:   # Resolved 2026-09-20 (Open Issue 25) after live hardware tuning against
+             # exercise_hardware.py - see specification.md for the full history
+             # (duration alone couldn't fix it; fixed via amplitude instead).
+             # Steady-state swings between the two extremes each move (target 48 to
+             # target 7 = 41deg), not from rest each time. At 1600ms (~19 breaths/min,
+             # confirmed as a reasonable pace) that's ~5.3us of pulse-width change per
+             # ~20ms tick, above the resolvable threshold found in Open Issue 25's
+             # diagnostic - confirmed "much smoother" on the real bird.
+             # Asymmetric because pitch only has +15deg of headroom above resting
+             # (up+13, near that ceiling) versus -35deg below it (down-28, well within
+             # it) - a symmetric swing large enough to be smooth isn't available here.
+             # Roll dropped entirely (was a "micro-roll" flourish): matching this same
+             # fix would need a roll swing large enough to stop reading as "micro" -
+             # simpler to cut it than force it into a size that defeats its purpose.
+      - {dp: 13, t: 1600, wait_ms: 1630}
+      - {dp: -28, t: 1600, wait_ms: 1630}
+
+  # --- Idle excursions (docs/gesture-library.md "Idle Gestures") ---
+  # Engine rule (2026-09-20): never pick the same excursion id twice in a
+  # row — cheap anti-repetition given how small this pool still is.
+
+  - id: id-ambient-scanning
+    name: "Ambient Scanning — yaw drift + roll tilt"
+    moves:
+      - {dy: -30, dr: 10, t: 2000, wait_ms: 2030}
+      - {dy: 30, dr: 10, t: 2000, wait_ms: 2030}
+      - {dy: 0, dr: 0, t: 1000, wait_ms: 1030}
+
+  - id: id-micro-twitch
+    name: "Micro-Twitch — tiny random pulses"
+    moves:   # "random" not represented — single fixed instance, see specification.md 4.12 known gaps
+      - {dy: 3, dp: 2, dr: 4, t: 50, wait_ms: 80}
+      - {dy: 0, dp: 0, dr: 0, t: 50, wait_ms: 80}
+
+  - id: id-preen-motion
+    name: "Preen Motion — bird-like grooming"
+    moves:
+      - {dr: 20, dp: -15, dy: 10, t: 750, wait_ms: 780}
+      - {dr: 0, dp: 0, dy: 0, t: 400, wait_ms: 430}
+
+  # --- More idle excursions (brainstormed 2026-09-20, see header comment
+  #     "Added 2026-09-20 (second round)" — "more is better at this
+  #     stage," per Chip; cut/tune later if any don't look right) ---
+
+  - id: id-ruffle-shake
+    name: "Ruffle Shake — quick shake-off/resettle"
+    moves:
+      - {dr: 12, dy: 8, t: 80, wait_ms: 110}
+      - {dr: -12, dy: -8, t: 80, wait_ms: 110}
+      - {dr: 12, dy: 8, t: 80, wait_ms: 110}
+      - {dr: 0, dy: 0, t: 80, wait_ms: 110}
+
+  - id: id-neck-stretch
+    name: "Neck Stretch — slow held extension, beak cracked open, then release"
+    moves:
+      - {dp: 25, beak: 20, t: 700, wait_ms: 730}
+      - {dp: 0, beak: 60, t: 500, wait_ms: 530}
+
+  - id: id-alert-perk
+    name: "Alert Perk — sharp upward pitch lift, brief hold, settle"
+    moves:
+      - {dp: 15, t: 150, wait_ms: 400}
+      - {dp: 0, t: 150, wait_ms: 180}
+
+  - id: id-beak-wipe
+    name: "Beak Wipe — miming wiping the beak on a perch"
+    moves:
+      - {dp: -8, beak: 15, t: 100, wait_ms: 130}
+      - {beak: 45, t: 100, wait_ms: 130}
+      - {beak: 15, t: 100, wait_ms: 130}
+      - {dp: 0, beak: 60, t: 150, wait_ms: 180}
+
+  - id: id-soft-chatter
+    name: "Soft Chatter — quiet beak flutter, minimal head motion, self-talk"
+    moves:
+      - {beak: 8, t: 80, wait_ms: 110}
+      - {beak: 12, t: 80, wait_ms: 110}
+      - {beak: 8, t: 80, wait_ms: 110}
+      - {beak: 12, t: 80, wait_ms: 110}
+
+  - id: id-doze-flicker
+    name: "Doze Flicker — head droops, catches itself, settles"
+    moves:
+      - {dp: -12, t: 400, wait_ms: 430}
+      - {dp: 5, t: 100, wait_ms: 130}
+      - {dp: 0, t: 150, wait_ms: 180}
+
+asleep:
+  # --- Ambient (default/base state, always running) ---
+  # Sequenced per specification.md 4.10: breath plays through, then with
+  # some chance a random extra (snore/snort/shift) plays instead of/
+  # before the next breath. Nothing plays concurrently, so this stays
+  # simpler than On Watch/Off Watch's ambient — still a plain repeat, not
+  # "interrupted by excursions" the way those two work.
+
+  - id: sl-idle-breathing-quiet
+    name: "Idle Breathing (Asleep) — smaller, slower than off-watch version; the cycle's repeating 'breath' step"
+    moves:
+      - {dp: 3, dr: 2, t: 3000, wait_ms: 3030}
+      - {dp: -3, dr: -2, t: 3000, wait_ms: 3030}
+
+  - id: sl-micro-twitch-quiet
+    name: "Micro-Twitch (Asleep) — smaller, slower than off-watch version; stands in for 'shift to get comfortable'"
+    moves:
+      - {dy: 1, dp: 1, dr: 2, t: 70, wait_ms: 100}
+      - {dy: 0, dp: 0, dr: 0, t: 70, wait_ms: 100}
+
+  - id: sl-snore
+    name: "Snore (Asleep) — slow pitch lift with a bit of beak movement, then settle back"
+    moves:
+      - {dp: 8, beak: 20, t: 900, wait_ms: 930}
+      - {dp: 0, beak: 60, t: 600, wait_ms: 630}
+
+  - id: sl-snort
+    name: "Snort (Asleep) — revised 2026-09-20: twitch, jerk pitch up, beak flap, resettle"
+    moves:   # replaces the original soft-chatter-derived version; kept the id, not the shape
+      - {dy: 2, dr: 2, t: 60, wait_ms: 90}
+      - {dp: 10, t: 80, wait_ms: 110}
+      - {dp: 5, beak: 15, t: 100, wait_ms: 130}
+      - {dp: 0, dy: 0, dr: 0, beak: 60, t: 150, wait_ms: 180}
+
+  - id: sl-waking-up
+    name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
+    moves:
+      - {beak: 10, dr: 5, dp: 5, dy: 5, t: 200, wait_ms: 230}
+      - {beak: 60, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+
+  - id: sl-settle-to-sleep
+    name: "Settle to Sleep — yawn, release the stretch, tuck (head-under-wing stereotype, can't really get there), droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
+    moves:   # deliberately doesn't return dp or dr to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
+      - {beak: 0, dp: 12, t: 600, wait_ms: 630}
+      - {beak: 60, dp: 5, t: 400, wait_ms: 430}
+      - {dr: 20, dy: -6, dp: 2, t: 600, wait_ms: 630}   # revised 2026-09-20: bigger, more deliberate roll — reads as tucking toward one side
+      - {dr: 20, dy: 0, dp: -12, t: 800, wait_ms: 830}   # roll holds at the tuck; only pitch/yaw finish settling
+
+wav_paired: []   # empty — no source content to map yet
+
+wavs:
+  on_watch: []
+  off_watch: []
+  asleep:
+    # Brainstormed 2026-09-20, lines not yet recorded — none of these
+    # files exist in wavFiles/ yet. All pair with sl-settle-to-sleep,
+    # split by `context` (see specification.md 4.12) into two pools per
+    # how Asleep was entered — see specification.md 4.10's "On entering
+    # Asleep" pseudocode. Not played at all on the On-Watch nap-intent
+    # path — Haiku's own live reply already covers it there.
+
+    # context: idle_timeout — unprompted, narrating to himself, nobody
+    # to address.
+    - {file: "EightBellsWatchDone.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "FurlTheSails.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "OldParrotPerch.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "DroppinAnchor.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "SleepyMumble.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+
+    # context: goodnight_phrase — direct reciprocal reply to whoever
+    # just said "Goodnight, Jack." Generic "Matey" — no speaker ID.
+    - {file: "GoodnightMatey.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}
+    - {file: "NightMateySleepTight.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}
+    - {file: "SweetDreamsScallywag.wav", gesture: sl-settle-to-sleep, context: goodnight_phrase}
