@@ -393,6 +393,40 @@ being broken rather than "didn't hear that." Decided the reject path
 needs an explicit, in-character prompt rather than silence — the same
 kind of canned-response pattern already used for idle/Asleep clips.
 
+### 4.15 Speaker Recognition (Voice ID)
+
+**Enrollment flow, 2026-09-23**: decided the flow — how household
+members' voices actually get enrolled — separately from the engine
+choice (ECAPA-TDNN, decided earlier the same session) and from the
+runtime match-confidence threshold (explicitly left undecided, expected
+to get the same methodology-now/numbers-later treatment as the wake/
+sleep and STT thresholds when it's tackled).
+
+Trigger: a standalone script, not an in-conversation voice flow —
+consistent with the project's ship-the-simple-thing-first pattern and
+with keeping scope out of the core conversation loop while it isn't
+working yet (same reasoning behind deferring home-automation). Closed
+set: only names with a pre-existing `### Name` heading in `memory.md`
+can be enrolled, mirroring the existing rule that household facts (and
+now voices) can't be minted fresh by any automated path.
+
+Multiple utterances, not one, and the numbers are from real research on
+this exact task, not guessed: Equal Error Rate drops from ~17.6% at a
+single enrollment utterance to ~8% at five or more, using the mean
+(centroid) of the individual embeddings as the stored profile; ~20
+seconds of total speech is reasonable practical guidance. ~5 short,
+varied utterances, averaged, not a single-shot recording.
+
+Storage decided to live outside `memory.md` entirely: embeddings are
+opaque float vectors, which would break `memory.md`'s plain-markdown,
+human-readable, hand-editable contract if folded in. A separate small
+data store, keyed by the same household names, written only by the
+enrollment script and read only by orchestration code — Haiku never
+handles embeddings or raw audio directly, same posture as `memory.md`'s
+own file I/O already being orchestration-owned. Re-enrollment needs no
+separate design: re-running the script for a name just overwrites their
+stored embedding.
+
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,

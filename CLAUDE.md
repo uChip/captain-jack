@@ -172,6 +172,13 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     stricter same as 4.1, with rejects needing an in-character prompt
     rather than silence during On Watch. Numbers deferred to the same
     real-audio testing. See `docs/specification.md` section 4.2.
+13. Decided speaker-ID's enrollment flow: a standalone script (not an
+    in-conversation flow), closed to existing household names only, ~5
+    utterances averaged into one embedding per person (research-backed —
+    EER drops from ~17.6% at one utterance to ~8% at five-plus), stored
+    separately from `memory.md` (embeddings are opaque vectors, not
+    hand-editable text). Runtime match-confidence threshold intentionally
+    left undecided. See `docs/specification.md` section 4.15.
 
 ## Work list — split by hardware dependency
 
@@ -195,13 +202,16 @@ worked in parallel if priorities change.
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.
-3. Prototype speaker-ID code (voice-embedding model + enrollment flow) —
-   engine chosen (ECAPA-TDNN speaker embeddings, see
-   `docs/specification.md` section 4.15). No hardware wait needed: the
-   XVF3800's mic array is already electrically functional even though
-   unmounted, so prototype against it directly rather than a stand-in
-   mic. Real accuracy still needs its physical mounting and the scheduled
-   XVF3800 test (see Open Issues issue 1).
+3. Build speaker-ID: engine (ECAPA-TDNN) and enrollment flow (standalone
+   script, ~5 utterances averaged, closed to existing household names,
+   embeddings stored separately from `memory.md`) are both designed —
+   see `docs/specification.md` section 4.15. Runtime match-confidence
+   threshold still needs deciding (methodology, not numbers, matching
+   4.1/4.2's treatment). No hardware wait needed: the XVF3800's mic array
+   is already electrically functional even though unmounted, so
+   prototype against it directly rather than a stand-in mic. Real
+   accuracy still needs its physical mounting and the scheduled XVF3800
+   test (see Open Issues issue 1).
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.

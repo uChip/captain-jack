@@ -1305,7 +1305,7 @@ validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 
 ### 4.15 Speaker Recognition (Voice ID)
 
-History: [log.md#issue-1](log.md#issue-1).
+History: [log.md#issue-1](log.md#issue-1), [log.md#415-speaker-recognition-voice-id](log.md#415-speaker-recognition-voice-id).
 
 **Status: Engine chosen, not implemented.**
 
@@ -1337,6 +1337,46 @@ existing fail-closed design. Enrollment happens rarely and can afford a
 larger, slower model; runtime verification happens on every utterance and
 needs the cheap one — an asymmetric enroll/verify split already
 established in the speaker-verification literature.
+
+**Enrollment flow — decided 2026-09-23**:
+- **Trigger**: a standalone script (e.g. `enroll_speaker.py <name>`), run
+  directly, not an in-conversation voice flow. Matches the project's
+  ship-the-simple-thing-first pattern (stock ServoEasing before trimming
+  it, stock Kokoro before chasing the tiniest variant) and keeps
+  enrollment out of the core conversation loop's scope while that loop
+  isn't working yet, consistent with home-automation also being
+  deliberately deferred for the same reason. An in-conversation "Jack,
+  enroll my voice" flow is a reasonable future enhancement, not the MVP.
+- **Closed set**: only names with a pre-existing `### Name` heading in
+  `memory.md` (Chip, Kath, Liz) can be enrolled — the same rule already
+  governing household memory facts (Jack/the tooling never mints a new
+  household member; see [Memory Subsystem](#45-memory-subsystem)),
+  applied here too.
+- **Multiple enrollment utterances, not one**: research on this exact
+  setup shows Equal Error Rate dropping from ~17.6% at a single
+  enrollment utterance to ~8% at five or more, using the mean (centroid)
+  of the individual embeddings as the stored profile, with roughly 20
+  seconds of total speech as practical guidance. The script should
+  prompt for ~5 short, varied utterances and store their averaged
+  embedding, not a single-shot recording.
+- **Storage: separate from `memory.md`, not folded into it.** Embeddings
+  are opaque 192-256-dimension float vectors — the opposite of
+  `memory.md`'s plain-markdown, human-readable, hand-editable design
+  contract. They live in their own small data store, keyed by the same
+  name used in `memory.md`, written only by the enrollment script and
+  read only by orchestration code at runtime — never touched by Haiku
+  directly, same as `memory.md`'s own file I/O being orchestration-owned
+  rather than delegated to the model.
+- **Re-enrollment is free**: re-running the script for a name overwrites
+  their stored embedding; no separate design needed for a bad initial
+  enrollment or a voice changing over time.
+- **Explicitly out of scope here**: the runtime match-confidence
+  threshold (how close a cosine-similarity score needs to be before
+  trusting a match vs. falling through to tier 2) is a separate decision
+  from enrollment flow, not yet made — expected to get the same
+  methodology-now/numbers-from-real-testing treatment as
+  [4.1](#41-wake-word-spotter)/[4.2](#42-speech-to-text-stt) when it's
+  tackled.
 
 **Interfaces**: reads VAD-segmented audio alongside
 [STT](#42-speech-to-text-stt) — the XVF3800's mic array is already
