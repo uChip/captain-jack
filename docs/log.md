@@ -171,6 +171,12 @@ under-2ms-per-command estimate; ACK/timeout-retry is judged unnecessary
 given the self-resyncing design's robustness (both Chip's call, not
 further measurement).
 
+**Confidence note, 2026-09-15**: the shipped syntax is treated as settled
+going forward — further testing is expected to refine implementation
+details (calibration offsets, exact timing bounds), not the syntax
+itself. If that assumption turns out wrong, that's a bug to call out and
+deal with when found, not a reason to reopen the syntax question.
+
 ### Issue 15
 
 No `tests.md` existed, despite the goals document requiring at least one
@@ -436,7 +442,47 @@ The real `ServoControl.ino` was restored to the board afterward.
 
 Design changes, rejected alternatives, and rationale embedded in
 `specification.md` Sections 1-4 that don't tie to a numbered Open Issue.
-Keyed by the spec section they support (2026-09-21 pass).
+Keyed by the spec section they support (2026-09-21 pass, extended
+2026-09-23 to give every Section 1-4 heading a `History` tag — see the
+tag on each heading in `specification.md`; sections with nothing to
+report yet are tagged `History: none yet.` rather than getting an empty
+header here, and gain one only once real content exists to file).
+
+### 3.2 Seeed reSpeaker XVF3800
+
+**Chosen over alternatives**: selected over the 2-mic ReSpeaker Lite
+(XU316) and the older WM8960-based 2-Mic HAT specifically for its
+newer-generation AEC and 4-mic beamforming — needed because the bird's
+speaker sits inches from its own mics, which a cruder echo-cancellation
+stage might not handle well enough. Roughly 2x the Lite's cost and a
+larger footprint, accepted as the tradeoff for that AEC quality.
+
+### 3.4 Arduino Servo Controller
+
+**Pre-Pi role**: in the original (pre-Pi) design, the Arduino owned all
+"intelligence," peripherals, and sensor input — the MY1690 audio player
+and electret mics for sound-direction triangulation lived on it (see
+3.7). Those roles are removed in the current design; the Arduino shrinks
+to real-time servo execution only, per the Arduino-thin decision (Issue
+7). Power-supply diagnosis that preceded servo validation: see Issue 21.
+
+### 3.7 Removed and Legacy Hardware
+
+**MY1690 audio player**: SD-card-based stereo clip player (left channel
+audio, right channel a beak-level control track) that drove the original
+build's idle-sound + beak-sync trick. Superseded by Pi-side playback of
+local audio files through the XVF3800, using the same RMS-envelope
+extraction as live TTS (see
+[specification.md#410-idle-and-ambient-audio-player](specification.md#410-idle-and-ambient-audio-player)).
+Tradeoff: idle sound now depends on the Pi being up, unlike the old
+design where ambient noise ran independent of Pi health — accepted as a
+special case of the Arduino-thin decision (Issue 7): a Pi outage already
+means total silence and stillness, not just no idle audio. See Issue 17.
+
+**Electret microphones** (2x, ADC input): used for crude sound-direction
+triangulation on the original Arduino. Superseded by the XVF3800's
+onboard direction-of-arrival output, read directly by the Pi (see
+[specification.md#49-direction-of-arrival-doa-reader](specification.md#49-direction-of-arrival-doa-reader)).
 
 ### 4.10 Idle and Ambient Audio Player
 
@@ -509,3 +555,11 @@ Consequences of that fix, at the time:
 `gesture-library.md` was translated into the second-pass structure — see
 `gesture-catalog.yaml`, including its own header comments for the full
 first-pass-to-second-pass changelog.
+
+### 4.14 Arduino Firmware
+
+**SoftwareSerial interference, noted at MY1690 removal**: SoftwareSerial
+was observed to interfere with the servo easing library in the prior
+MY1690-era design, and was removed along with the MY1690 (see 3.7).
+Firmware must not reintroduce SoftwareSerial alongside the easing library
+without further research into that interaction.

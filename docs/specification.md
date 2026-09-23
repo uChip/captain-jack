@@ -21,6 +21,8 @@ and this specification drift apart.
 
 ## 1. Goals and Objectives
 
+History: none yet.
+
 Source: [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md).
 
 **Goal**: a learning/personal hobby project — use current AI technology to
@@ -32,9 +34,8 @@ manufacturing, life, or certification testing, no multi-unit concerns.
 
 **Objectives** (deliberately loose, per the project's hobby nature):
 - **Cost**: no fixed development-cost ceiling; each expenditure is decided
-  individually. Development-time AI services: Claude Pro ($20/mo, shared with
-  the separate Jarvis project — see
-  [jarvis-handoff-notes.md](jarvis-handoff-notes.md)), plus free-tier Claude
+  individually. Development-time AI services: Claude Pro ($20/mo, potentially
+  shared with other and future projects), plus free-tier Claude
   Chat, Alexa, Copilot, and Gemini. Ongoing operational cost (electricity,
   Haiku token usage) has no hard cap but a target of under $20/mo total;
   the brief's own rough model puts Haiku usage at $1–2/mo for typical
@@ -78,6 +79,8 @@ unless otherwise noted.
 
 ### 2.1 Companionable Conversation
 
+History: none yet.
+
 Core use case: verbal, back-and-forth conversation with whoever is nearby,
 in Captain Jack's persona, available to the whole household rather than
 gated to one primary user. In light banter (Jack's default and preferred
@@ -89,6 +92,8 @@ behavior is not yet implemented** — see
 [Persona and Identity Prompt](#44-persona-and-identity-prompt).
 
 ### 2.2 Persona: Captain Jack the Parrot
+
+History: [log.md#issue-2](log.md#issue-2).
 
 Jack is a parrot who grew up on a pirate ship (won't say which, but implies
 he served someone high-ranking, hence "Captain") — "Captain Jack Parrot," a
@@ -119,6 +124,8 @@ Untested against the live API; treated as a first baseline, not final.
 
 ### 2.3 Environmental and Self Awareness
 
+History: none yet.
+
 Jack knows his home is Sun Lakes, Arizona, and distinguishes "current
 location" from "home" (the perch is portable). He can be told his current
 location explicitly, or — inferring from conversation that he isn't home —
@@ -142,9 +149,10 @@ overwrite-style save instead — deferred, see
 
 ### 2.4 Operational Modes
 
+History: [log.md#issue-5](log.md#issue-5).
+
 Three modes are defined, with nautical naming chosen to fit Jack's
-persona (renamed from an earlier Offline/Online/Asleep naming — see
-[log.md#issue-5](log.md#issue-5)):
+persona:
 
 - **On Watch** (formerly "Online"): actively in a Haiku conversation. On
   request, Jack can play a catalog sound while still on watch.
@@ -181,6 +189,8 @@ above; their transition logic is designed but unimplemented — see
 
 ### 2.5 Session Boundaries
 
+History: none yet.
+
 See [Sleep-Mode State Machine](#411-sleep-mode-state-machine) for the full
 transition design; summary: a fixed wake phrase ("Ahoy, Captain Jack",
 spotted locally, not by Haiku) starts a session from either Off Watch or
@@ -194,6 +204,8 @@ also locally spotted) sends Jack from Off Watch directly to Asleep
 without a conversation. None of this is implemented yet.
 
 ### 2.6 Home Automation
+
+History: none yet.
 
 Jack can act on a small, explicit allowlist of home-automation intents —
 lights, fans, switched outlets, thermostat, irrigation, and firing
@@ -219,6 +231,8 @@ and [Open Issues](#5-open-issues).
 
 ### 2.7 Personalized Memory
 
+History: none yet.
+
 Jack remembers durable facts about household members (currently: Chip,
 Kath, Liz — pre-seeded subsections, not auto-created), running jokes, and
 stated home-automation preferences, across sessions, via a plain-markdown
@@ -237,6 +251,8 @@ has no calendar/appointment category — see
 [Open Issues](#5-open-issues).
 
 ### 2.8 Deferred and Speculative Scenarios
+
+History: none yet.
 
 Recorded for continuity but not committed, scoped, or designed:
 
@@ -269,6 +285,8 @@ Pi-side idle-audio playback, respectively.
 
 ### 3.1 Raspberry Pi 5
 
+History: none yet.
+
 **Description**: single-board computer, the project's only compute/
 "brain" hardware. **Status: on hand**, headless, accessed via SSH; this
 Claude Code session runs directly on it (no separate dev machine / deploy
@@ -287,6 +305,8 @@ Arduino; outbound network to the Anthropic API for each conversation turn.
 
 ### 3.2 Seeed reSpeaker XVF3800
 
+History: [log.md#32-seeed-respeaker-xvf3800](log.md#32-seeed-respeaker-xvf3800).
+
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
 and dynamic noise suppression. **Status: connected to the Pi via USB**,
@@ -295,11 +315,7 @@ in front of the parrot. No speaker is connected yet (see
 [Speaker](#33-speaker)), so wake-word spotting, DoA, and STT can start
 now, but AEC/echo-cancellation validation and idle/TTS audio output
 remain blocked until the speaker is wired — see CLAUDE.md's "Blocked
-until the XVF3800's speaker is wired" list. Chosen over the 2-mic
-ReSpeaker Lite (XU316) and the older WM8960-based
-2-Mic HAT specifically for its newer-generation AEC and 4-mic beamforming,
-needed because the bird's speaker sits inches from its own mics — at
-roughly 2x the Lite's cost and a larger footprint.
+until the XVF3800's speaker is wired" list.
 
 **Intended function**: captures conversational audio for STT, echo-cancels
 the bird's own speech out of that input using its own played-back audio as
@@ -314,6 +330,8 @@ output is a possible later addition if voice quality needs it.
 
 ### 3.3 Speaker
 
+History: none yet.
+
 **Description**: the speaker from the previous prototype build (the
 XVF3800 doesn't ship with one). **Status: on hand, not yet connected** —
 the XVF3800's speaker output uses a 2-pin JST connector Chip doesn't have
@@ -327,18 +345,16 @@ no reference signal to cancel against, defeating the reason it was chosen.
 
 ### 3.4 Arduino Servo Controller
 
+History: [log.md#34-arduino-servo-controller](log.md#34-arduino-servo-controller).
+
 **Description**: a new Arduino Uno, replacing the original build's board.
 **Status: connected to the Pi, wired to all four servos, and driving them
 correctly.** Resting/offset/range constants for all four axes are tuned
 empirically against the real mechanism — see
-[Arduino Firmware](#414-arduino-firmware); see
-[log.md#issue-21](log.md#issue-21) for the power-supply diagnosis that
-preceded validation. The old MY1690 + electret-mic
+[Arduino Firmware](#414-arduino-firmware). The old MY1690 + electret-mic
 hardware has been removed (it lived on the original board, not this one)
 — see [Removed and Legacy Hardware](#37-removed-and-legacy-hardware).
-The Arduino previously owned all "intelligence,"
-peripherals, and sensor input in the pre-Pi design; those roles are removed
-and it shrinks to real-time servo execution only. The real-time PWM loop
+It shrinks to real-time servo execution only. The real-time PWM loop
 itself deliberately stays on the Arduino rather than the Pi, so it stays
 fast and isn't jittered by the Pi's scheduling/serial round-trip — but the
 Arduino has **no autonomous behavior of its own**: it only ever does what
@@ -366,6 +382,8 @@ The sketch itself has been written for servo-only duty; see
 
 ### 3.5 Servos (Head and Beak)
 
+History: none yet.
+
 **Description**: three 9G servos in the head (pitch, roll, yaw) and one 2G
 servo for the lower beak. **Status: on hand**, part of the pre-existing
 statue build.
@@ -381,6 +399,8 @@ fast enough given easing math cost).
 
 ### 3.6 Physical Statue and Perch
 
+History: none yet.
+
 **Description**: life-size 3D-printed parrot on a tree-stump perch, with a
 box base beneath housing all electronics. **Status: on hand and
 operational**, pre-existing this project; only head/beak articulation was
@@ -394,22 +414,15 @@ servos, and speaker.
 
 ### 3.7 Removed and Legacy Hardware
 
+History: [log.md#37-removed-and-legacy-hardware](log.md#37-removed-and-legacy-hardware).
+
 Kept here for continuity with the original (pre-Pi) design, not part of the
 current build:
 
-- **MY1690 audio player** — SD-card-based stereo clip player (left channel
-  audio, right channel a beak-level control track) that drove the original
-  idle-sound + beak-sync trick. **Status: removed.** Superseded by Pi-side
-  playback of local audio files through the XVF3800, using the same RMS-
-  envelope extraction as live TTS (see
+- **MY1690 audio player** — SD-card-based stereo clip player. **Status:
+  removed.** Superseded by Pi-side playback of local audio files through
+  the XVF3800, using the same RMS-envelope extraction as live TTS (see
   [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)).
-  Tradeoff: idle sound now depends on the Pi being up, unlike the old
-  design where ambient noise ran independent of Pi health. This is a
-  special case of the Arduino-thin decision (issue 7) — the Arduino has
-  no autonomous behavior at all, so a Pi outage already means total
-  silence and stillness, not just silence. No separate mitigation for
-  idle audio specifically; accepted as correct behavior. History:
-  [log.md#issue-17](log.md#issue-17).
 - **Electret microphones** (2x, ADC input) — used for crude sound-direction
   triangulation on the original Arduino. **Status: removed.** Superseded by
   the XVF3800's onboard direction-of-arrival output, read directly by the
@@ -435,6 +448,8 @@ speaker not yet being wired ([3.3](#33-speaker)).
 
 ### 4.1 Wake Word Spotter
 
+History: none yet.
+
 **Status: Not started.**
 
 **Description**: local, always-on keyword spotter running on the Pi. Per
@@ -459,6 +474,8 @@ Haiku call involved.
 
 ### 4.2 Speech to Text (STT)
 
+History: none yet.
+
 **Status: Not started.**
 
 **Description**: local speech-to-text, tentatively "e.g. local Whisper" —
@@ -472,6 +489,8 @@ transcribed text to the
 [Conversation Orchestrator](#43-conversation-orchestrator).
 
 ### 4.3 Conversation Orchestrator
+
+History: none yet.
 
 **Status: Implemented (text-only)** — `orchestrate.py`.
 
@@ -497,12 +516,13 @@ none of that wiring exists yet.
 
 ### 4.4 Persona and Identity Prompt
 
+History: [log.md#issue-2](log.md#issue-2).
+
 **Status: Implemented, including the full persona design** —
 `memory/identity.md`'s `## Persona` section, encoding the backstory,
 pirate speech style, deference protocol, and conversational-intensity
 fade from [Use Case 2.2](#22-persona-captain-jack-the-parrot)/
-[2.1](#21-companionable-conversation) — see
-[Open Issues](#5-open-issues) issue 2 for history. Written as concrete traits + a
+[2.1](#21-companionable-conversation). Written as concrete traits + a
 handful of example lines rather than narrative prose, on the theory that a
 small model like Haiku follows short, concrete instructions more reliably
 than it "acts out" backstory lore. Untested against the live API; treated
@@ -532,6 +552,8 @@ prefix) — cosmetic only, doesn't affect behavior, but would show a
 mismatched label if the persona were actually swapped.
 
 ### 4.5 Memory Subsystem
+
+History: none yet.
 
 **Status: Implemented** — `memory/memory.md` +
 [captain-jack-memory-design.md](captain-jack-memory-design.md) + the
@@ -578,6 +600,8 @@ appointment/calendar facts called for by
 
 ### 4.6 Home-Automation Tool Schema
 
+History: none yet.
+
 **Status: Designed (allowlist only), not implemented.**
 
 **Description**: the fixed, small tool schema Haiku would use to request
@@ -601,6 +625,8 @@ schema is currently passed to the Anthropic API call in `orchestrate.py`.
 
 ### 4.7 Text to Speech (TTS)
 
+History: none yet.
+
 **Status: Not started.**
 
 **Description**: local TTS rendering Jack's spoken reply to audio. No
@@ -616,6 +642,8 @@ audio stream to the XVF3800 output path and to
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction).
 
 ### 4.8 Beak-Sync (RMS Envelope Extraction)
+
+History: none yet.
 
 **Status: Not started; blocked on the XVF3800 for live validation**, though
 the design itself doesn't strictly require the board to begin building.
@@ -645,6 +673,8 @@ commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
+History: none yet.
+
 **Status: Not started** — the XVF3800 is USB-connected to the Pi, so this
 needs no hardware that isn't on hand, just code and Seeed's control-tool
 documentation (see `CLAUDE.md`'s work list).
@@ -665,6 +695,8 @@ for whichever mode has `doa_yaw_tracking` enabled
 ([gesture-catalog.yaml](gesture-catalog.yaml)).
 
 ### 4.10 Idle and Ambient Audio Player
+
+History: [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
 
 **Status: Not started; clip library seeded; both Asleep's and Off
 Watch's own behavior loops are designed (see below).** The `wavFiles/`
@@ -758,8 +790,7 @@ Asleep's named gestures are now wired to a real `sl-*` id in
   wanted later.
 
 A grumbling-about-being-woken line is a candidate for `sl-waking-up`'s
-wav pairing, not yet tackled. History (an earlier idea considered and set
-aside for `sl-settle-to-sleep`): [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+wav pairing, not yet tackled.
 
 One open question noted
 in the catalog: `sl-settle-to-sleep`'s roll tuck will ease back toward
@@ -778,16 +809,13 @@ baseline drifting with live DoA yaw rather than sitting at a fixed point
 ([DoA Reader](#49-direction-of-arrival-doa-reader)), and excursion
 gestures/wavs are chosen at random intervals to briefly interrupt it,
 handing control back to the ambient gesture's own next step when they
-finish rather than snapping to a stored constant. History (rejected
-earlier designs): [log.md#issue-5](log.md#issue-5) and
-[log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+finish rather than snapping to a stored constant.
 
 **Off Watch excursion tuning**: a random interval of 30-90 seconds
 between completed ambient-motion steps (`excursion_interval_seconds` in
 [gesture-catalog.yaml](gesture-catalog.yaml)), plus a rule never to pick
 the same excursion id twice in a row — an explicit starting point to
-tighten as the gesture library grows, not a final number. History:
-[log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
+tighten as the gesture library grows, not a final number.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
@@ -797,9 +825,9 @@ which doesn't yet exist as a discrete module.
 
 ### 4.11 Sleep-Mode State Machine
 
-**Status: Transition design specified; not implemented.** Mode names renamed from
-Offline/Online/Asleep to Off Watch/On Watch/Asleep — see
-[Operational Modes](#24-operational-modes).
+History: [log.md#issue-5](log.md#issue-5), [log.md#issue-6](log.md#issue-6).
+
+**Status: Transition design specified; not implemented.**
 
 **Description**: the mode-transition logic among the three
 [Operational Modes](#24-operational-modes). This section covers
@@ -872,6 +900,8 @@ loop in isolation.
 
 ### 4.12 Gesture Engine and Catalog
 
+History: [log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+
 **Status: Content drafted, not implemented.**
 
 **Description**: a library of named motion primitives (speech-driven,
@@ -902,9 +932,7 @@ or [DoA](#49-direction-of-arrival-doa-reader); emits a decomposed sequence
 of `HEAD`/`BEAK` commands with timing over the
 [serial link](#413-pi-to-arduino-serial-link), per
 [Arduino-command-structure.md](Arduino-command-structure.md) — never a
-single opaque `GESTURE <id>`. History (an eyelid-assuming `Blink` gesture
-considered and removed):
-[log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+single opaque `GESTURE <id>`.
 
 **Data structures**:
 
@@ -940,9 +968,7 @@ considered and removed):
 **Baseline and the ambient/excursion model**: baseline tracks the ambient
 gesture's own live center rather than a fixed resting position, so a
 sequence of gestures composes without drifting into a servo's physical
-travel limit. History (the rejected alternative — resolving deltas into
-fixed absolute commands at authoring time — and why it didn't work):
-[log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+travel limit.
 
 Applied uniformly to all three mode libraries:
 - Each mode has exactly one designated **ambient gesture** (see
@@ -1023,19 +1049,16 @@ into this structure — see [gesture-catalog.yaml](gesture-catalog.yaml).
 
 ### 4.13 Pi to Arduino Serial Link
 
+History: [log.md#issue-9](log.md#issue-9).
+
 **Status: Command syntax locked down, servo actuation validated.**
 Implemented in `arduino/ServoControl/ServoControl.ino` and code-reviewed
 (see [Open Issues](#5-open-issues) issue 21) — the wire format below is
-Chip's call as settled: further testing is expected to change
-implementation details (calibration offsets, exact timing bounds), not
-the syntax itself. If that assumption turns out wrong, that's a bug to
-call out and deal with when found, not a reason to hold the syntax open
-now.
+settled; further testing is expected to refine implementation details
+(calibration offsets, exact timing bounds), not the syntax itself.
 
 **Description**: one-directional serial protocol, Pi → Arduino only (no
-upstream sensor relay in the new design). See [Open
-Issues](#5-open-issues) issue 9 for how this syntax was reached from the
-project brief's original loose sketch:
+upstream sensor relay in the new design):
 
 - Variable-length, self-delimiting integers — no fixed field width, no
   zero-padding. Each field is a command-type character immediately
@@ -1099,14 +1122,13 @@ lines, per above); read by [Arduino Firmware](#414-arduino-firmware).
 
 ### 4.14 Arduino Firmware
 
+History: [log.md#issue-21](log.md#issue-21), [log.md#414-arduino-firmware](log.md#414-arduino-firmware).
+
 **Status: Implemented and validated against real actuation** —
 `arduino/ServoControl/ServoControl.ino`, written by Chip. `arduino/TestBlink/TestBlink.ino`
 is a minimal onboard-LED blink sketch used earlier to confirm the
 `arduino-cli` toolchain — see [Arduino Servo
-Controller](#34-arduino-servo-controller). See [Open
-Issues](#5-open-issues) issue 21 for the code-review history (an
-angle-clamp overflow and an unbounded duration value, both fixed) and the
-power-supply diagnosis that preceded validation.
+Controller](#34-arduino-servo-controller).
 
 **Description**: the real-time sketch that parses incoming serial
 commands and drives the four servos, layering the ServoEasing library
@@ -1123,10 +1145,8 @@ math where possible for speed) once triggered by `s`. Beak (`b`) is
 applied directly to PWM with **no** easing — that smoothing is done
 Pi-side, in [Beak-Sync](#48-beak-sync-rms-envelope-extraction) — see
 [Open Issues](#5-open-issues) issue 8. Notably must **not** reintroduce
-SoftwareSerial alongside the easing library without further research —
-the two were observed to interfere with each other in the prior MY1690-era
-design, and SoftwareSerial was removed along with the MY1690. The beak
-servo is attached as a plain `Servo` rather than `ServoEasing` (it was
+SoftwareSerial alongside the easing library without further research. The
+beak servo is attached as a plain `Servo` rather than `ServoEasing` (it was
 only ever driven via `.write()`, never eased).
 
 **Interfaces**: reads the
