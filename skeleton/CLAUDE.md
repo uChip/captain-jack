@@ -22,7 +22,7 @@ Update per session as changes in state evolve.
    - specification.md defines what is being created
       - contains current definition. "one truth"
       - can contain undefined blocks or open issue summaries (one line) until finalized
-         - linked to full description in log.md
+         - linked to full issue description in log.md
       - evolves with project until specification finalized
          - finalized means no more open issues or blocked work and all participants agree specification is complete.
       - link to external file (usually log.md) for full description, historical details, discussions etc
