@@ -240,8 +240,9 @@ memory file the model itself never writes directly. Full design in
 [Memory Subsystem](#45-memory-subsystem) /
 [captain-jack-memory-design.md](captain-jack-memory-design.md). Voice ID
 is the *preferred* mechanism for resolving which household member is
-speaking, pending hardware validation (see [Open
-Issues](#5-open-issues) issue 1); explicit self-identification is today's
+speaking — engine chosen, not yet implemented, see [Speaker
+Recognition](#415-speaker-recognition-voice-id) and [Open
+Issues](#5-open-issues) issue 1; explicit self-identification is today's
 working fallback, not the intended end state.
 
 Appointment/reminder recall ("Jack remembers appointments he's been told
@@ -309,13 +310,15 @@ History: [log.md#32-seeed-respeaker-xvf3800](log.md#32-seeed-respeaker-xvf3800).
 
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
-and dynamic noise suppression. **Status: connected to the Pi via USB**,
-but not yet physically mounted to the statue — currently sits on a table
-in front of the parrot. No speaker is connected yet (see
-[Speaker](#33-speaker)), so wake-word spotting, DoA, and STT can start
-now, but AEC/echo-cancellation validation and idle/TTS audio output
-remain blocked until the speaker is wired — see CLAUDE.md's "Blocked
-until the XVF3800's speaker is wired" list.
+and dynamic noise suppression. **Status: electrically connected to the Pi
+via USB and functional, though untested** — not yet physically mounted to
+the statue (currently sits on a table in front of the parrot), which may
+affect acoustics/DoA somewhat but doesn't block using its real mic array.
+No speaker is connected yet (see [Speaker](#33-speaker)), so wake-word
+spotting, DoA, STT, and speaker-ID work can all start now against its
+actual input, but AEC/echo-cancellation validation and idle/TTS audio
+output remain blocked until the speaker is wired — see CLAUDE.md's
+"Blocked until the XVF3800's speaker is wired" list.
 
 **Intended function**: captures conversational audio for STT, echo-cancels
 the bird's own speech out of that input using its own played-back audio as
@@ -448,24 +451,34 @@ speaker not yet being wired ([3.3](#33-speaker)).
 
 ### 4.1 Wake Word Spotter
 
-History: none yet.
+History: [log.md#issue-16](log.md#issue-16).
 
-**Status: Not started.**
+**Status: Engine chosen, not implemented.**
 
-**Description**: local, always-on keyword spotter running on the Pi. Per
-[Sleep-Mode State Machine](#411-sleep-mode-state-machine), this same
-spotter (not Haiku) is what listens for the small fixed set of
+**Description**: local, always-on keyword spotter running on the Pi,
+using **openWakeWord** — open-source, no account/network dependency at
+runtime, and already validated at low CPU cost on Pi-class hardware (a
+single Pi 3 core runs 15-20 concurrent openWakeWord models in real
+time). Per [Sleep-Mode State Machine](#411-sleep-mode-state-machine),
+this same spotter (not Haiku) is what listens for the small fixed set of
 mode-transition phrases while Jack isn't On Watch — it isn't limited to
 just the wake phrase.
 
 **Intended function**: detect the wake phrase **"Ahoy, Captain Jack"**
 (chosen 2026-09-20) to start a session, transitioning Off Watch/Asleep →
 On Watch. Also detects the separate go-to-sleep phrase **"Goodnight,
-Jack"** (Off Watch → Asleep). No engine has been chosen yet, and exact
-match/variant tolerance for both phrases is still undecided.
+Jack"** (Off Watch → Asleep). Both are custom, non-standard multi-word
+phrases with no pre-trained model available, so each needs its own model
+trained on openWakeWord's synthetic-TTS-data pipeline (matching how its
+own shipped models were trained) rather than hand-tuned matching; running
+two custom models simultaneously is cheap given the per-model overhead
+above. Exact accept/reject confidence threshold per phrase is still an
+open tuning parameter, to be set from real testing rather than decided on
+paper.
 
-**Interfaces**: listens to the XVF3800's audio stream; on detecting the
-wake phrase, signals the
+**Interfaces**: listens to the XVF3800's audio stream (already usable —
+see [3.2](#32-seeed-respeaker-xvf3800)); on detecting the wake phrase,
+signals the
 [Conversation Orchestrator](#43-conversation-orchestrator) to start a
 session and hands off to [STT](#42-speech-to-text-stt). On detecting the
 sleep phrase, signals the
@@ -474,17 +487,33 @@ Haiku call involved.
 
 ### 4.2 Speech to Text (STT)
 
-History: none yet.
+History: [log.md#issue-16](log.md#issue-16).
 
-**Status: Not started.**
+**Status: Engine chosen, not implemented.**
 
-**Description**: local speech-to-text, tentatively "e.g. local Whisper" —
-not a firm choice.
+**Description**: local speech-to-text via **`whisper.cpp`** (Whisper),
+now a firm choice — model size (tiny vs. base) still open, pending
+on-device experimentation against the real XVF3800 mic: tiny runs
+comfortably faster than real time on the Pi 5's CPU, base is only
+borderline real-time even at 4 threads, and small already misses
+real-time by roughly 2x, ruling it out outright. Utterances are segmented
+before reaching whisper.cpp by **Silero VAD** (a small, fast local model,
+run as a pre-pass rather than a whisper.cpp built-in) — real end-pointing
+(record until speech actually ends) instead of push-to-talk or a fixed
+recording window, and the standard mitigation for whisper.cpp's known
+silence/noise hallucination failure mode. Deliberately **no local-LLM
+cleanup stage** after transcription — considered and rejected: Haiku's
+own turn already tolerates ordinary transcription noise as part of normal
+language understanding, so a dedicated local corrector mostly duplicates
+that at extra latency on CPU-only hardware, and the technique itself is
+documented to risk paraphrasing away already-correct text except when the
+underlying transcript's error rate is already high.
 
 **Intended function**: transcribe household speech to text for the
 orchestrator during an On Watch session.
 
-**Interfaces**: reads audio from the XVF3800 (via the Pi); outputs
+**Interfaces**: reads VAD-segmented audio from the XVF3800 (via the Pi —
+already usable, see [3.2](#32-seeed-respeaker-xvf3800)); outputs
 transcribed text to the
 [Conversation Orchestrator](#43-conversation-orchestrator).
 
@@ -1154,6 +1183,48 @@ only ever driven via `.write()`, never eased).
 the [head and beak servos](#35-servos-head-and-beak) — wired and
 validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 
+### 4.15 Speaker Recognition (Voice ID)
+
+History: [log.md#issue-1](log.md#issue-1).
+
+**Status: Engine chosen, not implemented.**
+
+**Description**: the software half of tier 1 in [Use Case
+2.7](#27-personalized-memory)'s speaker-resolution priority (see [Open
+Issues](#5-open-issues) issue 1) — a local speaker-embedding model
+identifying which enrolled household member (Chip, Kath, or Liz) is
+currently speaking, without requiring self-identification. Engine:
+**ECAPA-TDNN**, the standard speaker-verification architecture since 2020
+and still current; start with a mainstream pretrained implementation
+(e.g. SpeechBrain's `spkrec-ecapa-voxceleb`) for the prototype, moving to
+a purpose-trained tiny variant (ECAPA-TDNNLite/TinyECAPA-class, roughly
+150k-320k params) only if real compute pressure shows up in practice —
+the same ship-the-known-good-stock-thing-first, optimize-later approach
+used for the Arduino's ServoEasing library. Considered and rejected:
+Picovoice's Falcon, which solves a different problem (speaker
+*diarization* — anonymous "who spoke when" turn segmentation, no
+enrollment or identity matching) and is the same vendor whose Porcupine
+free tier was discontinued, making it a poor fit twice over.
+
+**Intended function**: enroll each household member once (a short
+reference recording → one stored embedding vector per person); at
+runtime, extract an embedding from each VAD-segmented utterance (see
+[STT](#42-speech-to-text-stt)) and compare it by cosine similarity
+against the enrolled vectors — the best match above a confidence
+threshold resolves who's speaking, and below it falls through to tier 2
+(explicit self-identification, already implemented) per Issue 1's
+existing fail-closed design. Enrollment happens rarely and can afford a
+larger, slower model; runtime verification happens on every utterance and
+needs the cheap one — an asymmetric enroll/verify split already
+established in the speaker-verification literature.
+
+**Interfaces**: reads VAD-segmented audio alongside
+[STT](#42-speech-to-text-stt) — the XVF3800's mic array is already
+electrically usable for this, see [3.2](#32-seeed-respeaker-xvf3800);
+resolves a speaker identity for the [Conversation
+Orchestrator](#43-conversation-orchestrator) to use when addressing
+[Memory Subsystem](#45-memory-subsystem) facts.
+
 ## 5. Open Issues
 
 History: [log.md#open-issues-history](log.md#open-issues-history).
@@ -1165,14 +1236,18 @@ once and never reused or renumbered; a resolved issue keeps its number
 and is tagged **[RESOLVED]** in place.
 
 1. Resolving who's speaking uses a three-tier priority: (1) voice ID —
-  preferred, pending the XVF3800's scheduled accuracy test; (2) explicit
-  self-identification — today's working fallback, fail-closed by design,
-  workable but untested against real conversation at length; (3)
-  contextual inference — not implemented, in tension with the project's
-  fail-closed memory principle, the riskiest tier. **Left open**: whether
-  tier 1 works well enough that tiers 2–3 rarely matter in practice is an
-  empirical question for the XVF3800 test, not a design question. History:
-  [log.md#issue-1](log.md#issue-1).
+  preferred; software engine chosen (ECAPA-TDNN speaker embeddings, see
+  [4.15](#415-speaker-recognition-voice-id)), not yet implemented, with
+  final accuracy still pending the XVF3800's scheduled accuracy test —
+  though prototyping itself isn't hardware-blocked, since the board's mic
+  array is already electrically functional (only its physical mounting is
+  outstanding); (2) explicit self-identification — today's working
+  fallback, fail-closed by design, workable but untested against real
+  conversation at length; (3) contextual inference — not implemented, in
+  tension with the project's fail-closed memory principle, the riskiest
+  tier. **Left open**: whether tier 1 works well enough that tiers 2–3
+  rarely matter in practice is an empirical question for the XVF3800
+  test, not a design question. History: [log.md#issue-1](log.md#issue-1).
 2. **[RESOLVED]** Persona and Identity Prompt was a minimal stub, missing
   backstory, pirate speech style, deference protocol, and
   conversational-intensity fade. History: [log.md#issue-2](log.md#issue-2).
@@ -1234,8 +1309,12 @@ and is tagged **[RESOLVED]** in place.
   save/dedup beyond `home`, the orchestrator's conversation loop, persona/
   identity behavior) have none yet. History:
   [log.md#issue-15](log.md#issue-15).
-16. TTS and wake-word engines are unselected; STT is only tentatively "local
-  Whisper."
+16. **Narrowed 2026-09-23**: wake-word engine (openWakeWord) and STT engine
+  (Whisper via `whisper.cpp` + Silero VAD; model size tiny vs. base still
+  pending on-device experimentation) are now chosen — see
+  [4.1](#41-wake-word-spotter)/[4.2](#42-speech-to-text-stt). **Left
+  open**: TTS engine is still unselected. History:
+  [log.md#issue-16](log.md#issue-16).
 17. **[RESOLVED]** Idle-audio-on-Pi tradeoff (ambient sound depends on the
   Pi being up, unlike the removed MY1690-on-Arduino design) was noted,
   unmitigated. History: [log.md#issue-17](log.md#issue-17).

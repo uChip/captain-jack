@@ -18,11 +18,13 @@ The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
-XVF3800 is connected to the Pi via USB but isn't mounted to the statue yet
-and has no speaker wired (2-pin JST connector on order, ETA ~2026-09-27)
-— so wake-word/DoA/STT work can start, but audio output and AEC
-validation can't yet. No home-automation tool calling yet either — the
-intent allowlist (next-step below) isn't wired into a tool schema.
+XVF3800 is electrically connected to the Pi via USB and functional
+(untested), but isn't mounted to the statue yet and has no speaker wired
+(2-pin JST connector on order, ETA ~2026-09-27) — so wake-word/DoA/STT/
+speaker-ID work can all start now against its real mic array, but audio
+output and AEC validation can't yet. No home-automation tool calling yet
+either — the intent allowlist (next-step below) isn't wired into a tool
+schema.
 
 **This file and `docs/specification.md` describe current state and
 project definition only.** For design changes, what didn't work,
@@ -144,6 +146,13 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
    easing bug — see `docs/specification.md` Open Issues issue 25.
    `id-idle-breathing` has been retuned and confirmed smooth on the real
    bird; other single-digit-degree/multi-second gestures haven't been yet.
+9. Audio-pipeline engine choices: wake word (openWakeWord, custom-phrase
+   training), STT (Whisper via `whisper.cpp` + Silero VAD for utterance
+   end-pointing; tiny vs. base model size still open pending on-device
+   experimentation; no local-LLM cleanup stage), and speaker recognition
+   (ECAPA-TDNN speaker embeddings for tier-1 voice ID) — all design
+   decisions, not yet implemented. See `docs/specification.md` sections
+   4.1/4.2/4.15 and Open Issues 1/16.
 
 ## Work list — split by hardware dependency
 
@@ -161,19 +170,25 @@ is USB-connected).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.
-3. Prototype speaker-ID code (voice-embedding model + enrollment flow)
-   against a stand-in mic (the Pi's own, or any USB mic on hand) — validates
-   the software approach even though real accuracy needs the XVF3800's
-   cleaned audio eventually (see the deferred decision in the brief).
+3. Prototype speaker-ID code (voice-embedding model + enrollment flow) —
+   engine chosen (ECAPA-TDNN speaker embeddings, see
+   `docs/specification.md` section 4.15). No hardware wait needed: the
+   XVF3800's mic array is already electrically functional even though
+   unmounted, so prototype against it directly rather than a stand-in
+   mic. Real accuracy still needs its physical mounting and the scheduled
+   XVF3800 test (see Open Issues issue 1).
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.
 5. More conversational/memory test vectors as they come up — continuing the
    joke/automation/NONE-case testing from this session.
 6. With the reSpeaker USB-connected to the Pi (even unmounted and without
-   a speaker), start on the mic/DoA-only half of the stack — wake-word/STT
-   groundwork. Audio *output* (TTS, idle clips, beak-sync, AEC validation)
-   still needs the speaker wired — see "Blocked" below.
+   a speaker), start on the mic/DoA-only half of the stack —
+   wake-word/STT/speaker-ID groundwork (engines now chosen: openWakeWord;
+   Whisper via `whisper.cpp` + Silero VAD; ECAPA-TDNN — see
+   `docs/specification.md` sections 4.1/4.2/4.15). Audio *output* (TTS,
+   idle clips, beak-sync, AEC validation) still needs the speaker wired —
+   see "Blocked" below.
 7. Track down Seeed's official XVF3800 control tool/protocol docs — no
    `xvf_host` tool or equivalent exists on this Pi (not found via
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over

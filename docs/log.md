@@ -44,6 +44,35 @@ clarified rather than newly decided:
    it doesn't know). Flagged 2026-09-14 as the riskiest tier — genuinely
    open, not just unwritten.
 
+**Narrowed 2026-09-23**: tier 1's software engine chosen — ECAPA-TDNN
+speaker embeddings (enrollment + cosine-similarity matching against
+Chip/Kath/Liz's stored vectors; start with a mainstream pretrained
+implementation, e.g. SpeechBrain's `spkrec-ecapa-voxceleb`, and only
+move to a purpose-trained tiny variant like ECAPA-TDNNLite/TinyECAPA if
+real compute pressure appears — the ServoEasing-style
+ship-the-stock-thing-first pattern). See
+[specification.md#415-speaker-recognition-voice-id](specification.md#415-speaker-recognition-voice-id).
+
+Considered and rejected: Picovoice's Falcon — it does speaker
+*diarization* ("who spoke when," anonymous turn segmentation), not
+identification against a known, enrolled set, so it doesn't actually
+solve tier 1's problem regardless of cost; it's also the same vendor as
+Porcupine, whose free tier was confirmed discontinued (see Issue 16),
+raising doubt about Falcon's own free-tier status too.
+
+**Correction, same day**: "1. **Voice ID (preferred)**" above (the
+2026-09-14 framing) reads as fully hardware-gated on "the XVF3800
+arrives" — that's now stale. The XVF3800 arrived and has been
+electrically connected to the Pi via USB since 2026-09-20 (see "reSpeaker
+XVF3800 arrival and DoA investigation" below); only its physical mounting
+to the statue is still outstanding, which may affect acoustics/DoA
+somewhat but doesn't block exercising its real mic array. Voice-ID
+*prototyping* (the software approach — embedding model + enrollment
+flow) can run against the actual board now, not a stand-in mic as
+CLAUDE.md's work list previously framed it; only final accuracy
+validation genuinely needs the scheduled XVF3800 test referenced in tier
+1 above.
+
 ### Issue 2
 
 [Persona and Identity Prompt](specification.md#44-persona-and-identity-prompt)
@@ -187,6 +216,63 @@ test (the `home` memory tag). Coverage is still far short of "one test
 per use case and per functional block" — most implemented blocks (memory
 save/dedup beyond `home`, the orchestrator's conversation loop, persona/
 identity behavior) have none yet.
+
+### Issue 16
+
+TTS and wake-word engines were unselected; STT was only tentatively
+"local Whisper."
+
+**Narrowed 2026-09-23**: wake-word and STT engines chosen, after
+comparing options via web research.
+
+**Wake word — openWakeWord**: chosen over Picovoice's Porcupine, whose
+free tier was confirmed discontinued as of 2026-06-30 (Porcupine is now a
+paid product; Picovoice's Falcon, considered separately for speaker
+recognition, shares the same vendor — see Issue 1). openWakeWord is fully
+open-source with no account/key/network dependency at runtime, is what
+Home Assistant's own voice project standardized on (active development,
+unlike discontinued Snowboy or orphaned Mycroft Precise), and is cheap
+enough on Pi-class hardware that running both custom phrases
+simultaneously (wake + sleep) is a non-issue: a single Raspberry Pi 3
+core runs 15-20 concurrent openWakeWord models in real time. Both of
+Jack's phrases ("Ahoy, Captain Jack" / "Goodnight, Jack") are
+non-standard multi-word phrases with no pre-trained model available, so
+each will need training via openWakeWord's synthetic-TTS-data pipeline
+(the same method used for its own shipped models) rather than hand-tuned
+matching.
+
+**STT — Whisper via `whisper.cpp`, plus Silero VAD**: model size (tiny
+vs. base) deliberately left open pending on-device experimentation — real
+Pi 5 CPU-only benchmarks put tiny comfortably faster than real-time, base
+only borderline real-time at 4 threads, and small at roughly 0.4-0.6x
+real-time (a 10-minute clip taking 17-25 minutes), ruling small out
+outright. Silero VAD chosen as a pre-pass for utterance end-pointing
+(whisper.cpp doesn't have this built in — there's an open, unmerged
+feature request for it) — it's the standard current pairing (the
+"wake-word → VAD → STT → LLM → TTS" shape is the documented 2026
+self-hosted voice-assistant pipeline) and it directly targets
+whisper.cpp's known silence/noise hallucination failure mode by only
+ever feeding it real speech.
+
+**Local-LLM ASR cleanup stage — considered and rejected**: initially
+proposed alongside Whisper, dropped after two problems surfaced. First,
+running a second model inference pass after Whisper adds real latency on
+hardware that's already CPU-only and has no headroom to spare. Second,
+and more fundamentally, the actual consumer of the transcript for
+ordinary conversation is Haiku itself, which already tolerates typical
+ASR noise as part of normal language understanding — a dedicated local
+corrector would be strictly less capable than Haiku while duplicating
+work Haiku already does for free. The research literature on this
+technique confirms the risk: LLM-based ASR correction reduces error
+mainly when the input transcript's error rate is already high, and
+otherwise risks paraphrasing away text that was already correct. Where
+correction actually would matter — the wake/sleep-phrase spotter and
+home-automation intent parsing, neither of which goes through Haiku — a
+whole second LLM per turn is a heavy fix for a narrow problem; Silero VAD
+gating addresses the specific known Whisper failure mode more directly
+and far more cheaply.
+
+**Left open**: TTS engine is still unselected.
 
 ### Issue 17
 
