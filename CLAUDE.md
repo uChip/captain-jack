@@ -161,6 +161,11 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     for TTS and idle clips; corrected a spec typo along the way (existing
     `wavFiles/` clips are actually 44100Hz, not the previously-documented
     41000Hz). See `docs/specification.md` sections 3.2/4.7/4.8/4.10.
+11. Decided the wake/sleep-phrase confidence-threshold methodology
+    (per-phrase thresholds, openWakeWord's 0.5 default as the starting
+    point, wake phrase biased stricter than sleep) without picking actual
+    numbers — those still need real audio to calibrate against. See
+    `docs/specification.md` section 4.1.
 
 ## Work list — split by hardware dependency
 
@@ -200,9 +205,12 @@ worked in parallel if priorities change.
    a speaker), start on the mic/DoA-only half of the stack —
    wake-word/STT/speaker-ID groundwork (engines now chosen: openWakeWord;
    Whisper via `whisper.cpp` + Silero VAD; ECAPA-TDNN — see
-   `docs/specification.md` sections 4.1/4.2/4.15). Audio *output* (TTS,
-   idle clips, beak-sync, AEC validation) still needs the speaker wired —
-   see "Blocked" below.
+   `docs/specification.md` sections 4.1/4.2/4.15). Includes collecting
+   real positive/negative audio to calibrate the wake/sleep phrase
+   confidence thresholds (methodology decided, see section 4.1 — actual
+   numbers still pending this testing). Audio *output* (TTS, idle clips,
+   beak-sync, AEC validation) still needs the speaker wired — see
+   "Blocked" below.
 7. Track down Seeed's official XVF3800 control tool/protocol docs — no
    `xvf_host` tool or equivalent exists on this Pi (not found via
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over

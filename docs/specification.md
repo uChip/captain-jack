@@ -461,7 +461,7 @@ speaker not yet being wired ([3.3](#33-speaker)).
 
 ### 4.1 Wake Word Spotter
 
-History: [log.md#issue-16](log.md#issue-16).
+History: [log.md#issue-16](log.md#issue-16), [log.md#41-wake-word-spotter](log.md#41-wake-word-spotter).
 
 **Status: Engine chosen, not implemented.**
 
@@ -482,9 +482,38 @@ phrases with no pre-trained model available, so each needs its own model
 trained on openWakeWord's synthetic-TTS-data pipeline (matching how its
 own shipped models were trained) rather than hand-tuned matching; running
 two custom models simultaneously is cheap given the per-model overhead
-above. Exact accept/reject confidence threshold per phrase is still an
-open tuning parameter, to be set from real testing rather than decided on
-paper.
+above.
+
+**Confidence threshold methodology — decided 2026-09-23**: exact numeric
+thresholds are deliberately *not* set here — neither model is trained
+yet and there's no real household ambient-audio corpus to calibrate
+against, so picking a number now would be deciding on paper, same
+reasoning already applied to STT's model size and the TTS bake-off.
+What's decided instead:
+- **Per-phrase thresholds**, not one shared number — the wake and sleep
+  phrases get independently trained models with their own score
+  distributions.
+- **Starting point**: openWakeWord's own documented default threshold of
+  0.5 (its models score each 80ms audio frame 0-1), targeting its own
+  commonly-cited bar of <5% false-reject rate and <0.5 false-accepts/hour
+  — an externally-validated reference point, not invented for this
+  project.
+- **Wake phrase biased stricter**: test starting above the 0.5 default,
+  loosening only if false-rejects prove annoying in practice. A false
+  *accept* here means Jack activates unprompted — more disruptive for a
+  household companion than a false *reject*, which just costs repeating
+  the phrase. Matches the fail-closed posture already established
+  elsewhere in the project (memory's fail-closed saves, no-guessing
+  self-ID fallback — see [4.5](#45-memory-subsystem)/[Open
+  Issues](#5-open-issues) issue 1).
+- **Sleep phrase left at the vanilla default** — an unwanted "go quiet"
+  is a softer failure than an unwanted wake, so there's less reason to
+  bias it.
+- **Calibration rides on groundwork already planned**, not a new task:
+  collecting real positive utterances (household members, varied
+  distance/noise) and real negative audio (TV, ambient conversation) to
+  tune against happens as part of the wake-word testing already queued
+  once the board can be exercised (see `CLAUDE.md`'s work list).
 
 **Interfaces**: listens to the XVF3800's audio stream (already usable —
 see [3.2](#32-seeed-respeaker-xvf3800)); on detecting the wake phrase,

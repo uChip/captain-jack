@@ -323,6 +323,36 @@ connector in transit, ETA ~2026-09-27) — can't judge voice quality
 without being able to hear the output. See
 [specification.md#47-text-to-speech-tts](specification.md#47-text-to-speech-tts).
 
+### 4.1 Wake Word Spotter
+
+**Confidence threshold methodology, 2026-09-23**: rather than pick
+numeric accept/reject thresholds for the wake ("Ahoy, Captain Jack") and
+sleep ("Goodnight, Jack") phrases on paper, decided the methodology and
+starting point only — neither custom model is trained yet, and there's
+no real household ambient-audio corpus to calibrate against, so a
+specific number would be arbitrary. Grounded in openWakeWord's own
+documentation rather than invented: its models score each 80ms frame
+0-1, the documented default threshold is 0.5, and its own commonly-cited
+target is <5% false-reject rate / <0.5 false-accepts per hour, calibrated
+against a representative sample of real ambient audio (speech, noise,
+music) — not a number that can be picked in the abstract.
+
+Decided: thresholds are tuned **per-phrase**, not shared (the two models
+are independently trained and won't share a score distribution). Both
+start from openWakeWord's 0.5 default and target bar. One deliberate
+asymmetry on top of that default: the **wake** phrase is biased stricter
+(test above 0.5, loosen only if false-rejects prove annoying) since a
+false accept there means an unprompted activation — the more disruptive
+failure for a household companion — while a false reject only costs
+repeating the phrase. This mirrors the fail-closed posture already
+established for memory saves and the no-guessing self-ID fallback (Issue
+1), applied to a new part of the system rather than invented fresh. The
+**sleep** phrase stays at the vanilla default — an unwanted "go quiet" is
+a softer failure than an unwanted wake, so there's less reason to bias
+it. Actual calibration happens as part of the wake-word groundwork
+already queued once the board can be exercised for real (see
+`CLAUDE.md`'s work list) — not a separate task.
+
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
