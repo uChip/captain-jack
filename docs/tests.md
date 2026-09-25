@@ -67,3 +67,46 @@ when it was last confirmed passing.
   behave correctly (none of that is implemented yet), or the
   `NEEDS-RUNTIME-PARAM` entry's fallback values, which are known
   placeholders, not real behavior.
+
+## Idle and Ambient Audio Player
+
+### `wavFiles/` clip format
+
+- **Covers**: [Idle and Ambient Audio Player](specification.md#410-idle-and-ambient-audio-player)
+  / [TTS](specification.md#47-text-to-speech-tts)'s canonical format —
+  every stored clip is plain PCM, 16kHz, 16-bit, **mono** (the 2-channel
+  duplication the XVF3800 needs happens at playback, not on disk).
+- **Script**: [`../tests/test_wavfiles_format.py`](../tests/test_wavfiles_format.py)
+- **Run**: `venv/bin/python tests/test_wavfiles_format.py`
+- **Expected**: prints `PASS: all N wavFiles/ clips are 16kHz/16-bit/mono
+  PCM` and exits 0. Otherwise prints one `FAIL:` line per mismatched
+  field per clip and exits 1. Parses the RIFF headers directly; doesn't
+  touch hardware.
+- **Last confirmed passing**: not yet. As of 2026-09-25 it fails only on
+  `IAmIronman.wav: channels=2, expected 1`, a real finding (see
+  CLAUDE.md's work list).
+- **Not covered**: audio content or loudness — peak level is what matters
+  for [Open Issue 26](specification.md#5-open-issues), and it's checked
+  by ear, not here.
+
+## Seeed reSpeaker XVF3800 / Speaker
+
+### Speaker level ladder (manual, listening)
+
+- **Covers**: [3.2](specification.md#32-seeed-respeaker-xvf3800) /
+  [3.3 Speaker](specification.md#33-speaker) — Pi → USB → XVF3800 →
+  speaker playback at the fixed 16kHz/S16_LE/2ch format, and where the
+  output starts clipping ([Open Issue 26](specification.md#5-open-issues)).
+- **Script**: [`../tests/test_speaker_level_ladder.py`](../tests/test_speaker_level_ladder.py)
+- **Run**: `venv/bin/python tests/test_speaker_level_ladder.py [clip.wav] [dB ...]`
+  (defaults: `DeadMenTellNoTales.wav` at −14, −10, −6, −3dBFS). Sets both
+  XVF3800 `PCM Playback Volume` controls to max (60) first, then plays
+  the clip once per step, loudest last, with 2s of silence between.
+  **Needs a person listening at the bird.**
+- **Expected**: every step is audible. The result to record is the
+  loudest step that still sounds clean.
+- **Last run**: 2026-09-25, board unmounted on the table: −14 and −10
+  clean, −6 crackling, −3 worse (0dBFS was mostly static in an earlier
+  one-off play). Record the new ceiling here after any Issue 26 fix.
+- **Not covered**: AEC, and anything automated — there's no mic-side
+  check that the sound actually came out.

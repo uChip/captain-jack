@@ -310,15 +310,17 @@ History: [log.md#32-seeed-respeaker-xvf3800](log.md#32-seeed-respeaker-xvf3800).
 
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
-and dynamic noise suppression. **Status: electrically connected to the Pi
-via USB and functional, though untested** — not yet physically mounted to
-the statue (currently sits on a table in front of the parrot), which may
-affect acoustics/DoA somewhat but doesn't block using its real mic array.
-No speaker is connected yet (see [Speaker](#33-speaker)), so wake-word
-spotting, DoA, STT, and speaker-ID work can all start now against its
-actual input, but AEC/echo-cancellation validation and idle/TTS audio
-output remain blocked until the speaker is wired — see CLAUDE.md's
-"Blocked until the XVF3800's speaker is wired" list.
+and dynamic noise suppression. **Status: connected to the Pi via USB,
+speaker wired to its output, playback verified by ear (2026-09-25)** —
+not yet physically mounted to the statue (currently sits on a table in
+front of the parrot), which may affect acoustics/DoA somewhat but doesn't
+block using its real mic array or speaker output. Final AEC validation
+and speaker-ID accuracy testing wait on mounting, since the
+speaker-to-mic geometry will change — see CLAUDE.md's "Blocked until the
+XVF3800 is mounted to the statue" list. Output headroom is limited: with
+ALSA `PCM Playback Volume` at max (60/60, 0dB), audio is clean up to
+about −10dBFS and audibly clips above that — see
+[Open Issues](#5-open-issues) issue 26.
 
 Verified directly against the connected board (ALSA `hw_params` on both
 its playback and capture subdevices): the currently-flashed firmware
@@ -343,12 +345,15 @@ output is a possible later addition if voice quality needs it.
 
 ### 3.3 Speaker
 
-History: none yet.
+History: [log.md#33-speaker](log.md#33-speaker), [log.md#issue-26](log.md#issue-26).
 
-**Description**: the speaker from the previous prototype build (the
-XVF3800 doesn't ship with one). **Status: on hand, not yet connected** —
-the XVF3800's speaker output uses a 2-pin JST connector Chip doesn't have
-on hand; one is ordered, ETA ~2026-09-27.
+**Description**: 40mm diameter, 4Ω, 5W speaker (the XVF3800 doesn't
+ship with one). Its 5W rating matches the XVF3800's nominal 5W onboard
+amp. **Status: connected** to the XVF3800's
+2-pin JST speaker output (2026-09-25) and verified playing; clips above
+roughly −10dBFS at max hardware volume — whether the limit is the
+XVF3800's onboard amp or the speaker itself isn't yet known (see
+[Open Issues](#5-open-issues) issue 26).
 
 **Intended function**: audio output for TTS and idle/ambient clips.
 
@@ -731,8 +736,10 @@ schema is currently passed to the Anthropic API call in `orchestrate.py`.
 
 History: [log.md#issue-16](log.md#issue-16), [log.md#47-text-to-speech-tts](log.md#47-text-to-speech-tts).
 
-**Status: Blocked** (needs hardware not yet on hand — specifically, needs
-the speaker wired to judge the deciding factor, voice quality).
+**Status: Not started** — the speaker is now wired (see
+[3.3](#33-speaker)), so the bake-off is unblocked; best run after
+[Open Issues](#5-open-issues) issue 26's output headroom is settled, so
+amp/speaker clipping doesn't skew the voice-quality comparison.
 
 **Description**: local TTS rendering Jack's spoken reply to audio.
 Candidates narrowed to two, both local/offline/no-API-key, comparably
@@ -785,8 +792,8 @@ audio stream to the XVF3800 output path and to
 
 History: none yet.
 
-**Status: Not started; blocked on the XVF3800 for live validation**, though
-the design itself doesn't strictly require the board to begin building.
+**Status: Not started** — no hardware wait: the XVF3800 and speaker are
+both connected and playing.
 
 **Description**: real-time RMS amplitude envelope extraction from whatever
 audio is currently playing — idle clip or live TTS — at roughly 30–50Hz,
@@ -843,19 +850,23 @@ History: [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-
 
 **Status: Not started; clip library seeded; both Asleep's and Off
 Watch's own behavior loops are designed (see below).** The `wavFiles/`
-folder now holds a first batch of mono, 44100Hz signed-16-bit-PCM clips
+folder holds 19 mono, 16kHz signed-16-bit-PCM clips (converted from
+their original 44100Hz 2026-09-23, per [TTS](#47-text-to-speech-tts)'s
+canonical output format; one, `IAmIronman.wav`, is currently 2-channel
+and needs re-exporting mono)
 (movie lines, song snippets with music removed, etc.) plus
 `AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
 intended for measuring timing offset between audio output and beak
 movement once beak-sync exists. More clips, including short recordings of
 notable live Captain Jack responses, are expected to be added over time,
 including after project end. Playback code itself is still unwritten.
-These are still at their original 44100Hz; per [TTS](#47-text-to-speech-tts)'s
-canonical output format, they'll need a one-time batch conversion to
-16kHz — staying **mono**, not the 2-channel format the XVF3800 needs at
-playback time, since that duplication happens once, shared, in the
-playback code rather than being baked into the converted files — rather
-than live-resampling on every play.
+Clips stay **mono** on disk, not the 2-channel format the XVF3800 needs
+at playback time — that duplication happens once, shared, in the
+playback code rather than being baked into the files. Clips are
+normalized to peaks near 0dBFS, well above the ~−10dBFS clean-output
+ceiling found on the real speaker, so playback needs the level handling
+decided under [Open Issues](#5-open-issues) issue 26 before it'll sound
+clean at full volume.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser
@@ -1476,9 +1487,10 @@ and is tagged **[RESOLVED]** in place.
   further, same day**: TTS candidates narrowed to `kokoro-pi` vs.
   Supertonic-3 (see [4.7](#47-text-to-speech-tts)); plan of record is an
   empirical bake-off on the real Pi, judged primarily on voice quality
-  per Chip's call, once the speaker is wired. **Left open**: which of the
-  two wins the bake-off; **Blocked**: the bake-off itself needs the
-  speaker wired to judge output quality. History:
+  per Chip's call, once the speaker is wired. **Unblocked 2026-09-25**:
+  speaker wired and playing. **Left open**: which of the two wins the
+  bake-off — best run after issue 26's output headroom is settled.
+  History:
   [log.md#issue-16](log.md#issue-16).
 17. **[RESOLVED]** Idle-audio-on-Pi tradeoff (ambient sound depends on the
   Pi being up, unlike the removed MY1690-on-Arduino design) was noted,
@@ -1540,6 +1552,23 @@ and is tagged **[RESOLVED]** in place.
   gestures haven't been retuned — Asleep's case is sharper, since it
   should read *quieter and slower* than Off Watch, cutting against the
   amplitude/duration fix. History: [log.md#issue-25](log.md#issue-25).
+26. Speaker output headroom: with the XVF3800's ALSA `PCM Playback
+  Volume` at max (60/60, 0dB), a speech clip plays clean at −10dBFS,
+  starts crackling by −6dBFS, and is mostly static near 0dBFS
+  (2026-09-25 listening ladder, board unmounted). −20dBFS is clean but
+  very quiet. Every `wavFiles/` clip peaks near 0dBFS, and TTS output
+  presumably will too, so something has to hold output below the
+  clipping point. **Left open**: whether the limit is the onboard amp or
+  the speaker (40mm, 4Ω, 5W — see [3.3](#33-speaker)); which
+  mechanism to use (a fixed digital gain cap in the
+  shared mono→2ch playback step, a limiter/compressor there to keep
+  loudness up, an XVF3800-side output-gain setting if Seeed's control
+  tool exposes one, or an external amp fed from the XVF3800's output per
+  [3.2](#32-seeed-respeaker-xvf3800)); and whether ~−10dBFS is loud
+  enough in a real room. This matters for AEC too, not just sound
+  quality: clipping is nonlinear distortion that the XVF3800's echo
+  canceller can't model from its clean reference signal. History:
+  [log.md#issue-26](log.md#issue-26).
 
 ## 6. Possible Future Enhancements
 

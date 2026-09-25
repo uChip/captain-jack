@@ -18,11 +18,11 @@ The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
-XVF3800 is electrically connected to the Pi via USB and functional
-(untested), but isn't mounted to the statue yet and has no speaker wired
-(2-pin JST connector on order, ETA ~2026-09-27) — so wake-word/DoA/STT/
-speaker-ID work can all start now against its real mic array, but audio
-output and AEC validation can't yet. No home-automation tool calling yet
+XVF3800 is USB-connected to the Pi with the bird's speaker (40mm, 4Ω,
+5W) wired to its output (2026-09-25), but isn't mounted to the statue yet. Playback through
+it is confirmed working, but the onboard amp/speaker clips well below
+digital full scale — see `docs/specification.md` Open Issues issue 26.
+No home-automation tool calling yet
 either — the intent allowlist (next-step below) isn't wired into a tool
 schema.
 
@@ -131,10 +131,9 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
    `ServoEasing`. See `docs/specification.md` Open Issues issue 21
    (resolved) and section 4.14.
 6. reSpeaker XVF3800 received and USB-connected to the Pi — not yet
-   mounted to the statue or wired to a speaker (2-pin JST connector on
-   order, ETA ~2026-09-27). A first batch of idle/ambient `.wav` clips is
-   in `wavFiles/`, including `AlignmentTone.wav` for later beak-sync
-   timing calibration.
+   mounted to the statue. Idle/ambient `.wav` clips are in `wavFiles/`
+   (19 as of 2026-09-25, all converted to 16kHz/16-bit), including
+   `AlignmentTone.wav` for later beak-sync timing calibration.
 7. `exercise_hardware.py` — a standalone hardware test harness (not part
    of the real orchestration/state machine) driving `gesture-catalog.yaml`'s
    Off Watch/Asleep ambient/excursion behavior. `--dry-run` runs the same
@@ -179,14 +178,21 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     separately from `memory.md` (embeddings are opaque vectors, not
     hand-editable text). Runtime match-confidence threshold intentionally
     left undecided. See `docs/specification.md` section 4.15.
+14. Speaker wired to the XVF3800's output (2026-09-25) and playback
+    verified by ear: Pi → USB → XVF3800 → speaker works at the fixed
+    16kHz/S16_LE/2ch format. At ALSA volume max (60/60), clips play
+    clean at −10dBFS but crackle by −6dBFS and turn to static near
+    0dBFS — see `docs/specification.md` Open Issues issue 26. Test
+    scripts: `tests/test_speaker_level_ladder.py` (listening) and
+    `tests/test_wavfiles_format.py` (see `docs/tests.md`).
 
 ## Work list — split by hardware dependency
 
 Everything below "doable now" needs nothing that isn't already on hand —
 including the smart-home devices themselves, which already exist and are
 controllable today. Everything under "blocked" specifically needs the
-XVF3800's speaker, still on order (the board itself already arrived and
-is USB-connected).
+XVF3800 physically mounted to the statue (the board and its speaker are
+both on hand and working, just not mounted).
 
 ### Doable now
 
@@ -217,47 +223,48 @@ worked in parallel if priorities change.
    spec — doesn't need new hardware either.
 5. More conversational/memory test vectors as they come up — continuing the
    joke/automation/NONE-case testing from this session.
-6. With the reSpeaker USB-connected to the Pi (even unmounted and without
-   a speaker), start on the mic/DoA-only half of the stack —
+6. Start on the mic/DoA-only half of the stack —
    wake-word/STT/speaker-ID groundwork (engines now chosen: openWakeWord;
    Whisper via `whisper.cpp` + Silero VAD; ECAPA-TDNN — see
    `docs/specification.md` sections 4.1/4.2/4.15). Includes collecting
    real positive/negative audio to calibrate the wake/sleep phrase
    confidence thresholds and STT's no_speech/logprob/entropy thresholds
    (methodology decided for both, see sections 4.1/4.2 — actual numbers
-   for both still pending this testing). Audio *output* (TTS, idle clips,
-   beak-sync, AEC validation) still needs the speaker wired — see
-   "Blocked" below.
+   for both still pending this testing).
 7. Track down Seeed's official XVF3800 control tool/protocol docs — no
    `xvf_host` tool or equivalent exists on this Pi (not found via
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
-8. Batch-convert the existing `wavFiles/` clips from 44100Hz down to
-   16kHz/16-bit/S16_LE, staying **mono** — not the 2-channel format the
-   XVF3800 needs at playback time, which is a single shared duplication
-   step in the playback code, not something baked into the files (see
-   `docs/specification.md` sections 4.7/4.10) — a one-time resampling
-   pass, doesn't need the speaker wired.
+8. Resolve output headroom (Open Issues issue 26): the onboard
+   amp/speaker clips above roughly −10dBFS even with ALSA volume at max,
+   and −10dBFS may be too quiet in a real room. Decide the mechanism
+   (fixed digital gain cap in the shared playback step, a limiter, an
+   XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
+   item 7 — or an external amp) before picking numbers.
+9. Fix `wavFiles/IAmIronman.wav` — it's 2-channel; every other clip is
+   mono per `docs/specification.md` 4.10. `tests/test_wavfiles_format.py`
+   fails on it until it's re-exported mono.
+10. Real-time RMS beak-sync extraction from live audio playback/TTS
+    through the reSpeaker's output (section 4.8).
+11. Idle/ambient audio playback through the reSpeaker's own output
+    (section 4.10), including the shared mono→2ch duplication step.
+12. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
+    hardware (see `docs/specification.md` section 4.7 and Open Issues
+    issue 16), judged primarily on voice quality (the deciding factor per
+    Chip's call) with real-time throughput as a secondary check. Best
+    done after item 8, so clipping doesn't muddy the voice comparison.
+13. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
+    tested for real.
+14. First-pass AEC check against the bird's own speaker — possible now
+    with the board unmounted, but the geometry (speaker-to-mic distance)
+    will change once mounted, so this is a smoke test, not the final
+    validation.
 
-### Blocked until the XVF3800's speaker is wired
+### Blocked until the XVF3800 is mounted to the statue
 
-Blocked on the speaker being wired (2-pin JST connector on order, ETA
-~2026-09-27) and on mounting the board to the statue:
-
-1. Validate AEC quality against the bird's own speaker — can't test
-   self-echo cancellation without the speaker wired.
-2. Real-time RMS beak-sync extraction from live audio playback/TTS through
-   the reSpeaker's output — needs the speaker wired.
-3. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
-   tested for real — needs the speaker wired for the TTS/beak-sync half.
-4. Speaker-ID accuracy validation against real household voices — a
-   stand-in mic won't fairly test what the AEC-cleaned audio actually buys;
-   AEC itself needs the speaker wired first.
-5. Idle/ambient audio playback tuning through the reSpeaker's own output —
-   needs the speaker wired.
-6. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
-   hardware (see `docs/specification.md` section 4.7 and Open Issues
-   issue 16), judged primarily on voice quality (the deciding factor per
-   Chip's call) with real-time throughput as a secondary check; needs the
-   speaker wired to actually listen to the output.
+1. Final AEC validation against the bird's own speaker in its real
+   mounted geometry.
+2. Speaker-ID accuracy validation against real household voices — needs
+   the real mounted acoustics and AEC-cleaned audio (see Open Issues
+   issue 1).

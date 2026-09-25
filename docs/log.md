@@ -600,6 +600,36 @@ real bird. Roll (a secondary "micro-roll" flourish) was dropped from the
 gesture entirely rather than scaled up the same way, since a roll swing
 large enough to fix its own smoothness would stop reading as "micro."
 
+### Issue 26
+
+**Found 2026-09-25**, during the first playback test after the speaker
+was wired. First play: `DeadMenTellNoTales.wav`, duplicated mono→2ch,
+at the board's fixed 16kHz/S16_LE/2ch format straight to
+`hw:CARD=Array,DEV=0`, with ALSA `PCM Playback Volume` at its
+default-ish 37/60 (−23dB) — Chip heard nothing. A 4s 440Hz tone
+(ffmpeg's default sine, peaking at −21dBFS) with volume raised to max
+(60/60) was clearly audible. Replaying the clip at max volume: loud
+enough, but mostly static.
+
+Ruled out a file problem before blaming hardware: every `wavFiles/`
+header is a plain 44-byte PCM header (format tag 1, 16kHz, 16-bit,
+consistent byte rate/block align, only `fmt `/`data` chunks); the
+sample data is real audio (zero-crossing rate ~0.12, vs. ~0.5 if it
+were byte-swapped noise); the mono→2ch conversion was correct; and the
+clips play fine on Chip's desktop. The difference was level: the tone
+peaked at −21dBFS, the clips peak near 0dBFS. Replaying the clip
+attenuated 20dB (still at volume 60/60) was intelligible but very quiet.
+A listening ladder of the same clip at −14/−10/−6/−3dBFS put the last
+clean step at −10dBFS — −6dBFS already crackled. So clipping starts
+somewhere between −10 and −6dBFS at max hardware volume.
+
+Not yet known whether the onboard amp or the speaker is what clips;
+the spec already flagged the onboard amp as "reportedly mediocre."
+Following the usual pattern here (decide the mechanism before the
+number), no gain cap was picked. The ladder is now
+`tests/test_speaker_level_ladder.py`, so the test can be re-run after
+any fix.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
@@ -666,6 +696,25 @@ bird surfaced visible "discrete steps" in small/slow gestures (e.g.
 `id-idle-breathing`). See Issue 25 for the full diagnosis and resolution.
 The real `ServoControl.ino` was restored to the board afterward.
 
+### Speaker wired and first playback test
+
+**Wired 2026-09-25**: the 2-pin JST connector arrived (ETA had been
+~2026-09-27) and the speaker (40mm, 4Ω, 5W) was wired to the XVF3800's
+speaker output. That unblocked the audio-*output* half of the
+work list — beak-sync, idle playback, the TTS bake-off, the end-to-end
+loop, and a first AEC smoke test all moved to "doable now." Only final
+AEC validation and speaker-ID accuracy testing stayed blocked, now on
+mounting the board to the statue rather than on the speaker. The same
+day's first playback test worked end to end but found the clipping
+problem logged as Issue 26.
+
+**`wavFiles/` conversion, 2026-09-23** (Chip, commits `0fc0f40`/
+`a7a9441`): all clips resampled from 44100Hz to 16kHz and three more
+added (`BondJamesBond`, `FranklyMyDear`, `IAmIronman`), 19 total —
+closing the work-list conversion item. Header check on 2026-09-25
+(now `tests/test_wavfiles_format.py`) found all of them 16kHz/16-bit
+PCM, but `IAmIronman.wav` is 2-channel where the rest are mono.
+
 ### Work-list items resolved before this log existed
 
 - **Pi↔Arduino serial protocol design** — resolved/locked down
@@ -706,6 +755,16 @@ reports a fixed, non-range format on both directions: `S16_LE`, 16000Hz,
 board is running the 16kHz one. See
 [specification.md#47-text-to-speech-tts](specification.md#47-text-to-speech-tts)
 for the resulting canonical output-format decision.
+
+### 3.3 Speaker
+
+**Specified 2026-09-25**: earlier docs described the speaker only as a
+carry-over from the previous prototype build; Chip pinned down its
+actual specs — 40mm diameter, 4Ω, 5W.
+
+**Connected 2026-09-25**: wired to the XVF3800's own 2-pin JST output,
+per the AEC-reference requirement. The first playback test showed it
+clips above roughly −10dBFS even at max hardware volume — see Issue 26.
 
 ### 3.4 Arduino Servo Controller
 
