@@ -860,8 +860,7 @@ History: [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-
 Watch's own behavior loops are designed (see below).** The `wavFiles/`
 folder holds 19 mono, 16kHz signed-16-bit-PCM clips (converted from
 their original 44100Hz 2026-09-23, per [TTS](#47-text-to-speech-tts)'s
-canonical output format; one, `IAmIronman.wav`, is currently 2-channel
-and needs re-exporting mono)
+canonical output format)
 (movie lines, song snippets with music removed, etc.) plus
 `AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
 intended for measuring timing offset between audio output and beak

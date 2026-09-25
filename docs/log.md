@@ -714,6 +714,9 @@ added (`BondJamesBond`, `FranklyMyDear`, `IAmIronman`), 19 total —
 closing the work-list conversion item. Header check on 2026-09-25
 (now `tests/test_wavfiles_format.py`) found all of them 16kHz/16-bit
 PCM, but `IAmIronman.wav` is 2-channel where the rest are mono.
+Fixed the same day: its right channel was effectively silent (peak 8
+of 32767), so the left channel was kept as-is rather than averaging
+both, which would have dropped the level 6dB.
 
 ### Work-list items resolved before this log existed
 

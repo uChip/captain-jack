@@ -242,21 +242,18 @@ worked in parallel if priorities change.
    (fixed digital gain cap in the shared playback step, a limiter, an
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
-9. Fix `wavFiles/IAmIronman.wav` — it's 2-channel; every other clip is
-   mono per `docs/specification.md` 4.10. `tests/test_wavfiles_format.py`
-   fails on it until it's re-exported mono.
-10. Real-time RMS beak-sync extraction from live audio playback/TTS
+9. Real-time RMS beak-sync extraction from live audio playback/TTS
     through the reSpeaker's output (section 4.8).
-11. Idle/ambient audio playback through the reSpeaker's own output
+10. Idle/ambient audio playback through the reSpeaker's own output
     (section 4.10), including the shared mono→2ch duplication step.
-12. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
+11. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
     hardware (see `docs/specification.md` section 4.7 and Open Issues
     issue 16), judged primarily on voice quality (the deciding factor per
     Chip's call) with real-time throughput as a secondary check. Best
     done after item 8, so clipping doesn't muddy the voice comparison.
-13. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
+12. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
     tested for real.
-14. First-pass AEC check against the bird's own speaker — possible now
+13. First-pass AEC check against the bird's own speaker — possible now
     with the board unmounted, but the geometry (speaker-to-mic distance)
     will change once mounted, so this is a smoke test, not the final
     validation.

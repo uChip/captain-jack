@@ -82,9 +82,9 @@ when it was last confirmed passing.
   PCM` and exits 0. Otherwise prints one `FAIL:` line per mismatched
   field per clip and exits 1. Parses the RIFF headers directly; doesn't
   touch hardware.
-- **Last confirmed passing**: not yet. As of 2026-09-25 it fails only on
-  `IAmIronman.wav: channels=2, expected 1`, a real finding (see
-  CLAUDE.md's work list).
+- **Last confirmed passing**: 2026-09-25 (19 clips), after
+  `IAmIronman.wav` was converted to mono — the test's first run caught it
+  as 2-channel.
 - **Not covered**: audio content or loudness — peak level is what matters
   for [Open Issue 26](specification.md#5-open-issues), and it's checked
   by ear, not here.
