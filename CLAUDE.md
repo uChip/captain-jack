@@ -14,8 +14,8 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-`coordinator.py` runs the voice loop so far (spec section 4.16): press
-Enter, speak, and Jack's reply is printed — speaking it is build step 5.
+`coordinator.py` runs the voice loop (spec section 4.16): press Enter,
+speak, and Jack answers aloud (`tts.py`, kokoro-pi, voice `am_santa`).
 It builds on `playback.py`, `capture.py`, `listener.py` and `stt.py`. The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
@@ -227,6 +227,13 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     hint) → `take_turn()` → printed reply, with a 2-minute On Watch
     timeout. Tested with a fake Haiku client and on five recorded
     utterances against the real API, on scratch memory.
+20. Build step 5 done (2026-09-25): `tts.py` (kokoro-pi, voice
+    `am_santa` chosen by Chip from an audition) — the first live voice
+    conversations with Jack. `identity.md` gained a "Speaking aloud"
+    section (short replies, no markdown or stage directions). Live runs
+    exposed Whisper retry stalls (20s) and gibberish turned into words;
+    `stt.py` now skips retries and rejects repetition and very low
+    confidence (all three gibberish samples caught, no real speech).
 
 ## Work list — split by hardware dependency
 
@@ -285,24 +292,23 @@ worked in parallel if priorities change.
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
 9. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-4 are done; next is
-   step 5 (TTS). Before it: `memory/identity.md` needs a spoken-reply
-   section — Haiku's replies currently run 80-180 words, with
-   `*stage directions*` and markdown emphasis that TTS would read aloud. Steps 1-5 (playback, capture,
-   VAD + whisper.cpp, coordinator with keyboard wake stand-in,
-   sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
-   adds beak-sync (section 4.8) and step 7 the motion/idle thread
-   (section 4.10), state machine, and real wake-word models. This
-   subsumes the earlier separate beak-sync and idle-playback items.
+   build order** — the current focus. Steps 1-5 are done: the thin
+   end-to-end voice loop works (`coordinator.py`). Next is step 6
+   (beak-sync, section 4.8), then step 7 (motion/idle thread, section
+   4.10, the state machine, and real wake-word models). Open refinements
+   from the live runs: replies still often 25-45 words against a
+   20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
+   delay; pass low-confidence transcripts to Haiku marked unclear (see
+   spec 4.2).
 10. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
     "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
     notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
     stand-in.
-11. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
-    hardware (see `docs/specification.md` section 4.7 and Open Issues
-    issue 16), judged primarily on voice quality (the deciding factor per
-    Chip's call) with real-time throughput as a secondary check. Best
-    done after item 8, so clipping doesn't muddy the voice comparison.
+11. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
+    now in place (see `docs/specification.md` section 4.7 and Open Issues
+    issue 16), judged primarily on voice quality with real-time
+    throughput as a secondary check. Best done after item 8, so clipping
+    doesn't muddy the voice comparison.
 12. First-pass AEC check against the bird's own speaker — possible now
     with the board unmounted, but the geometry (speaker-to-mic distance)
     will change once mounted, so this is a smoke test, not the final

@@ -90,6 +90,43 @@ when it was last confirmed passing.
   by ear, not here.
 
 ## Seeed reSpeaker XVF3800 / Speaker
+### STT rejection rules
+
+- **Covers**: [STT](specification.md#42-speech-to-text-stt)'s rejection
+  of retry loops, gibberish echoes, and very low confidence —
+  `stt.rejection_reason()`.
+- **Script**: [`../tests/test_stt.py`](../tests/test_stt.py)
+- **Run**: `venv/bin/python tests/test_stt.py` (automatic, no hardware,
+  no model).
+- **Expected**: prints `PASS: 9 real transcripts accepted, 6
+  loops/gibberish rejected` and exits 0. Inputs are real transcripts and
+  probabilities from the 2026-09-25 live runs: Chip's clear speech must
+  pass; the "Where is the anchor?" x5 loop, two echoed gibberish guesses
+  and "P" (0.02) must be rejected.
+- **Last confirmed passing**: 2026-09-25.
+- **Not covered**: gibberish that comes out as a single plausible,
+  confident sentence ("is good word") — no local rule catches that yet.
+
+### TTS thread
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 5 and [TTS](specification.md#47-text-to-speech-tts) —
+  `tts.py`'s sentence splitting, markdown clean-up, 24→16kHz resampling,
+  and kokoro-pi synthesis.
+- **Script**: [`../tests/test_tts.py`](../tests/test_tts.py)
+- **Run**: `venv/bin/python tests/test_tts.py` (automatic, no hardware,
+  no model) or add `--live` to synthesize with kokoro-pi (needs the
+  models built in `models/kokoro-pi`, see CLAUDE.md).
+- **Expected**: prints `PASS: sentence split, clean-up, and 24k->16k
+  resampling correct` (plus `, kokoro-pi synthesizes faster than real
+  time`) and exits 0.
+- **Last confirmed passing**: 2026-09-25, including `--live` (0.37x
+  real time).
+- **Not covered**: how the voice sounds (judged by ear:
+  `venv/bin/python tts.py --audition`), and the spoken conversation as a
+  whole (checked live by hand with `coordinator.py --scratch-memory
+  --wake-after 10 --save DIR`, see log.md 4.16).
+
 ### Coordinator turn
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)

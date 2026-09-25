@@ -622,10 +622,33 @@ thresholds catch it. The live mic never produces digital silence, so
 this is left alone for now; if stock phrases show up in real use, a
 small blocklist of Whisper's known hallucinations is the standard fix.
 
+**Retries and repetition — decided 2026-09-25, from live use**: no
+temperature-fallback retries (each retry is a full decode; live, they
+turned a 2-second utterance into 20 seconds), and the transcript is
+capped at about 6 tokens per second of audio. A transcript that repeats
+itself is rejected: a 2+-word phrase three times, or a 3+-word phrase
+twice. That catches both retry loops and Whisper's habit of filling
+gibberish with an echoed guess ("Are you a wick, Jack? Are you a
+wick,").
+
+**Gibberish — decided 2026-09-25**: Whisper turns mumbles into plausible
+words, and its average token probability doesn't separate them from
+speech (gibberish scored 0.55 and 0.69; clear speech 0.60–0.80 with the
+names hint). So three layers: the repetition rule above; a confidence
+floor (starting at 0.3) for the extreme cases ("P" at 0.02); and a line
+in `identity.md` telling Jack that a line which doesn't make sense may be
+garbled and he should ask again. On the recorded runs, the two local
+filters rejected all three gibberish samples and none of Chip's ten real
+utterances. The `identity.md` line had no visible effect on its own:
+without a signal, Haiku can't tell garbled text from an odd sentence.
+Passing low-confidence lines to Haiku marked as unclear is a candidate
+follow-up. Numbers are starting points, per the usual methodology.
 **Name spelling**: Whisper spells unfamiliar names phonetically
-("Kath's" came out "Cat's"). Whisper accepts an initial prompt as a
-spelling hint; seeding it with the household names from `memory.md`
-belongs in the Coordinator (build step 4), which already loads that file.
+("Kath's" came out "Cat's"). The Coordinator passes Whisper a spelling
+hint naming the household members from `memory.md`, which fixes that
+and also raises Whisper's confidence on ordinary speech. Nautical words
+still slip ("bilges" came out "buildges"); adding a few to the hint is
+an easy later tweak.
 
 **Intended function**: transcribe household speech to text for the
 orchestrator during an On Watch session.
@@ -777,10 +800,13 @@ schema is currently passed to the Anthropic API call in `orchestrate.py`.
 
 History: [log.md#issue-16](log.md#issue-16), [log.md#47-text-to-speech-tts](log.md#47-text-to-speech-tts).
 
-**Status: Not started** — the speaker is now wired (see
-[3.3](#33-speaker)), so the bake-off is unblocked; best run after
-[Open Issues](#5-open-issues) issue 26's output headroom is settled, so
-amp/speaker clipping doesn't skew the voice-quality comparison.
+**Status: Implemented with `kokoro-pi`** (2026-09-25) — `tts.py`, voice
+`am_santa`, Chip's pick by ear from an 8-voice audition (runners-up
+`bm_george`, `am_michael`; `tts.py --audition` reruns it). Synthesizes at
+about 0.37× real time on the Pi 5. The bake-off against Supertonic-3
+hasn't run; `kokoro-pi` is in place and sounds good, so the bake-off is
+now optional rather than a blocker. Best run, if at all, after
+[Open Issues](#5-open-issues) issue 26's output headroom is settled.
 
 **Description**: local TTS rendering Jack's spoken reply to audio.
 Candidates narrowed to two, both local/offline/no-API-key, comparably
@@ -1442,9 +1468,9 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build steps 1-4 (Playback, Capture,
-Listener + STT, Coordinator) implemented** — `playback.py`,
-`capture.py`, `listener.py`, `stt.py`, `coordinator.py`, verified
+**Status: Designed 2026-09-25; build steps 1-5 implemented** — the thin
+end-to-end voice loop works: `playback.py`, `capture.py`, `listener.py`,
+`stt.py`, `coordinator.py`, `tts.py`. First live voice conversations
 2026-09-25.
 
 **Description**: how the modules in 4.1–4.15 run together as one
@@ -1585,6 +1611,10 @@ spotter later changes nothing downstream.
    runs against a temporary copy of `memory/` for testing.
 5. TTS thread (`kokoro-pi` to start, pending the bake-off), sentence by
    sentence — the thin end-to-end voice loop is complete here.
+   **Done** — `tts.py`; two live conversations. Delay from end of speech
+   to Jack's first sound: 2.6–3.8s (end-pointing ~0.7s, Whisper ~0.5s,
+   Haiku ~1.1–1.9s, first sentence's synthesis), 1.75s for the local
+   "say again" line. Streaming Haiku's reply into TTS is the next lever.
 6. Beak-sync in Playback + Serial writer.
 7. Motion & idle thread, state machine and timeouts, real wake-word
    models.

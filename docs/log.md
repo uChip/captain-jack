@@ -1100,3 +1100,57 @@ spec §6 item 6. Same replay showed Jack claiming to turn off the lights
 ("Dousing the living room lights now") with no tools wired up — expected
 until the home-automation tool schema exists, since `identity.md` tells
 him he has those tools.
+
+**Build step 5, 2026-09-25 — TTS and the first voice conversations**:
+`tts.py`. `kokoro-pi` (PyPI, MIT, github.com/zreecespieces/kokoro-pi)
+installed with no system packages. Its quick-start `kokoro-pi build`
+fails without `--models DIR`; with it, the build downloaded the upstream
+`kokoro-onnx` export (checksum-verified), compiled its ARM kernel, and
+calibrated the int8 model in about 4 minutes, not the 15-25 its README
+quotes. Measured 0.37x real time (3.6s of speech in 1.3s). Kokoro
+outputs 24kHz; resampled to 16kHz with a windowed-sinc filter written
+into `tts.py` (tested: 1kHz passes at full level, 10kHz is filtered out
+rather than aliasing) instead of adding `scipy` for one function.
+
+Voice: Chip auditioned 8 male voices by ear (4 British, 4 American),
+each saying its number and the same pirate line. He liked 2
+(`bm_george`), 7 (`am_michael`) and 8 (`am_santa`), and picked
+`am_santa` as the most emotive.
+
+*First live conversation* (scratch memory, `--wake-after 10`): the loop
+worked end to end, and the honorific rule held (Matey until "this is
+Chip", then Captain). Chip: speech good, gaps between sentences right.
+Three problems:
+- Replies still 50-80 words. Tightened `identity.md` to "about twenty
+  words, one or two sentences"; replayed lines dropped to 12-29 words.
+- Whisper stalls: "Captain, this is Chip" took 10s, and "Raise the
+  anchor" took 20s and came back as "Where is the anchor?" x5. Cause:
+  whisper.cpp's temperature-fallback retries, each a full decode. Fixed
+  by turning retries off, capping tokens by audio length, and rejecting
+  repetition.
+- Two mumbles became plausible sentences ("Captain Jack, but you didn't
+  know where you go.", "is good word") and Jack answered them. No audio
+  had been saved, so `coordinator.py` gained `--save`, and Whisper's
+  average token probability is now logged per utterance.
+
+*Second live conversation*: no stalls (every transcription 0.38-0.69s),
+delay to first sound down to 2.6-3.8s, 1.75s for the local "say
+again" line. Chip did three gibberish utterances: two came back as
+self-repeating guesses ("Can I get moved to goodbye" x2, "Are you a
+wick, Jack?" x2) at probability 0.55 and 0.69, inside the range of his
+real speech (0.60-0.80 with the names hint), and one as "P" at 0.02. So
+a probability cutoff alone can't work. Adopted three layers (Chip's
+call, all three): repetition rule extended to a 3+-word phrase twice; a
+0.3 probability floor for extremes; and an `identity.md` line telling
+Jack garbled lines should get an in-character "say again". Replayed on
+the saved audio, the two local filters caught all three gibberish
+samples and none of Chip's 10 real utterances ("So." at 0.10 was also
+rejected; unknown whether it was speech). The `identity.md` line on its
+own changed nothing on four garbled test lines: Haiku can't tell a
+garbled line from an odd one without a signal. Candidate follow-up:
+mark low-confidence transcripts as unclear when passing them to Haiku.
+
+Also from the second run: utt08 was someone else in the room ("I'm
+going to the bathroom..."), which Whisper transcribed in parentheses as
+background, so it was rejected and Jack said "Say again?" to nobody.
+Left alone until DoA and speaker ID can tell who's talking to Jack.

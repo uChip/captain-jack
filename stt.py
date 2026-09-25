@@ -57,10 +57,20 @@ TEMPERATURE_INC = 0.0
 TOKENS_PER_SECOND = 6
 TOKENS_MIN = 10
 
-# Reject a transcript where the same phrase (of REPEAT_WORDS+ words)
-# appears REPEAT_TIMES+ times - Whisper's repetition-loop signature.
-REPEAT_WORDS = 2
-REPEAT_TIMES = 3
+# Reject a transcript that repeats itself - Whisper's signature both for
+# retry loops ("Where is the anchor?" x5) and for filling gibberish with
+# an echoed guess ("Are you a wick, Jack? Are you a wick,"). Each rule is
+# (phrase length in words, times it appears): a 2+-word phrase 3 times,
+# or a 3+-word phrase twice. Starting points from the 2026-09-25 live
+# runs (see docs/log.md, 4.16): caught both gibberish echoes, no real
+# speech.
+REPEAT_RULES = [(2, 3), (3, 2)]
+
+# Reject when whisper's average token probability is below this. Real
+# speech scored 0.52-0.76 in the live runs, but so did most gibberish
+# (0.55, 0.69), so this only catches the extreme cases ("P" at 0.02) -
+# set well below the lowest real speech seen. Starting point.
+PROB_FLOOR = 0.3
 
 # Whisper's non-speech annotations: [BLANK_AUDIO], (wind blowing), *coughs*
 ANNOTATION_RE = re.compile(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*")
@@ -85,14 +95,26 @@ def audio_ctx_for(n_samples: int) -> int:
 
 def is_repetition_loop(text: str) -> bool:
     words = WORD_RE.findall(text.lower())
-    for n in range(REPEAT_WORDS, len(words) // REPEAT_TIMES + 1):
-        counts = {}
-        for i in range(len(words) - n + 1):
-            phrase = tuple(words[i:i + n])
-            counts[phrase] = counts.get(phrase, 0) + 1
-            if counts[phrase] >= REPEAT_TIMES:
-                return True
+    for min_words, times in REPEAT_RULES:
+        for n in range(min_words, len(words) // times + 1):
+            counts = {}
+            for i in range(len(words) - n + 1):
+                phrase = tuple(words[i:i + n])
+                counts[phrase] = counts.get(phrase, 0) + 1
+                if counts[phrase] >= times:
+                    return True
     return False
+
+
+def rejection_reason(text: str, prob: float) -> str:
+    """Why a cleaned transcript shouldn't go to Haiku, or "" if it's fine."""
+    if not any(ch.isalnum() for ch in text):
+        return "no words"
+    if is_repetition_loop(text):
+        return "repetition"
+    if prob < PROB_FLOOR:           # False for nan, so no probability means no verdict
+        return f"low confidence ({prob:.2f})"
+    return ""
 
 
 def names_prompt(names) -> str | None:
@@ -135,11 +157,7 @@ class STT:
         probs = [s.probability for s in segments if not math.isnan(s.probability)]
         prob = float(np.mean(probs)) if probs else float("nan")
         text = " ".join(ANNOTATION_RE.sub(" ", raw).split())
-        reject = ""
-        if not any(ch.isalnum() for ch in text):
-            reject = "no words"
-        elif is_repetition_loop(text):
-            reject = "repetition loop"
+        reject = rejection_reason(text, prob)
         return Transcript("" if reject else text, not reject, raw, audio_s, stt_s, prob, reject)
 
 
