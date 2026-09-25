@@ -14,8 +14,9 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-`playback.py` and `capture.py` are the first pieces of the audio runtime
-(spec section 4.16's Playback and Capture threads). The Pi<->Arduino serial link's command syntax is locked down and
+`playback.py`, `capture.py`, `listener.py` and `stt.py` are the first
+pieces of the audio runtime (spec section 4.16's Playback, Capture and
+Listener threads, plus speech-to-text). The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
@@ -41,6 +42,17 @@ sudo apt install -y libportaudio2          # system library sounddevice needs (i
 venv/bin/pip install -r requirements.txt  # already installed in venv/
 ANTHROPIC_API_KEY=... venv/bin/python orchestrate.py   # text-only conversation loop
 venv/bin/python playback.py [clip.wav ...]             # play clips through the bird
+venv/bin/python listener.py [--model base.en]          # print transcripts of speech to the bird
+```
+
+Model files live in `models/` (git-ignored — download once):
+
+```bash
+mkdir -p models && cd models
+curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
+curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
+curl -fL -o silero_vad.onnx https://github.com/snakers4/silero-vad/raw/v5.1.2/src/silero_vad/data/silero_vad.onnx
+sha1sum ggml-*.bin   # tiny.en c78c86eb..., base.en 137c4040... (whisper.cpp's published hashes)
 ```
 
 `orchestrate.py` needs a live `ANTHROPIC_API_KEY` (or an `ant auth login`
@@ -203,6 +215,11 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     continuous 80ms mono frames from the XVF3800's capture channel 1
     (channel 0 is AGC-clipped and noise-gated). Runs alongside
     `playback.py` on the same board with a shared stream clock.
+18. Build step 3 done (2026-09-25): `listener.py` (Silero VAD
+    end-pointing, turn-taking gate) + `stt.py` (whisper.cpp via
+    `pywhispercpp`, window sized per utterance). Live test: 5 utterances
+    transcribed, 2 word errors; tiny.en provisionally chosen over
+    base.en (same accuracy on this sample, 2.5-3.5x faster).
 
 ## Work list — split by hardware dependency
 
@@ -261,8 +278,10 @@ worked in parallel if priorities change.
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
 9. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-2 (Playback, Capture) are
-   done; next is step 3 (Listener VAD + whisper.cpp). Steps 1-5 (playback, capture,
+   build order** — the current focus. Steps 1-3 (Playback, Capture,
+   Listener + STT) are done; next is step 4 (Coordinator with keyboard
+   wake stand-in, including a Whisper spelling hint seeded with
+   household names from `memory.md`). Steps 1-5 (playback, capture,
    VAD + whisper.cpp, coordinator with keyboard wake stand-in,
    sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
    adds beak-sync (section 4.8) and step 7 the motion/idle thread

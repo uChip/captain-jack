@@ -1010,3 +1010,52 @@ timestamps share one clock, which the Listener's post-playback hold-off
 depends on. While a clip played, channel 1 barely rose above the room
 background: a first hint that AEC removes Jack's own voice, but at
 low playback level in a noisy room, so not a validation.
+
+**Build step 3, 2026-09-25 — Listener and STT**: `listener.py` +
+`stt.py`. Library choices: `pywhispercpp` ships a prebuilt wheel for
+this Pi (aarch64, Python 3.13), so whisper.cpp needed no compile and no
+`cmake`; Silero VAD runs directly on `onnxruntime` from its ONNX model
+(v5.1.2), avoiding the `silero-vad` pip package's PyTorch dependency.
+English-only `.en` Whisper models, more accurate than the multilingual
+ones at the same size for an English-speaking household.
+
+*Speed*: out of the box, whisper.cpp took 2.0s (tiny.en) and 4.9s
+(base.en) on a 5-second clip, about the same for any utterance length,
+because it always encodes a padded 30-second window. The prebuilt wheel
+is also compiled for baseline ARM only (NEON + FMA), not the Pi 5's
+fp16 and dot-product instructions. Shrinking the window (`audio_ctx`)
+to fit the utterance was tried first, as a single setting: 10-second
+window 0.68s (tiny) / 1.65s (base), 6.4-second window 0.46s / 1.09s,
+but the tighter window hurt accuracy on both. Settled on a window twice
+the utterance length (minimum ~5s) as the starting point. A Pi-tuned
+source build is parked as a later option if speed is still short.
+
+*Rejection*: whisper.cpp's three native thresholds didn't reject pure
+digital silence, where tiny.en produced "you". The binding doesn't
+expose per-segment no-speech probability, and average token confidence
+doesn't separate cleanly (0.37 for "you" vs 0.43 for base.en's correct
+transcript). Realistic non-speech (room noise from a real recording,
+and white noise) came back as annotations like `[BLANK_AUDIO]` or
+`(water spraying)`, or empty, and is rejected once those are stripped.
+Digital silence never comes off the live mic, so no blocklist yet.
+
+*Live test*: Chip spoke the six suggested test sentences (the long
+one being the Gettysburg opening); the first two ("Ahoy, Captain Jack", the weather question)
+were said before listening began, since there was no way to tell when
+it started. Five utterances came through, all complete, with two word
+errors: "Kath's" heard as "Cat's", and tiny.en's "Four-scorer" (base.en
+got "Four score"). base.en matched tiny.en everywhere else at 2.5-3.5x
+the time. Typical delay from end of speech to text: 0.7s end-pointing
+plus ~0.5s Whisper. The long Gettysburg line split at Chip's natural
+pause, as END_SILENCE_MS says it should. To fix the start-timing
+problem, `listener.py` now beeps through the bird when it starts
+listening, and stays deaf until the beep has finished (plus a 0.3s
+hold-off) - the turn-taking gate working end to end. Writing that
+exposed a bug: `ignore_until()` only ever moved later (`max`), so
+after going deaf with infinity it could never reopen; now it's a plain
+assignment, and the test covers deaf-then-reopen.
+
+*Issue 26 evidence, same day*: Chip listened to `cap_ch1.wav` on his
+desktop: reasonably clean, apart from the start being muffled under
+background noise. So the crackle he heard playing it through the bird
+was the bird's playback path, not the recording.

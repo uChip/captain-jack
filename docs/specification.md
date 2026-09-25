@@ -544,7 +544,12 @@ Haiku call involved.
 
 History: [log.md#issue-16](log.md#issue-16), [log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt).
 
-**Status: Engine chosen, not implemented.**
+**Status: Implemented** (2026-09-25) — `stt.py` (whisper.cpp via the
+`pywhispercpp` binding, English-only `.en` models) and `listener.py`
+(Silero VAD end-pointing). `tiny.en` is the provisional default: on a
+first live sample of five utterances it matched `base.en` on all but one
+word, at 2.5–3.5× the speed (about 0.15s per second of speech). Final
+tiny-vs-base call still waits on more voices and noisier conditions.
 
 **Description**: local speech-to-text via **`whisper.cpp`** (Whisper),
 now a firm choice — model size (tiny vs. base) still open, pending
@@ -599,6 +604,28 @@ kind of canned-response pattern already used for idle/Asleep clips.
 
 Calibration rides on the same real-audio testing already queued for
 wake-word groundwork (see `CLAUDE.md`'s work list), not a separate task.
+
+**Window sizing**: whisper.cpp normally encodes a fixed 30-second
+window however short the utterance, which dominates its cost. `stt.py`
+sizes the window (`audio_ctx`) to each utterance instead — currently
+twice its length, minimum about 5 seconds — cutting tiny.en's time on a
+5-second clip from 2.0s to about 0.65s. Windows cut too tight cost
+accuracy, so the ratio is a starting point to tune.
+
+**Non-speech rejection in practice**: whisper.cpp labels much non-speech
+audio with bracketed or parenthesized annotations (`[BLANK_AUDIO]`,
+`(water spraying)`) rather than leaving it empty; `stt.py` strips those
+and rejects anything with no words left. Real room noise and white noise
+are both rejected this way. Known gap: fed pure digital silence, tiny.en
+outputs "you" (a classic Whisper hallucination) and none of the three
+thresholds catch it. The live mic never produces digital silence, so
+this is left alone for now; if stock phrases show up in real use, a
+small blocklist of Whisper's known hallucinations is the standard fix.
+
+**Name spelling**: Whisper spells unfamiliar names phonetically
+("Kath's" came out "Cat's"). Whisper accepts an initial prompt as a
+spelling hint; seeding it with the household names from `memory.md`
+belongs in the Coordinator (build step 4), which already loads that file.
 
 **Intended function**: transcribe household speech to text for the
 orchestrator during an On Watch session.
@@ -1414,9 +1441,9 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build steps 1-2 (Playback, Capture)
-implemented** — `playback.py` and `capture.py`, verified on the real
-board 2026-09-25.
+**Status: Designed 2026-09-25; build steps 1-3 (Playback, Capture,
+Listener + STT) implemented** — `playback.py`, `capture.py`,
+`listener.py`, `stt.py`, verified on the real board 2026-09-25.
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1545,6 +1572,9 @@ spotter later changes nothing downstream.
    **Done** — `capture.py`, channel 1. Runs alongside Playback on the
    same board, sharing one stream clock.
 3. Listener VAD + whisper.cpp: print transcripts of spoken utterances.
+   **Done** — `listener.py` + `stt.py`; `listener.py` run standalone
+   beeps when it starts listening, and the Listener stays deaf while
+   the beep plays (the turn-taking gate, working end to end).
 4. Coordinator with the keyboard wake stand-in: speak → transcript →
    Haiku turn → printed reply (orchestrator turn function factored out).
 5. TTS thread (`kokoro-pi` to start, pending the bake-off), sentence by

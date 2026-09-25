@@ -90,6 +90,31 @@ when it was last confirmed passing.
   by ear, not here.
 
 ## Seeed reSpeaker XVF3800 / Speaker
+### Listener VAD + STT
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 3 and [STT](specification.md#42-speech-to-text-stt) —
+  `listener.py`'s VAD end-pointing and turn-taking gate, and `stt.py`'s
+  transcription and non-speech rejection.
+- **Script**: [`../tests/test_listener.py`](../tests/test_listener.py),
+  with fixture `../tests/data/quick_brown_fox_ch1.wav` (Chip on capture
+  channel 1, background noise at the start).
+- **Run**: `venv/bin/python tests/test_listener.py` (automatic, no
+  hardware; needs the model files in `models/`, see CLAUDE.md).
+- **Expected**: prints the utterance's start/length and transcript, then
+  `PASS: listener segments one utterance, ignores silence and gated
+  input; STT transcribes speech and rejects noise`, exit 0. Checks: one
+  utterance cut from the recording (start 0.2-0.7s, 3.5-5.5s long);
+  silence produces none; `ignore_until()` suppresses one, and going deaf
+  then reopening the gate lets it through; the transcript contains
+  "jumps over the lazy dog"; real room noise and white noise are
+  rejected.
+- **Last confirmed passing**: 2026-09-25.
+- **Not covered**: pure digital silence (tiny.en says "you" — known,
+  see specification.md 4.2); the live mic path, checked by hand with
+  `venv/bin/python listener.py --save DIR` (2026-09-25: five utterances,
+  two word errors, see log.md 4.16).
+
 ### Playback thread
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
