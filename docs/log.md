@@ -971,3 +971,15 @@ voice loop.
 Same session, cleanup: spec 4.8 and 4.12 still named the long-retired
 `BEAK <0–255>`/`HEAD` commands; updated to 4.13's `b<BB>` and
 `p`/`r`/`y`/`t`/`s`.
+
+**Build step 1, 2026-09-25 — Playback**: `playback.py`. Audio library
+choice: `sounddevice` (PortAudio, needs the `libportaudio2` system
+package) over `pyalsaaudio` (needs the ALSA dev headers and a compile).
+`sounddevice` is the more widely used library, and its callback mode
+reports each output block's DAC time (when those samples actually reach
+the speaker), which beak-sync's latency compensation (step 6) and the
+Listener's post-playback hold-off both need. Callback mode also means
+the device is fed silence automatically whenever nothing is queued, with
+no underrun handling. The XVF3800 is located by name, not ALSA card
+number, since card numbers can change across boots. Verified by ear
+twice: two clips back to back, clean, in order, no gap or click.

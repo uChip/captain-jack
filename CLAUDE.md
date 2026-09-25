@@ -14,7 +14,8 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-The Pi<->Arduino serial link's command syntax is locked down and
+`playback.py` is the first piece of the audio runtime (spec section
+4.16's Playback thread). The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
@@ -36,15 +37,15 @@ just when doing narrow implementation.
 ### Running it
 
 ```bash
-venv/bin/pip install -r requirements.txt  # anthropic SDK, already installed in venv/
-ANTHROPIC_API_KEY=... venv/bin/python orchestrate.py
+sudo apt install -y libportaudio2          # system library sounddevice needs (installed)
+venv/bin/pip install -r requirements.txt  # already installed in venv/
+ANTHROPIC_API_KEY=... venv/bin/python orchestrate.py   # text-only conversation loop
+venv/bin/python playback.py [clip.wav ...]             # play clips through the bird
 ```
 
-Needs a live `ANTHROPIC_API_KEY` (or an `ant auth login` profile) — not
-present in the dev environment this was built in, so the live API call path
-is untested end-to-end. The memory read/parse/validate/save/dedup logic
-*is* verified (offline, against a scratch copy of `memory.md`, not the real
-one — no test suite committed to the repo yet).
+`orchestrate.py` needs a live `ANTHROPIC_API_KEY` (or an `ant auth login`
+profile). Tests live in `tests/`, indexed with run instructions in
+`docs/tests.md`.
 
 ## What this project is
 
@@ -193,6 +194,11 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     sentence-by-sentence TTS, with a keyboard stand-in for the wake word
     until the custom models are trained. Includes a 7-step build order.
     See `docs/specification.md` section 4.16.
+16. Build step 1 done (2026-09-25): `playback.py`, the Playback thread —
+    queued mono clips played gapless through the XVF3800 with the −10dB
+    cap and mono→2ch duplication, with started/finished events timed to
+    when sound actually leaves the speaker. Verified by ear
+    (`tests/test_playback.py --listen`).
 
 ## Work list — split by hardware dependency
 
@@ -251,7 +257,8 @@ worked in parallel if priorities change.
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
 9. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-5 (playback, capture,
+   build order** — the current focus. Step 1 (Playback) is done; next is
+   step 2 (Capture). Steps 1-5 (playback, capture,
    VAD + whisper.cpp, coordinator with keyboard wake stand-in,
    sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
    adds beak-sync (section 4.8) and step 7 the motion/idle thread

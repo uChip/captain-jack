@@ -1414,7 +1414,8 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25, not implemented.**
+**Status: Designed 2026-09-25; build step 1 (Playback) implemented** —
+`playback.py`, verified by ear 2026-09-25.
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1532,6 +1533,8 @@ spotter later changes nothing downstream.
 
 **Build order** (each step runnable and testable on its own):
 1. Playback thread: gain cap + mono→2ch; play a `wavFiles/` clip.
+   **Done** — `playback.py` (PortAudio via `sounddevice`, callback
+   mode, 20ms blocks).
 2. Capture thread; determine which of the two capture channels to use.
 3. Listener VAD + whisper.cpp: print transcripts of spoken utterances.
 4. Coordinator with the keyboard wake stand-in: speak → transcript →

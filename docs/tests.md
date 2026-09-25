@@ -90,6 +90,32 @@ when it was last confirmed passing.
   by ear, not here.
 
 ## Seeed reSpeaker XVF3800 / Speaker
+### Playback thread
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 1 — `playback.py`: output gain cap (interim fix for
+  [Open Issue 26](specification.md#5-open-issues)), mono→2ch
+  duplication, gapless back-to-back queueing, and started/finished
+  events.
+- **Script**: [`../tests/test_playback.py`](../tests/test_playback.py)
+- **Run**: `venv/bin/python tests/test_playback.py` (automatic, no
+  hardware) or add `--listen` to also play `IllBeBack.wav` then
+  `MayGodBless.wav` through the bird (**needs a person listening**).
+- **Expected**: prints `PASS: playback gain cap, mono->2ch, gapless
+  queue, and events correct` and exits 0. The automatic part drives the
+  audio callback directly with fake buffers: checks both channels are
+  identical, samples are scaled by `OUTPUT_GAIN_DB`, the second item
+  starts on the very next sample after the first (including mid-block),
+  output is silent once the queue is empty, and events arrive in order
+  with the right timestamps. `--listen` also checks, on the real device,
+  that events arrive in order and total played time matches the clips'
+  combined length within 50ms; the listener confirms both clips sound
+  clean with no gap or click.
+- **Last confirmed passing**: 2026-09-25, including `--listen` (twice,
+  confirmed clean by ear).
+- **Not covered**: beak-sync (build step 6), and behavior under load
+  (other threads competing for CPU).
+
 
 ### Speaker level ladder (manual, listening)
 
