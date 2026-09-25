@@ -16,10 +16,12 @@ end-session and nap meta-tags aren't implemented in orchestrate.py yet.
 Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
+                                   [--save DIR]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
-keyboard (e.g. launched in the background).
+keyboard (e.g. launched in the background). --save writes every
+utterance heard to DIR as a numbered .wav, for diagnosing mishearings.
 """
 
 import queue
@@ -28,6 +30,7 @@ import sys
 import tempfile
 import threading
 import time
+import wave
 from pathlib import Path
 
 import anthropic
@@ -52,12 +55,15 @@ def beep() -> np.ndarray:
 
 
 class Coordinator:
-    def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None):
+    def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
+                 save_dir=None):
         self.memory_dir = Path(memory_dir)
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
         self.out = out
+        self.save_dir = Path(save_dir) if save_dir else None
+        self._saved = 0
         self.events = queue.Queue()
         self.mode = "off_watch"
         self.history = []
@@ -148,14 +154,27 @@ class Coordinator:
         for i, sentence in enumerate(sentences):
             self.tts.say(sentence, (self._reply, i))
 
+    def save_utterance(self, samples) -> str:
+        self._saved += 1
+        path = self.save_dir / f"utt{self._saved:02d}.wav"
+        with wave.open(str(path), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(RATE)
+            w.writeframes(samples.tobytes())
+        return f", {path.name}"
+
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
+        saved = self.save_utterance(samples) if self.save_dir else ""
         heard = self.stt.transcribe(samples)
+        stats = f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}{saved}"
         if not heard.accepted:
-            self.out(f"Jack: {DIDNT_CATCH}   [stt {heard.stt_s:.2f}s, raw {heard.raw!r}]")
+            self.out(f"  (rejected - {heard.reject}: {heard.raw!r})   [{stats}]")
+            self.out(f"Jack: {DIDNT_CATCH}")
             self.speak(DIDNT_CATCH)
             return
-        self.out(f"You:  {heard.text}   [{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s]")
+        self.out(f"You:  {heard.text}   [{stats}]")
 
         start = time.monotonic()
         try:
@@ -180,12 +199,15 @@ def main():
     args = sys.argv[1:]
     model = args[args.index("--model") + 1] if "--model" in args else None
     voice = args[args.index("--voice") + 1] if "--voice" in args else None
+    save_dir = args[args.index("--save") + 1] if "--save" in args else None
+    if save_dir:
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
     memory_dir = MEMORY_DIR
     if "--scratch-memory" in args:
         memory_dir = scratch_memory_copy()
         print(f"Using a scratch copy of memory: {memory_dir}")
 
-    coord = Coordinator(memory_dir, model, voice=voice)
+    coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir)
 
     def keyboard():
         for _ in sys.stdin:

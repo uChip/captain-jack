@@ -45,8 +45,26 @@ NO_SPEECH_THOLD = 0.6
 LOGPROB_THOLD = -1.0
 ENTROPY_THOLD = 2.4
 
+# No temperature-fallback retries. When a decode trips a threshold,
+# whisper.cpp normally retries at up to 5 rising temperatures, each a full
+# decode: live, that turned a 2s utterance into 20s of waiting (and a
+# 5x-repeated wrong transcript). One decode, then reject if it's bad.
+TEMPERATURE_INC = 0.0
+
+# Cap the transcript's length by the audio's: normal speech is ~3-4
+# tokens per second, so this is generous for real speech but stops a
+# runaway repetition loop early.
+TOKENS_PER_SECOND = 6
+TOKENS_MIN = 10
+
+# Reject a transcript where the same phrase (of REPEAT_WORDS+ words)
+# appears REPEAT_TIMES+ times - Whisper's repetition-loop signature.
+REPEAT_WORDS = 2
+REPEAT_TIMES = 3
+
 # Whisper's non-speech annotations: [BLANK_AUDIO], (wind blowing), *coughs*
 ANNOTATION_RE = re.compile(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*")
+WORD_RE = re.compile(r"[a-z0-9']+")
 
 
 @dataclass
@@ -56,11 +74,25 @@ class Transcript:
     raw: str            # whisper's output before cleaning
     audio_s: float      # utterance length
     stt_s: float        # time spent transcribing
+    prob: float         # whisper's average token probability (logged, not yet used)
+    reject: str = ""    # why it was rejected, if it was
 
 
 def audio_ctx_for(n_samples: int) -> int:
     seconds = n_samples / RATE
     return max(CTX_MIN, min(CTX_MAX, math.ceil(seconds * CTX_SCALE * CTX_PER_SECOND)))
+
+
+def is_repetition_loop(text: str) -> bool:
+    words = WORD_RE.findall(text.lower())
+    for n in range(REPEAT_WORDS, len(words) // REPEAT_TIMES + 1):
+        counts = {}
+        for i in range(len(words) - n + 1):
+            phrase = tuple(words[i:i + n])
+            counts[phrase] = counts.get(phrase, 0) + 1
+            if counts[phrase] >= REPEAT_TIMES:
+                return True
+    return False
 
 
 def names_prompt(names) -> str | None:
@@ -86,19 +118,29 @@ class STT:
             no_speech_thold=NO_SPEECH_THOLD,
             logprob_thold=LOGPROB_THOLD,
             entropy_thold=ENTROPY_THOLD,
+            temperature_inc=TEMPERATURE_INC,
             **({"initial_prompt": prompt} if prompt else {}),   # binding rejects None
         )
 
     def transcribe(self, samples: np.ndarray) -> Transcript:
         audio = samples.astype(np.float32) / 32768
         start = time.monotonic()
-        segments = self.model.transcribe(audio, audio_ctx=audio_ctx_for(len(samples)))
+        audio_s = len(samples) / RATE
+        segments = self.model.transcribe(
+            audio, audio_ctx=audio_ctx_for(len(samples)), extract_probability=True,
+            max_tokens=max(TOKENS_MIN, math.ceil(audio_s * TOKENS_PER_SECOND)))
         stt_s = time.monotonic() - start
 
         raw = " ".join(s.text.strip() for s in segments).strip()
+        probs = [s.probability for s in segments if not math.isnan(s.probability)]
+        prob = float(np.mean(probs)) if probs else float("nan")
         text = " ".join(ANNOTATION_RE.sub(" ", raw).split())
-        accepted = any(ch.isalnum() for ch in text)
-        return Transcript(text if accepted else "", accepted, raw, len(samples) / RATE, stt_s)
+        reject = ""
+        if not any(ch.isalnum() for ch in text):
+            reject = "no words"
+        elif is_repetition_loop(text):
+            reject = "repetition loop"
+        return Transcript("" if reject else text, not reject, raw, audio_s, stt_s, prob, reject)
 
 
 def load_wav(path) -> np.ndarray:
@@ -116,8 +158,8 @@ def main():
     stt = STT(model)
     for path in args:
         t = stt.transcribe(load_wav(path))
-        verdict = repr(t.text) if t.accepted else f"REJECTED (raw {t.raw!r})"
-        print(f"{Path(path).name}: {t.audio_s:.1f}s audio, {t.stt_s:.2f}s [{model}]: {verdict}")
+        verdict = repr(t.text) if t.accepted else f"REJECTED, {t.reject} (raw {t.raw!r})"
+        print(f"{Path(path).name}: {t.audio_s:.1f}s audio, {t.stt_s:.2f}s, p={t.prob:.2f} [{model}]: {verdict}")
 
 
 if __name__ == "__main__":
