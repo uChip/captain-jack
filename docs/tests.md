@@ -117,6 +117,28 @@ when it was last confirmed passing.
   (other threads competing for CPU).
 
 
+### Capture thread
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 2 — `capture.py`: keeps the chosen capture channel
+  (`CAPTURE_CHANNEL`, currently 1) as mono 80ms frames with ADC
+  timestamps.
+- **Script**: [`../tests/test_capture.py`](../tests/test_capture.py)
+- **Run**: `venv/bin/python tests/test_capture.py` (automatic, no
+  hardware) or add `--live` to also record 3 seconds from the real
+  XVF3800 (no person needed).
+- **Expected**: prints `PASS: capture keeps channel 1 as mono 80ms
+  frames` (plus `, live stream healthy` with `--live`) and exits 0. The
+  automatic part feeds the callback a fake 2-channel buffer and checks
+  the right channel comes out, as a 1280-sample frame, as a copy (not a
+  view of the device buffer), with the timestamp passed through.
+  `--live` checks frame count and size, evenly spaced timestamps, no
+  input overflows, and a non-zero signal.
+- **Last confirmed passing**: 2026-09-25, including `--live`.
+- **Not covered**: which channel is *better* (judged by ear and level
+  analysis, see log.md 4.16), and simultaneous playback + capture (checked
+  once by hand 2026-09-25, not scripted yet).
+
 ### Speaker level ladder (manual, listening)
 
 - **Covers**: [3.2](specification.md#32-seeed-respeaker-xvf3800) /

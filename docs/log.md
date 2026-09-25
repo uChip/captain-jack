@@ -983,3 +983,30 @@ the device is fed silence automatically whenever nothing is queued, with
 no underrun handling. The XVF3800 is located by name, not ALSA card
 number, since card numbers can change across boots. Verified by ear
 twice: two clips back to back, clean, in order, no gap or click.
+
+**Build step 2, 2026-09-25 — Capture and the channel choice**:
+`capture.py`. The XVF3800's 2-channel capture stream carries the same
+speech on both channels (correlation 0.92) but processed differently.
+A 5-second recording of Chip talking at normal volume from a few feet
+away: channel 0 was about 5dB hotter, hit 0dBFS with 61 samples pinned
+at full scale, and its background dropped from −63 to −73dBFS after the
+speech stopped (noise suppression gating down). Channel 1 peaked at
+−8dBFS with no flattened peaks and kept a steady −60dBFS background.
+Played back through the bird, Chip heard both at about the same volume,
+with "some clipping" in each, and channel 1 "definitely cleaner."
+Channel 0's clipping is ordinary AGC overshoot: the gain ramps up during
+the quiet lead-in, and the first loud syllables overshoot before it
+pulls back. AGC maximum gain and speed are tunable on the XVF3800, but
+only through Seeed's control tool, which is still missing. Channel 1's
+heard crackle isn't in its samples, so it's either analog overload or
+processing artifacts before the ADC, or the playback path; not yet
+resolved. Chose channel 1 for recognition: digital clipping is exactly
+the distortion that hurts Whisper and the wake-word models, and a steady
+background suits Silero VAD's end-pointing better than a gated one.
+
+Also checked the same day: Capture and Playback run at the same time
+as separate streams on one board, with no overflows, and their
+timestamps share one clock, which the Listener's post-playback hold-off
+depends on. While a clip played, channel 1 barely rose above the room
+background: a first hint that AEC removes Jack's own voice, but at
+low playback level in a noisy room, so not a validation.

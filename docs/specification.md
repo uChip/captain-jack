@@ -1414,8 +1414,9 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build step 1 (Playback) implemented** —
-`playback.py`, verified by ear 2026-09-25.
+**Status: Designed 2026-09-25; build steps 1-2 (Playback, Capture)
+implemented** — `playback.py` and `capture.py`, verified on the real
+board 2026-09-25.
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1445,7 +1446,12 @@ lock, so threads genuinely run in parallel where it matters.
   of the two channels (which one carries the XVF3800's processed voice
   output is not yet determined — a record-and-compare test) and emits
   mono 80ms frames (1280 samples, openWakeWord's native frame size) to
-  the Listener. Never stops reading, even while input is being ignored,
+  the Listener. **Channel 1 chosen 2026-09-25**: channel 0 is more
+  heavily processed (automatic gain drove a normal speaking voice into
+  digital clipping, and noise suppression gates the background after
+  speech); channel 1 has steady levels and headroom, and sounded cleaner
+  by ear. Seeed's documentation of what each channel carries is still
+  missing (see CLAUDE.md work list item 7). Never stops reading, even while input is being ignored,
   so the device buffer can't overrun.
 - **(b) Listener** — turns frames into events for the Coordinator.
   Behavior depends on the current mode: in Off Watch/Asleep it runs
@@ -1536,6 +1542,8 @@ spotter later changes nothing downstream.
    **Done** — `playback.py` (PortAudio via `sounddevice`, callback
    mode, 20ms blocks).
 2. Capture thread; determine which of the two capture channels to use.
+   **Done** — `capture.py`, channel 1. Runs alongside Playback on the
+   same board, sharing one stream clock.
 3. Listener VAD + whisper.cpp: print transcripts of spoken utterances.
 4. Coordinator with the keyboard wake stand-in: speak → transcript →
    Haiku turn → printed reply (orchestrator turn function factored out).

@@ -14,8 +14,8 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-`playback.py` is the first piece of the audio runtime (spec section
-4.16's Playback thread). The Pi<->Arduino serial link's command syntax is locked down and
+`playback.py` and `capture.py` are the first pieces of the audio runtime
+(spec section 4.16's Playback and Capture threads). The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
@@ -199,6 +199,10 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     cap and mono→2ch duplication, with started/finished events timed to
     when sound actually leaves the speaker. Verified by ear
     (`tests/test_playback.py --listen`).
+17. Build step 2 done (2026-09-25): `capture.py`, the Capture thread —
+    continuous 80ms mono frames from the XVF3800's capture channel 1
+    (channel 0 is AGC-clipped and noise-gated). Runs alongside
+    `playback.py` on the same board with a shared stream clock.
 
 ## Work list — split by hardware dependency
 
@@ -257,8 +261,8 @@ worked in parallel if priorities change.
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
 9. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Step 1 (Playback) is done; next is
-   step 2 (Capture). Steps 1-5 (playback, capture,
+   build order** — the current focus. Steps 1-2 (Playback, Capture) are
+   done; next is step 3 (Listener VAD + whisper.cpp). Steps 1-5 (playback, capture,
    VAD + whisper.cpp, coordinator with keyboard wake stand-in,
    sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
    adds beak-sync (section 4.8) and step 7 the motion/idle thread
