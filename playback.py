@@ -87,6 +87,7 @@ class Playback:
         self._lock = threading.Lock()
         self._idle = threading.Event()
         self._idle.set()
+        self._last_dac_time = 0.0   # when the most recently finished item left the speaker
         self._stream = None
 
     def start(self):
@@ -120,6 +121,15 @@ class Playback:
         """Block until everything queued has been handed to the device."""
         return self._idle.wait(timeout)
 
+    def wait_played(self, timeout=None) -> bool:
+        """Block until everything queued has actually come out of the
+        speaker - wait_idle() plus the device's output latency."""
+        if not self.wait_idle(timeout):
+            return False
+        while self.now() < self._last_dac_time:
+            time.sleep(0.02)
+        return True
+
     def _emit(self, kind, tag, dac_time):
         if self.on_event:
             self.on_event(kind, tag, dac_time)
@@ -142,7 +152,8 @@ class Playback:
             filled += n
             self._pos += n
             if self._pos >= len(samples):
-                self._emit("finished", tag, time_info.outputBufferDacTime + filled / RATE)
+                self._last_dac_time = time_info.outputBufferDacTime + filled / RATE
+                self._emit("finished", tag, self._last_dac_time)
                 self._current = None
                 with self._lock:
                     self._pending -= 1
@@ -164,14 +175,10 @@ def main():
     try:
         for clip in clips:
             player.play_file(clip)
-        player.wait_idle()
-        last_dac_time = 0.0
+        player.wait_played()
         while not events.empty():
             kind, tag, t = events.get()
             print(f"  [{kind}] {tag}")
-            last_dac_time = t
-        while player.now() < last_dac_time:     # let the last block reach the speaker
-            time.sleep(0.02)
     finally:
         player.stop()
 

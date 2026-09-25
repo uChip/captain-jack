@@ -54,6 +54,7 @@ curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en
 curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
 curl -fL -o silero_vad.onnx https://github.com/snakers4/silero-vad/raw/v5.1.2/src/silero_vad/data/silero_vad.onnx
 sha1sum ggml-*.bin   # tiny.en c78c86eb..., base.en 137c4040... (whisper.cpp's published hashes)
+cd .. && venv/bin/kokoro-pi build --models models/kokoro-pi   # TTS: downloads + builds, ~4 min on the Pi 5
 ```
 
 `orchestrate.py` needs a live `ANTHROPIC_API_KEY` (or an `ant auth login`

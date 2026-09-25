@@ -5,3 +5,4 @@ numpy==2.5.3
 sounddevice==0.5.6
 pywhispercpp==1.5.1
 onnxruntime==1.30.0
+kokoro-pi==1.2.0

@@ -1,10 +1,10 @@
 """Captain Jack coordinator: mode state and the On Watch conversation turn.
 
 Implements the Coordinator from docs/specification.md section 4.16(c),
-build step 4: wires Capture -> Listener -> STT -> the orchestrator's
-take_turn() -> Jack's reply, with Playback's events driving the
-Listener's turn-taking gate. Replies are printed; speaking them is build
-step 5 (TTS).
+build steps 4-5: wires Capture -> Listener -> STT -> the orchestrator's
+take_turn() -> TTS -> Playback, with Playback's events driving the
+Listener's turn-taking gate. Replies are spoken sentence by sentence
+(and printed).
 
 Modes, as far as this step goes: Off Watch (waiting for the wake word)
 and On Watch (conversing). The real wake word is build step 7; until
@@ -14,9 +14,12 @@ ON_WATCH_TIMEOUT_S with no accepted utterance (spec 4.11); the
 end-session and nap meta-tags aren't implemented in orchestrate.py yet.
 
 Run (in its own terminal - it reads the keyboard):
-    venv/bin/python coordinator.py [--model base.en] [--scratch-memory]
+    venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
+                                   [--scratch-memory] [--wake-after SECONDS]
 --scratch-memory runs against a temporary copy of memory/, so test
-conversations can't add facts to the real memory.md.
+conversations can't add facts to the real memory.md. --wake-after wakes
+Jack automatically that many seconds after starting, for runs with no
+keyboard (e.g. launched in the background).
 """
 
 import queue
@@ -35,11 +38,12 @@ from listener import HOLDOFF_S, Listener
 from orchestrate import MEMORY_DIR, household_names, take_turn
 from playback import RATE, Playback
 from stt import STT, names_prompt
+from tts import TTS, split_sentences
 
 ON_WATCH_TIMEOUT_S = 120    # spec 4.11: 2 minutes with no prompt -> Off Watch
 
-# Stand-in for the in-character "say again" clip (spec 4.2) until TTS exists.
-DIDNT_CATCH = "(Jack didn't catch that - say again)"
+# Spec 4.2: a rejected utterance gets an in-character prompt, not silence.
+DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
 
 
 def beep() -> np.ndarray:
@@ -48,7 +52,7 @@ def beep() -> np.ndarray:
 
 
 class Coordinator:
-    def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print):
+    def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None):
         self.memory_dir = Path(memory_dir)
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
@@ -57,11 +61,16 @@ class Coordinator:
         self.events = queue.Queue()
         self.mode = "off_watch"
         self.history = []
-        self.deadline = None        # On Watch timeout, monotonic time
+        self.deadline = None        # On Watch timeout, monotonic time; None while Jack speaks
+        self._reply = 0             # counts replies, to tag their sentences
+        self._first_tag = None      # first and last sentence of the reply being spoken
+        self._last_tag = None
+        self._heard_at = None       # when the utterance being answered was handed over
 
         self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)))
         self.player = Playback(on_event=self._on_playback)
         self.capture = Capture(on_frame=self.listener.feed)
+        self.tts = TTS(on_audio=self.player.play, **({"voice": voice} if voice else {}))
 
     # --- event sources (other threads) ---
 
@@ -69,8 +78,12 @@ class Coordinator:
         # Turn-taking: deaf while anything plays, until just after it ends.
         if kind == "started":
             self.listener.ignore_until(float("inf"))
+            if tag == self._first_tag:
+                self.events.put(("reply_started", time.monotonic()))
         else:
             self.listener.ignore_until(dac_time + HOLDOFF_S)
+            if tag == self._last_tag:
+                self.events.put(("reply_done", None))
 
     def wake(self):
         """Wake-word stand-in: same event the real spotter will post."""
@@ -82,10 +95,11 @@ class Coordinator:
         self.listener.start()
         self.capture.start()
         self.player.start()
+        self.tts.start()
         try:
             while True:
                 timeout = None
-                if self.mode == "on_watch":
+                if self.mode == "on_watch" and self.deadline is not None:
                     timeout = max(0.0, self.deadline - time.monotonic())
                 try:
                     kind, data = self.events.get(timeout=timeout)
@@ -96,9 +110,16 @@ class Coordinator:
                     self.start_session()
                 elif kind == "utterance" and self.mode == "on_watch":
                     self.handle_utterance(data)
+                elif kind == "reply_started" and self._heard_at is not None:
+                    self.out(f"  [first audio {data - self._heard_at:.2f}s after you stopped talking]")
+                    self._heard_at = None
+                elif kind == "reply_done" and self.mode == "on_watch":
+                    # Spec 4.11: the timeout clock starts when Jack's reply finishes.
+                    self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
                 # utterances while Off Watch are ignored: no wake word yet
         finally:
             self.capture.stop()
+            self.tts.stop()
             self.player.stop()
             self.listener.stop()
 
@@ -114,11 +135,25 @@ class Coordinator:
         self.deadline = None
         self.out(f"[Off Watch - {why}. Press Enter to wake Jack.]")
 
+    def speak(self, text):
+        """Queue text to be spoken sentence by sentence; the On Watch
+        timeout pauses until the last sentence has played."""
+        sentences = split_sentences(text)
+        if not sentences:
+            return
+        self._reply += 1
+        self._first_tag = (self._reply, 0)
+        self._last_tag = (self._reply, len(sentences) - 1)
+        self.deadline = None
+        for i, sentence in enumerate(sentences):
+            self.tts.say(sentence, (self._reply, i))
+
     def handle_utterance(self, samples):
+        self._heard_at = time.monotonic()
         heard = self.stt.transcribe(samples)
         if not heard.accepted:
-            self.out(f"  {DIDNT_CATCH}   [stt {heard.stt_s:.2f}s, raw {heard.raw!r}]")
-            self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
+            self.out(f"Jack: {DIDNT_CATCH}   [stt {heard.stt_s:.2f}s, raw {heard.raw!r}]")
+            self.speak(DIDNT_CATCH)
             return
         self.out(f"You:  {heard.text}   [{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s]")
 
@@ -131,9 +166,7 @@ class Coordinator:
         self.out(f"Jack: {turn.spoken}   [haiku {time.monotonic() - start:.2f}s]")
         if turn.saved:
             self.out(f"  [memory saved - {turn.saved}]")
-        # Spec 4.11: the timeout clock starts when Jack's reply finishes.
-        # Replies aren't spoken until build step 5, so that's now.
-        self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
+        self.speak(turn.spoken)
 
 
 def scratch_memory_copy() -> Path:
@@ -146,18 +179,22 @@ def scratch_memory_copy() -> Path:
 def main():
     args = sys.argv[1:]
     model = args[args.index("--model") + 1] if "--model" in args else None
+    voice = args[args.index("--voice") + 1] if "--voice" in args else None
     memory_dir = MEMORY_DIR
     if "--scratch-memory" in args:
         memory_dir = scratch_memory_copy()
         print(f"Using a scratch copy of memory: {memory_dir}")
 
-    coord = Coordinator(memory_dir, model)
+    coord = Coordinator(memory_dir, model, voice=voice)
 
     def keyboard():
         for _ in sys.stdin:
             coord.wake()
 
     threading.Thread(target=keyboard, name="keyboard", daemon=True).start()
+    if "--wake-after" in args:
+        delay = float(args[args.index("--wake-after") + 1])
+        threading.Timer(delay, coord.wake).start()
     print(f"Whisper {coord.stt.model_name}. Press Enter to wake Jack; Ctrl+C to quit.")
     try:
         coord.run()
