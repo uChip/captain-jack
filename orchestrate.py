@@ -1,12 +1,13 @@
 """Captain Jack orchestration: memory-driven conversation over the Haiku API.
 
 Implements the read/write loop from docs/captain-jack-memory-design.md.
-Text-only CLI for now - audio I/O, reSpeaker DoA, and the Pi<->Arduino
-serial link are separate, hardware-dependent next steps (see CLAUDE.md).
+take_turn() is one full conversational turn; the text CLI below and the
+voice Coordinator (coordinator.py, spec section 4.16) both call it.
 """
 
 import re
 import sys
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -188,14 +189,55 @@ def save_memory(
     return True
 
 
-def get_reply(client: anthropic.Anthropic, history: list[dict]) -> str:
+def household_names(memory_dir: Path = MEMORY_DIR) -> list[str]:
+    """Names of the "### Name" subsections under memory.md's Household."""
+    lines = (memory_dir / "memory.md").read_text().splitlines()
+    start, end = _section_bounds(lines, SECTION_HEADINGS["household"])
+    return [line[4:].strip() for line in lines[start:end] if line.startswith("### ")]
+
+
+def get_reply(client: anthropic.Anthropic, history: list[dict], memory_dir: Path = MEMORY_DIR) -> str:
     response = client.messages.create(
         model=MODEL,
         max_tokens=MAX_TOKENS,
-        system=load_system_prompt(),
+        system=load_system_prompt(memory_dir),
         messages=history,
     )
     return "".join(block.text for block in response.content if block.type == "text")
+
+
+@dataclass
+class Turn:
+    spoken: str             # what Jack says aloud
+    saved: str | None       # "section: fact" if a memory was saved, else None
+
+
+def take_turn(
+    client: anthropic.Anthropic, history: list[dict], user_text: str, memory_dir: Path = MEMORY_DIR
+) -> Turn:
+    """One conversational turn: call Haiku, split off and save any memory.
+
+    Appends both sides to history. On an API error, history is left as it
+    was and the anthropic exception propagates to the caller.
+    """
+    history.append({"role": "user", "content": user_text})
+    try:
+        reply = get_reply(client, history, memory_dir)
+    except anthropic.APIError:
+        history.pop()
+        raise
+    history.append({"role": "assistant", "content": reply})
+
+    spoken, raw_memory = split_memory_line(reply)
+    saved = None
+    if raw_memory:
+        proposal = parse_memory_proposal(raw_memory)
+        if proposal:
+            section, name, fact = proposal
+            if save_memory(section, name, fact, memory_dir / "memory.md"):
+                label = f"{section}:{name}" if name else section
+                saved = f"{label}: {fact}"
+    return Turn(spoken, saved)
 
 
 def main():
@@ -211,29 +253,18 @@ def main():
         if not user_input:
             continue
 
-        history.append({"role": "user", "content": user_input})
         try:
-            reply = get_reply(client, history)
+            turn = take_turn(client, history, user_input)
         except anthropic.APIConnectionError:
             print("[error] network problem reaching the API", file=sys.stderr)
-            history.pop()
             continue
         except anthropic.APIStatusError as e:
             print(f"[error] {e.status_code}: {e.message}", file=sys.stderr)
-            history.pop()
             continue
-        history.append({"role": "assistant", "content": reply})
 
-        spoken, raw_memory = split_memory_line(reply)
-        print(f"Jack: {spoken}")
-
-        if raw_memory:
-            proposal = parse_memory_proposal(raw_memory)
-            if proposal:
-                section, name, fact = proposal
-                if save_memory(section, name, fact):
-                    label = f"{section}:{name}" if name else section
-                    print(f"  [memory saved - {label}: {fact}]")
+        print(f"Jack: {turn.spoken}")
+        if turn.saved:
+            print(f"  [memory saved - {turn.saved}]")
 
 
 if __name__ == "__main__":

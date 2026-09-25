@@ -14,9 +14,9 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-`playback.py`, `capture.py`, `listener.py` and `stt.py` are the first
-pieces of the audio runtime (spec section 4.16's Playback, Capture and
-Listener threads, plus speech-to-text). The Pi<->Arduino serial link's command syntax is locked down and
+`coordinator.py` runs the voice loop so far (spec section 4.16): press
+Enter, speak, and Jack's reply is printed — speaking it is build step 5.
+It builds on `playback.py`, `capture.py`, `listener.py` and `stt.py`. The Pi<->Arduino serial link's command syntax is locked down and
 implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
@@ -43,6 +43,7 @@ venv/bin/pip install -r requirements.txt  # already installed in venv/
 ANTHROPIC_API_KEY=... venv/bin/python orchestrate.py   # text-only conversation loop
 venv/bin/python playback.py [clip.wav ...]             # play clips through the bird
 venv/bin/python listener.py [--model base.en]          # print transcripts of speech to the bird
+venv/bin/python coordinator.py --scratch-memory        # voice loop; own terminal (reads Enter)
 ```
 
 Model files live in `models/` (git-ignored — download once):
@@ -220,6 +221,11 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     `pywhispercpp`, window sized per utterance). Live test: 5 utterances
     transcribed, 2 word errors; tiny.en provisionally chosen over
     base.en (same accuracy on this sample, 2.5-3.5x faster).
+19. Build step 4 done (2026-09-25): `coordinator.py` — Enter (wake
+    stand-in) → beep → speech → Whisper (with household-name spelling
+    hint) → `take_turn()` → printed reply, with a 2-minute On Watch
+    timeout. Tested with a fake Haiku client and on five recorded
+    utterances against the real API, on scratch memory.
 
 ## Work list — split by hardware dependency
 
@@ -278,10 +284,10 @@ worked in parallel if priorities change.
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
 9. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-3 (Playback, Capture,
-   Listener + STT) are done; next is step 4 (Coordinator with keyboard
-   wake stand-in, including a Whisper spelling hint seeded with
-   household names from `memory.md`). Steps 1-5 (playback, capture,
+   build order** — the current focus. Steps 1-4 are done; next is
+   step 5 (TTS). Before it: `memory/identity.md` needs a spoken-reply
+   section — Haiku's replies currently run 80-180 words, with
+   `*stage directions*` and markdown emphasis that TTS would read aloud. Steps 1-5 (playback, capture,
    VAD + whisper.cpp, coordinator with keyboard wake stand-in,
    sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
    adds beak-sync (section 4.8) and step 7 the motion/idle thread

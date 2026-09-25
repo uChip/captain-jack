@@ -1059,3 +1059,30 @@ assignment, and the test covers deaf-then-reopen.
 desktop: reasonably clean, apart from the start being muffled under
 background noise. So the crackle he heard playing it through the bird
 was the bird's playback path, not the recording.
+
+**Build step 4, 2026-09-25 — Coordinator**: `coordinator.py`, plus
+`orchestrate.py`'s turn logic factored into `take_turn()` (the text
+CLI now calls it too, unchanged in behavior). Testing approach, Chip's
+call: no live voice session yet, since without TTS Jack's replies only
+appear on screen, which Chip can't read while standing at the bird.
+Instead: an offline test with a fake Haiku client, one real API call on
+the fixture recording, and the five utterances saved from step 3's live
+test run through as one real conversation. All on a scratch copy of
+`memory/` (Chip's call), so test facts can't land in the real
+`memory.md`; `--scratch-memory` does the same for live runs.
+
+Whisper spelling hint: `initial_prompt` set to "Captain Jack the parrot,
+talking with Chip, Kath and Liz.", built from memory.md's `### Name`
+headings. On the step 3 recording it turned "Cat's birthday" into
+"Kath's birthday" and changed nothing else.
+
+What the recorded conversation showed: the whole chain works (five
+utterances in, five in-character replies, a household memory saved to
+the scratch copy, the Mistress honorific used for Kath). Per-turn time:
+Whisper 0.5-1.0s, Haiku 2.4-4.0s. But the replies aren't fit to speak:
+79-180 words each (30-70 seconds of speech), growing through the
+conversation, full of `*stage directions*` (`*squawks and bobs head*`)
+and markdown emphasis (`*C*`, `*else*`) that TTS would read out.
+Nothing in `identity.md` tells Jack his words are spoken. That needs
+fixing before step 5; shorter replies also cut Haiku's time, which
+grows with reply length.

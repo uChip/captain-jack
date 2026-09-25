@@ -639,7 +639,8 @@ transcribed text to the
 
 History: none yet.
 
-**Status: Implemented (text-only)** — `orchestrate.py`.
+**Status: Implemented** — `orchestrate.py`'s `take_turn()`, called by
+the text CLI and by the voice Coordinator (`coordinator.py`).
 
 **Description**: the central Python loop tying persona, memory, and the
 Haiku API together. Currently a text CLI (`input()`/`print()`); live-tested
@@ -1441,9 +1442,10 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build steps 1-3 (Playback, Capture,
-Listener + STT) implemented** — `playback.py`, `capture.py`,
-`listener.py`, `stt.py`, verified on the real board 2026-09-25.
+**Status: Designed 2026-09-25; build steps 1-4 (Playback, Capture,
+Listener + STT, Coordinator) implemented** — `playback.py`,
+`capture.py`, `listener.py`, `stt.py`, `coordinator.py`, verified
+2026-09-25.
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1577,6 +1579,10 @@ spotter later changes nothing downstream.
    the beep plays (the turn-taking gate, working end to end).
 4. Coordinator with the keyboard wake stand-in: speak → transcript →
    Haiku turn → printed reply (orchestrator turn function factored out).
+   **Done** — `coordinator.py`; `orchestrate.py`'s turn logic is now
+   `take_turn()`. Whisper gets a spelling hint naming the household
+   members from `memory.md` ("Kath's", not "Cat's"). `--scratch-memory`
+   runs against a temporary copy of `memory/` for testing.
 5. TTS thread (`kokoro-pi` to start, pending the bake-off), sentence by
    sentence — the thin end-to-end voice loop is complete here.
 6. Beak-sync in Playback + Serial writer.

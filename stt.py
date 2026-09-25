@@ -63,9 +63,19 @@ def audio_ctx_for(n_samples: int) -> int:
     return max(CTX_MIN, min(CTX_MAX, math.ceil(seconds * CTX_SCALE * CTX_PER_SECOND)))
 
 
+def names_prompt(names) -> str | None:
+    """Spelling hint for Whisper: it copies the spelling of names it has
+    just "seen" in its prompt (e.g. "Kath", not "Cat")."""
+    if not names:
+        return None
+    listed = ", ".join(names[:-1]) + (f" and {names[-1]}" if len(names) > 1 else names[0])
+    return f"Captain Jack the parrot, talking with {listed}."
+
+
 class STT:
-    def __init__(self, model=DEFAULT_MODEL):
+    def __init__(self, model=DEFAULT_MODEL, prompt=None):
         self.model_name = model
+        self.prompt = prompt
         self.model = Model(
             str(MODELS_DIR / f"ggml-{model}.bin"),
             redirect_whispercpp_logs_to=None,
@@ -76,6 +86,7 @@ class STT:
             no_speech_thold=NO_SPEECH_THOLD,
             logprob_thold=LOGPROB_THOLD,
             entropy_thold=ENTROPY_THOLD,
+            **({"initial_prompt": prompt} if prompt else {}),   # binding rejects None
         )
 
     def transcribe(self, samples: np.ndarray) -> Transcript:

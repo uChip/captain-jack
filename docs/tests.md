@@ -90,6 +90,26 @@ when it was last confirmed passing.
   by ear, not here.
 
 ## Seeed reSpeaker XVF3800 / Speaker
+### Coordinator turn
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 4 and the [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
+  `take_turn()` — utterance → Whisper → Haiku → reply + memory save,
+  session start/end, noise rejection.
+- **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
+  with fixture `../tests/data/quick_brown_fox_ch1.wav`.
+- **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no
+  hardware, no API — a fake Haiku client) or add `--live` for one real
+  Haiku call (needs `ANTHROPIC_API_KEY`; a fraction of a cent).
+- **Expected**: prints `PASS: coordinator transcribes, calls Haiku, saves
+  memory to scratch only, rejects noise` (plus `, live Haiku replied`)
+  and exits 0. Everything runs on a scratch copy of `memory/`; the test
+  fails if the real `memory.md` changes.
+- **Last confirmed passing**: 2026-09-25, including `--live`.
+- **Not covered**: the keyboard wake and the 2-minute timeout firing in
+  real time (logic checked directly, not the timer); a live voice
+  session (deliberately deferred to step 5, see log.md 4.16).
+
 ### Listener VAD + STT
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
