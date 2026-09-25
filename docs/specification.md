@@ -1565,9 +1565,17 @@ and is tagged **[RESOLVED]** in place.
   (2026-09-25 listening ladder, board unmounted). −20dBFS is clean but
   very quiet. Every `wavFiles/` clip peaks near 0dBFS, and TTS output
   presumably will too, so something has to hold output below the
-  clipping point. **Left open**: whether the limit is the onboard amp or
-  the speaker (40mm, 4Ω, 5W — see [3.3](#33-speaker)); which
-  mechanism to use (a fixed digital gain cap in the
+  clipping point. **Narrowed 2026-09-25**: the same ladder through
+  headphones on the XVF3800's 3.5mm jack was clean and plenty loud at
+  every step up to −3dBFS, so the digital path and DAC are fine — the
+  clipping is in the speaker path (onboard amp or the speaker itself,
+  40mm/4Ω/5W, see [3.3](#33-speaker)), with the onboard amp the likelier
+  culprit given the speaker's 5W rating. That makes an external amp fed
+  from the 3.5mm jack a strong candidate. Plugging into the jack mutes
+  the onboard speaker output (confirmed the same day), so the jack and
+  the speaker terminals are one or the other, never both. **Left open**: amp vs. speaker
+  (a swap test with another speaker, or Chip's existing external amp,
+  will settle it); which mechanism to use (a fixed digital gain cap in the
   shared mono→2ch playback step, a limiter/compressor there to keep
   loudness up, an XVF3800-side output-gain setting if Seeed's control
   tool exposes one, or an external amp fed from the XVF3800's output per

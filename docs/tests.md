@@ -107,6 +107,8 @@ when it was last confirmed passing.
   loudest step that still sounds clean.
 - **Last run**: 2026-09-25, board unmounted on the table: −14 and −10
   clean, −6 crackling, −3 worse (0dBFS was mostly static in an earlier
-  one-off play). Record the new ceiling here after any Issue 26 fix.
+  one-off play). Same day through headphones on the 3.5mm jack: all four
+  steps clean and plenty loud — the clipping is in the speaker path only.
+  Record the new ceiling here after any Issue 26 fix.
 - **Not covered**: AEC, and anything automated — there's no mic-side
   check that the sound actually came out.

@@ -630,6 +630,19 @@ number), no gain cap was picked. The ladder is now
 `tests/test_speaker_level_ladder.py`, so the test can be re-run after
 any fix.
 
+**Narrowed 2026-09-25 (headphone test)**: Chip plugged headphones into
+the XVF3800's 3.5mm jack and re-ran the ladder (volume 60/60): all four
+steps (−14/−10/−6/−3dBFS) clean and plenty loud. So the USB audio
+path, the XVF3800's DSP output, and its DAC are all clean near full
+scale; the clipping happens only in the speaker path. Chip and Claude
+both lean toward the onboard amp rather than the speaker (a 5W speaker
+on a nominally 5W amp shouldn't be the weak link). Next step, Chip's
+call: swap in another small speaker, or failing that, feed his existing
+external amp (the one that ran plenty loud in the MY1690 → amp →
+speaker build) from the XVF3800's 3.5mm jack. The bird's speaker stayed
+silent while the headphones were plugged in — plugging into the jack
+mutes the onboard speaker output, so it's one or the other, not both.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
