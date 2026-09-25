@@ -357,9 +357,17 @@ XVF3800's onboard amp or the speaker itself isn't yet known (see
 
 **Intended function**: audio output for TTS and idle/ambient clips.
 
-**Interconnect**: wired directly to the XVF3800's own output — **must not**
-be routed through a separate sound card/amp board, or the XVF3800's AEC has
-no reference signal to cancel against, defeating the reason it was chosen.
+**Interconnect**: the audio the speaker plays **must originate from the
+XVF3800's own output** — not from a separate sound card or audio source
+(e.g. the removed MY1690) — or the XVF3800's AEC has no reference signal
+to cancel against, defeating the reason it was chosen. Currently wired
+directly to the XVF3800's 2-pin JST speaker terminals (onboard amp). An
+external amp placed *after* the XVF3800 is allowed, since the AEC
+reference is the XVF3800's own internal copy of what it outputs: the
+external amp should be fed from the XVF3800's 3.5mm jack, not its
+speaker terminals, so the onboard amp's clipping isn't amplified along
+with the signal (see [3.2](#32-seeed-respeaker-xvf3800) and
+[Open Issues](#5-open-issues) issue 26).
 
 ### 3.4 Arduino Servo Controller
 
