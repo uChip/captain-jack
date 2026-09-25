@@ -1872,3 +1872,15 @@ gaps or conflicts that need resolving, not optional extras.
    that he doesn't interrupt himself — not validated until the board is
    mounted — and adds cancel/cleanup paths through TTS, Playback, and
    beak-sync. Revisit after AEC validation.
+6. **Stage directions as gesture cues.** Haiku naturally writes stage
+   directions (`*squawks and bobs head*`, `*ruffles feathers*`) — first
+   seen 2026-09-25 in voice testing. They're banned for now by
+   `identity.md`'s "Speaking aloud" section, because TTS would read them
+   out. Chip wants them back when gesture work resumes: a small fixed
+   set of action tags that the orchestrator strips from the spoken text
+   and turns into real gestures from
+   [gesture-catalog.yaml](gesture-catalog.yaml) (see
+   [4.12](#412-gesture-engine-and-catalog)), timed to where they fall in
+   the reply. Needs its own design: the tag vocabulary, the syntax
+   (distinct from markdown emphasis), and how a mid-reply gesture lines
+   up with sentence-by-sentence TTS.

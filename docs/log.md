@@ -1086,3 +1086,17 @@ and markdown emphasis (`*C*`, `*else*`) that TTS would read out.
 Nothing in `identity.md` tells Jack his words are spoken. That needs
 fixing before step 5; shorter replies also cut Haiku's time, which
 grows with reply length.
+
+**Spoken-reply rules, 2026-09-25**: added a "Speaking aloud" section to
+`memory/identity.md` (Claude drafted, Chip approved as is): one to three
+short sentences by default, plain words only, no stage directions, one
+question at a time, numbers written as spoken, and a note that the
+`MEMORY:` line isn't spoken, so brevity doesn't squeeze it out. Replayed
+on the same five recorded utterances: replies went from 79-180 words to
+9-39, asterisks disappeared, and Haiku's time per turn dropped from
+2.4-4.0s to 1.0-1.3s. Chip wants stage directions back once gesture
+work resumes, as real gesture cues rather than spoken text; parked as
+spec §6 item 6. Same replay showed Jack claiming to turn off the lights
+("Dousing the living room lights now") with no tools wired up — expected
+until the home-automation tool schema exists, since `identity.md` tells
+him he has those tools.
