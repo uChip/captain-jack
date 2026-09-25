@@ -79,19 +79,20 @@ separate stack:
 
 - **Arduino**: shrinks to real-time servo execution only (head pitch/roll/yaw,
   beak position) via a one-directional serial protocol from the Pi —
-  two compact, fixed-width line shapes, no `HEAD`/`BEAK`/`GESTURE`
-  keywords: `p<PP>r<RR>y<YYY>t<TTTT>` for head motion (always all three
-  axes + time-to-reach, eased on the Arduino) and `b<BB>` for beak
-  position (no time field — never eased, per issue 8). Reconciled
-  2026-09-14, see `docs/specification.md` section 4.13 / Open Issues
-  issue 9 — exact per-axis offsets/ranges and timing math still TBD. No
+  single-letter commands with variable-length integers, no
+  `HEAD`/`BEAK`/`GESTURE` keywords: `p`/`r`/`y` stage head targets and
+  `t` the move time, `s` starts the eased move, and `b<BB>` sets the beak
+  immediately (never eased, per issue 8). See `docs/specification.md`
+  section 4.13 for ranges and offsets. No
   sensor input, no audio hardware, and no autonomous behavior of its
   own — gestures are composed and stored on the Pi, sent down as the
   same primitive commands (**decided 2026-09-14**, see
   `docs/specification.md` Open Issues issue 7); the Arduino never sees a
   `GESTURE <id>`. If the Pi is down, the Arduino does nothing and Jack is
   motionless — accepted behavior.
-- **Pi 5**: owns all "intelligence" — runs the orchestration script, reads
+- **Pi 5**: owns all "intelligence" — one Python process with a thread per
+  shared resource (mic capture, playback + beak-sync, serial port, etc.;
+  see `docs/specification.md` section 4.16) — runs the orchestration, reads
   direction-of-arrival from the reSpeaker (`xvf_host AEC_AZIMUTH_VALUES`),
   extracts a real-time RMS amplitude envelope from whatever audio is
   currently playing (idle clips or live TTS) at ~30-50Hz to drive beak-sync —
@@ -184,7 +185,14 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     clean at −10dBFS but crackle by −6dBFS and turn to static near
     0dBFS — see `docs/specification.md` Open Issues issue 26. Test
     scripts: `tests/test_speaker_level_ladder.py` (listening) and
-    `tests/test_wavfiles_format.py` (see `docs/tests.md`).
+    `tests/test_wavfiles_format.py` (see `docs/tests.md`). Interim fix
+    until then: playback applies a fixed −10dB gain (ladder step 2) with
+    hardware volume at max.
+15. End-to-end runtime design (2026-09-25): one Python process, one
+    thread per shared resource, turn-taking (no barge-in), and
+    sentence-by-sentence TTS, with a keyboard stand-in for the wake word
+    until the custom models are trained. Includes a 7-step build order.
+    See `docs/specification.md` section 4.16.
 
 ## Work list — split by hardware dependency
 
@@ -197,7 +205,7 @@ both on hand and working, just not mounted).
 ### Doable now
 
 Everything below is hardware-unblocked, but items 1/2/4 (home-automation)
-are being deliberately sequenced *after* items 3/6/7 (the core audio
+are being deliberately sequenced *after* items 3/6/7/9 (the core audio
 conversation loop) — Chip's own priority call, not a technical
 dependency between them. Nothing here stops home-automation from being
 worked in parallel if priorities change.
@@ -242,18 +250,23 @@ worked in parallel if priorities change.
    (fixed digital gain cap in the shared playback step, a limiter, an
    XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
    item 7 — or an external amp) before picking numbers.
-9. Real-time RMS beak-sync extraction from live audio playback/TTS
-    through the reSpeaker's output (section 4.8).
-10. Idle/ambient audio playback through the reSpeaker's own output
-    (section 4.10), including the shared mono→2ch duplication step.
+9. **Build the audio loop per `docs/specification.md` section 4.16's
+   build order** — the current focus. Steps 1-5 (playback, capture,
+   VAD + whisper.cpp, coordinator with keyboard wake stand-in,
+   sentence-by-sentence TTS) give the thin end-to-end voice loop; step 6
+   adds beak-sync (section 4.8) and step 7 the motion/idle thread
+   (section 4.10), state machine, and real wake-word models. This
+   subsumes the earlier separate beak-sync and idle-playback items.
+10. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
+    "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
+    notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
+    stand-in.
 11. TTS engine bake-off — `kokoro-pi` vs. Supertonic-3 on the real Pi
     hardware (see `docs/specification.md` section 4.7 and Open Issues
     issue 16), judged primarily on voice quality (the deciding factor per
     Chip's call) with real-time throughput as a secondary check. Best
     done after item 8, so clipping doesn't muddy the voice comparison.
-12. End-to-end wake-word → STT → Haiku → TTS → beak-sync → Arduino loop,
-    tested for real.
-13. First-pass AEC check against the bird's own speaker — possible now
+12. First-pass AEC check against the bird's own speaker — possible now
     with the board unmounted, but the geometry (speaker-to-mic distance)
     will change once mounted, so this is a smoke test, not the final
     validation.

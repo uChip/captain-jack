@@ -468,9 +468,12 @@ the text-in/text-out core of the orchestrator and its memory read/write
 loop are implemented; every audio- and motion-facing module below is
 designed (to varying depth) but not yet built. The Arduino is wired and
 validated ([3.4](#34-arduino-servo-controller)) and the XVF3800 is
-USB-connected ([3.2](#32-seeed-respeaker-xvf3800)); the remaining
-hardware blocker for audio-output/AEC-facing modules specifically is the
-speaker not yet being wired ([3.3](#33-speaker)).
+USB-connected with the speaker wired ([3.2](#32-seeed-respeaker-xvf3800),
+[3.3](#33-speaker)), so no module is waiting on hardware to start; only
+final AEC and speaker-ID validation wait on mounting the board. How the
+modules run together as one program — threads, what each owns, and one
+full turn start to finish — is in
+[Runtime Integration](#416-runtime-integration-end-to-end-turn).
 
 ### 4.1 Wake Word Spotter
 
@@ -629,7 +632,9 @@ model as an autonomous tool call); calls the Anthropic Messages API; will
 eventually also call [STT](#42-speech-to-text-stt) for input,
 [TTS](#47-text-to-speech-tts) for output, and the
 [home-automation tool schema](#46-home-automation-tool-schema) mid-turn —
-none of that wiring exists yet.
+none of that wiring exists yet. In the full program its per-turn logic
+is called by the Coordinator thread (see
+[4.16](#416-runtime-integration-end-to-end-turn)).
 
 ### 4.4 Persona and Identity Prompt
 
@@ -812,7 +817,8 @@ normalized to that one format before playback, so this module never
 needs source-specific handling.
 
 **Intended function**: produce a live beak-position value from audio
-amplitude and stream it to the Arduino as `BEAK <0–255>` commands. Because
+amplitude and stream it to the Arduino as `b<BB>` commands (nominal
+0–45, see [4.13](#413-pi-to-arduino-serial-link)). Because
 the envelope needs to be computed before playback timing catches up,
 audio playback likely needs a small deliberate delay to keep beak motion in
 sync — accounting for RMS processing, command generation/transmission, and
@@ -821,12 +827,12 @@ Arduino-side parsing/mechanical response time.
 All beak smoothing happens here, as part of extracting the envelope itself
 (attack/release-style shaping) — not as a separate easing step on either
 side (see [Open Issues](#5-open-issues) issue 8). The Arduino applies the
-`BEAK` value it receives directly to PWM, no interpolation; see
+`b` value it receives directly to PWM, no interpolation; see
 [Arduino Firmware](#414-arduino-firmware).
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the
-[idle/ambient player](#410-idle-and-ambient-audio-player); writes `BEAK`
+[idle/ambient player](#410-idle-and-ambient-audio-player); writes `b`
 commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
 
 ### 4.9 Direction of Arrival (DoA) Reader
@@ -1060,10 +1066,11 @@ catalogs is active, and hand off to/from the
 [Wake Word Spotter](#41-wake-word-spotter) and
 [Conversation Orchestrator](#43-conversation-orchestrator) on transitions.
 
-**Interfaces**: would sit "above" the orchestrator, wake-word spotter, and
-idle player, coordinating all three — no such coordinating module currently
-exists; `orchestrate.py` today only implements the On Watch conversation
-loop in isolation.
+**Interfaces**: sits "above" the orchestrator, wake-word spotter, and
+idle player, coordinating all three — runs in the Coordinator thread (see
+[4.16](#416-runtime-integration-end-to-end-turn)); not yet implemented.
+`orchestrate.py` today only implements the On Watch conversation loop in
+isolation.
 
 ### 4.12 Gesture Engine and Catalog
 
@@ -1096,7 +1103,7 @@ primitive, timed servo commands — not a single opaque `GESTURE <id>`.
 [Conversation Orchestrator](#43-conversation-orchestrator) (in-session),
 the [Idle/Ambient Audio Player](#410-idle-and-ambient-audio-player) (offline),
 or [DoA](#49-direction-of-arrival-doa-reader); emits a decomposed sequence
-of `HEAD`/`BEAK` commands with timing over the
+of `p`/`r`/`y`/`t`/`s` and `b` commands over the
 [serial link](#413-pi-to-arduino-serial-link), per
 [Arduino-command-structure.md](Arduino-command-structure.md) — never a
 single opaque `GESTURE <id>`.
@@ -1403,6 +1410,142 @@ resolves a speaker identity for the [Conversation
 Orchestrator](#43-conversation-orchestrator) to use when addressing
 [Memory Subsystem](#45-memory-subsystem) facts.
 
+### 4.16 Runtime Integration (End-to-End Turn)
+
+History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
+
+**Status: Designed 2026-09-25, not implemented.**
+
+**Description**: how the modules in 4.1–4.15 run together as one
+program. Each module section above states its own interfaces; this
+section describes a whole turn from start to finish, and which part of
+the program owns each shared resource.
+
+**Process model — decided 2026-09-25**: one Python process with a small
+fixed set of long-lived threads, each owning one resource, handing data
+to each other only through thread-safe queues (no shared mutable state
+beyond the current mode). Heavy compute (whisper.cpp, openWakeWord,
+TTS) runs inside native libraries that release Python's interpreter
+lock, so threads genuinely run in parallel where it matters.
+
+```
+ mic ─► Capture ─► Listener ─► Coordinator ─► TTS ─► Playback ─► speaker
+          (a)   frames (b) events (c)  sentences (d) audio (e)
+                                  │                    ▲    │ b<BB>
+                                  │ mode    idle clips │    ▼
+                                  └──► Motion & idle ──┘  Serial ─► Arduino
+                                           (g) ── p/r/y/t/s ─► writer (f)
+```
+
+**Threads and what each owns:**
+
+- **(a) Capture** — sole reader of the XVF3800's capture device (fixed
+  16kHz/S16_LE/2ch, see [3.2](#32-seeed-respeaker-xvf3800)). Keeps one
+  of the two channels (which one carries the XVF3800's processed voice
+  output is not yet determined — a record-and-compare test) and emits
+  mono 80ms frames (1280 samples, openWakeWord's native frame size) to
+  the Listener. Never stops reading, even while input is being ignored,
+  so the device buffer can't overrun.
+- **(b) Listener** — turns frames into events for the Coordinator.
+  Behavior depends on the current mode: in Off Watch/Asleep it runs
+  [openWakeWord](#41-wake-word-spotter) and posts *wake* or
+  *sleep-phrase* events; in On Watch it runs
+  [Silero VAD](#42-speech-to-text-stt), assembles one complete utterance
+  (including a short pre-roll buffer, so the first syllable isn't
+  clipped by VAD's detection lag), and posts it as an *utterance* event.
+  **Turn-taking, not barge-in (decided 2026-09-25)**: while anything is
+  playing, and for a short hold-off after playback ends (room echo
+  tail, length to be tuned), the Listener discards frames rather than
+  acting on them — in every mode, including idle clips in Off Watch.
+  Interruption is a possible later addition once AEC has been validated
+  on the mounted board (see [Possible Future
+  Enhancements](#6-possible-future-enhancements)).
+- **(c) Coordinator** (main thread) — owns the mode (the
+  [Sleep-Mode State Machine](#411-sleep-mode-state-machine)) and runs
+  the On Watch turn in sequence, blocking while it works (nothing else
+  needs it meanwhile, since the Listener is ignoring input while Jack
+  speaks):
+  1. utterance → [STT](#42-speech-to-text-stt) (whisper.cpp + its
+     confidence thresholds). A reject plays an in-character "say again"
+     clip instead of calling Haiku.
+  2. (later) same utterance audio → [speaker ID](#415-speaker-recognition-voice-id).
+  3. transcript → the [Conversation Orchestrator](#43-conversation-orchestrator)'s
+     turn function → spoken reply + optional `MEMORY:` proposal +
+     optional end-session/nap meta-tag (the meta-tag isn't implemented
+     yet in `orchestrate.py`). Memory is saved here, in orchestration
+     code, as today.
+  4. spoken reply → split into sentences → queued to TTS.
+  5. if the reply carried a meta-tag, switch mode once its playback
+     finishes; otherwise start On Watch's 2-minute no-prompt timer when
+     the last sentence finishes playing (per 4.11).
+  The orchestrator's per-turn logic, currently inline in
+  `orchestrate.py`'s `main()`, gets factored into a callable turn
+  function; the text CLI stays as a thin wrapper around it for testing
+  without audio.
+- **(d) TTS** — takes sentences one at a time, synthesizes each, and
+  resamples to the canonical 16kHz mono (see
+  [4.7](#47-text-to-speech-tts)), queuing each finished sentence to
+  Playback. **Sentence by sentence (decided 2026-09-25)**: sentence 1
+  starts playing while sentence 2 is being synthesized, so the wait
+  before Jack starts talking is roughly one sentence's synthesis time,
+  not the whole reply's.
+- **(e) Playback** — sole writer to the XVF3800's playback device. Takes
+  mono 16kHz buffers from any source (TTS sentences, idle clips, canned
+  clips) through one queue and plays them in order. Per output block it
+  applies the output gain cap (see below), computes the
+  [beak-sync](#48-beak-sync-rms-envelope-extraction) RMS value and sends
+  a `b<BB>` command to the Serial writer, then duplicates mono to the
+  device's 2 channels and writes it — the "one shared step at the ALSA
+  write" from 4.7, and the one place every played sound passes through.
+  Beak commands are delayed by the measured device output latency so
+  the beak moves when the sound actually leaves the speaker
+  (calibrated with `AlignmentTone.wav`). Posts *playback started* and
+  *playback finished* events, which drive the Listener's gating and the
+  Coordinator's timers.
+- **(f) Serial writer** — sole owner of the Arduino serial port. Accepts
+  command strings from Playback (beak) and Motion (head) and writes
+  them. Beak commands are latest-wins: if several queue up, only the
+  newest is sent, since a stale beak position is worse than a skipped
+  one.
+- **(g) Motion & idle** — runs the current mode's gesture behavior from
+  [gesture-catalog.yaml](gesture-catalog.yaml) (the ambient/excursion
+  loops `exercise_hardware.py` prototypes today) and, in Off
+  Watch/Asleep, schedules idle clips into the Playback queue per
+  [4.10](#410-idle-and-ambient-audio-player). Later, DoA-driven
+  baseline yaw ([4.9](#49-direction-of-arrival-doa-reader)) feeds in
+  here. Switches catalogs when the Coordinator changes mode.
+
+**Output gain cap — interim, decided 2026-09-25**: until
+[Open Issues](#5-open-issues) issue 26 is fixed, Playback scales every
+sample by a fixed −10dB (×0.316), with the XVF3800's ALSA `PCM Playback
+Volume` at max (60/60). Since clips and TTS peak near 0dBFS, that holds
+output at or below −10dBFS — step 2 of the level ladder, the loudest
+level heard clean through the onboard amp. A plain fixed gain, not a
+limiter; revisit when issue 26 is resolved.
+
+**First build — a stand-in for the wake word**: until the custom
+openWakeWord models for "Ahoy, Captain Jack" and "Goodnight, Jack" are
+trained (see [4.1](#41-wake-word-spotter)), a keyboard trigger (Enter
+in the terminal) posts the same *wake* event the Listener would. Because
+it's just another source of the same event, swapping in the real
+spotter later changes nothing downstream.
+
+**Build order** (each step runnable and testable on its own):
+1. Playback thread: gain cap + mono→2ch; play a `wavFiles/` clip.
+2. Capture thread; determine which of the two capture channels to use.
+3. Listener VAD + whisper.cpp: print transcripts of spoken utterances.
+4. Coordinator with the keyboard wake stand-in: speak → transcript →
+   Haiku turn → printed reply (orchestrator turn function factored out).
+5. TTS thread (`kokoro-pi` to start, pending the bake-off), sentence by
+   sentence — the thin end-to-end voice loop is complete here.
+6. Beak-sync in Playback + Serial writer.
+7. Motion & idle thread, state machine and timeouts, real wake-word
+   models.
+
+**Interfaces**: this section *is* the wiring between 4.1–4.15; each
+module's own Interfaces paragraph remains the source for what it
+consumes and produces.
+
 ## 5. Open Issues
 
 History: [log.md#open-issues-history](log.md#open-issues-history).
@@ -1582,7 +1725,10 @@ and is tagged **[RESOLVED]** in place.
   [3.2](#32-seeed-respeaker-xvf3800)); and whether ~−10dBFS is loud
   enough in a real room. This matters for AEC too, not just sound
   quality: clipping is nonlinear distortion that the XVF3800's echo
-  canceller can't model from its clean reference signal. History:
+  canceller can't model from its clean reference signal. **Interim
+  (2026-09-25)**: playback applies a fixed −10dB gain with hardware
+  volume at max, holding output at the ladder's clean step 2 until this
+  is fixed (see [4.16](#416-runtime-integration-end-to-end-turn)). History:
   [log.md#issue-26](log.md#issue-26).
 
 ## 6. Possible Future Enhancements
@@ -1671,3 +1817,11 @@ gaps or conflicts that need resolving, not optional extras.
    once real use has settled which algorithm(s) to keep does trimming
    make sense. A good task to hand to Claude: fork a local copy of the
    ServoEasing repo and strip everything not in use.
+5. **Barge-in (interrupting Jack mid-reply).** Set aside 2026-09-25 in
+   favor of strict turn-taking for the first build (see
+   [4.16](#416-runtime-integration-end-to-end-turn)). Letting a household
+   member cut Jack off mid-sentence would feel more natural, but it
+   depends on AEC keeping Jack's own voice out of the mic well enough
+   that he doesn't interrupt himself — not validated until the board is
+   mounted — and adds cancel/cleanup paths through TTS, Playback, and
+   beak-sync. Revisit after AEC validation.

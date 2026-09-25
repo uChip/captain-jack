@@ -930,3 +930,44 @@ was observed to interfere with the servo easing library in the prior
 MY1690-era design, and was removed along with the MY1690 (see 3.7).
 Firmware must not reintroduce SoftwareSerial alongside the easing library
 without further research into that interaction.
+
+### 4.16 Runtime Integration (End-to-End Turn)
+
+**Designed 2026-09-25**: the "interconnection" session planned at the
+end of the 2026-09-23 audio-pipeline design session. Each module
+section in the spec already listed its own interfaces, but nothing
+described a whole turn or which part of the program owns the mic, the
+speaker, and the serial port. Claude proposed the design; Chip made the
+three real choices, all as recommended:
+
+- **One process with threads**, over asyncio or several cooperating
+  processes. asyncio was rejected because nearly every audio/ML library
+  involved blocks, so they'd need wrapping in threads anyway, and
+  async/await code is harder for Chip to read than threads plus queues,
+  which map directly onto how the same program would be structured in
+  C. Multiple processes would isolate crashes but add IPC plumbing and
+  make sharing one mic stream between the wake-word spotter, VAD, and
+  speaker-ID awkward. The threads model works because whisper.cpp,
+  openWakeWord (onnxruntime), and the TTS engines do their heavy
+  compute in native code that releases Python's interpreter lock.
+- **Turn-taking, not barge-in**, for the first build. Barge-in depends
+  on AEC keeping Jack's own voice out of the mic, not validated until
+  the board is mounted, and adds cancel paths through TTS, Playback, and
+  beak-sync. Parked as spec §6 item 5.
+- **Sentence-by-sentence TTS**, over synthesizing the whole reply
+  first: on a long reply the whole-reply approach would leave a
+  multi-second silence before Jack starts talking.
+
+Two consequences Claude settled without a separate decision, since they
+follow from choices already made: beak-sync lives inside the Playback
+thread (it's the one place every played sound passes through, which
+also keeps it in step with what is actually being written to the
+device), and the interim −10dB output gain cap from Issue 26 lives in
+that same step. The keyboard stand-in for the wake word came out of the
+same discussion: training the two custom openWakeWord models needs a
+GPU (e.g. a Colab notebook), not the Pi, so it shouldn't gate the first
+voice loop.
+
+Same session, cleanup: spec 4.8 and 4.12 still named the long-retired
+`BEAK <0–255>`/`HEAD` commands; updated to 4.13's `b<BB>` and
+`p`/`r`/`y`/`t`/`s`.
