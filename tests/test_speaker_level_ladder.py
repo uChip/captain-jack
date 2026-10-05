@@ -24,7 +24,7 @@ DEVICE = "hw:CARD=Array,DEV=0"
 RATE = 16000
 GAP_S = 2
 DEFAULT_CLIP = "DeadMenTellNoTales.wav"
-DEFAULT_STEPS = [-14.0, -10.0, -6.0, -3.0]
+DEFAULT_STEPS = [-10.0, -6.0, -3.0, 0.0]
 
 
 def load_mono(path):
