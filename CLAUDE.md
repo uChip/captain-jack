@@ -263,14 +263,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     no beak commands at all (see `docs/specification.md` section 4.8 and
     `docs/log.md`'s 4.8 history for the full diagnosis). Once fixed, 7
     of 8 tone/silence cycles looked well-synced by eye; the first
-    consistently starts late (repeatable, root cause still open — ruled
+    consistently started late (repeatable, root cause still open — ruled
     out a Python-side timing bug, a device startup latency spike, and
-    cold-servo stiction). Tried two experiments together, not yet
-    confirmed: widened `ARDUINO_BOOT_DELAY_S` and added a throwaway
-    `WARMUP_CMD` sent once after boot. `ALIGNMENT_FUDGE_S` and the
-    envelope mapping defaults are still untuned — Chip is doing a
-    frame-matched video analysis off-line to get a precise offset
-    number, to bring back next session. Beak-sync is not yet wired into
+    cold-servo stiction). Tried two experiments together (widened
+    `ARDUINO_BOOT_DELAY_S`, added a throwaway `WARMUP_CMD` sent once
+    after boot) and re-watched: all 8 cycles now look evenly timed by
+    eye, including the first — visually fixed, not root-caused, and not
+    yet confirmed by measurement. `ALIGNMENT_FUDGE_S` and the envelope
+    mapping defaults are still untuned — Chip is doing a frame-matched
+    video analysis off-line to get a precise offset number, to bring
+    back next session. Beak-sync is not yet wired into
     `coordinator.py`'s live loop.
 
 ## Work list — split by hardware dependency
@@ -325,10 +327,11 @@ worked in parallel if priorities change.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — the current focus. Steps 1-6 are done: the thin
    end-to-end voice loop works (`coordinator.py`), and beak-sync exists
-   and has had its first live watch (see "Done so far" item 24) — 7 of 8
-   cycles looked synced, a first-cycle-late-start bug is being chased
-   (two untested experiments already applied), and the precise
-   `ALIGNMENT_FUDGE_S` offset is pending Chip's off-line video analysis.
+   and has had its first live watch (see "Done so far" item 24) — all 8
+   cycles now look synced by eye after two experiments for a
+   first-cycle-late-start bug (not root-caused, not yet measurement-
+   confirmed), and the precise `ALIGNMENT_FUDGE_S` offset is pending
+   Chip's off-line video analysis.
    Before moving to step 7 (motion/idle thread, section 4.10, the state
    machine, and real wake-word models): get that offset and the envelope
    floor/ceiling/attack/release defaults (section 4.8) tuned, confirm

@@ -864,12 +864,12 @@ History: [log.md#48-beak-sync-rms-envelope-extraction](log.md#48-beak-sync-rms-e
 **Status: Implemented (build step 6), 2026-10-06** — `playback.py` +
 `serial_link.py`; automatic correctness tests pass
 (`tests/test_beak_sync.py`). Watched live against
-`wavFiles/AlignmentTone.wav`: 7 of 8 tone/silence cycles looked
-well-synced by eye; the first cycle after boot consistently starts
-late, repeatable across runs (ruled out as random jitter) — not yet
-root-caused, see **First-cycle late start** below. Precise frame-matched
-offset measurement (video against the audio waveform) is in progress,
-off-line — numbers not in yet.
+`wavFiles/AlignmentTone.wav`: all 8 tone/silence cycles now look
+well-synced by eye, including the first, after the two untried
+experiments from the first watch (see **First-cycle late start**
+below) — visually fixed, not yet root-caused, and not yet confirmed by
+measurement. Precise frame-matched offset (video against the audio
+waveform) is in progress, off-line — numbers not in yet.
 
 **Description**: real-time RMS amplitude envelope extraction from whatever
 audio is currently playing — idle clip or live TTS — at 50Hz (one
@@ -915,30 +915,33 @@ calibration script: the same beak-sync mechanism this section describes
 already opens/closes the beak in sync with the tone's on/off pattern) and
 judging by eye/ear whether the beak leads or lags the audible tone.
 
-**First-cycle late start — found 2026-10-06, not yet root-caused**: in
-every live run so far, the first tone/silence cycle after the Arduino
-boots starts late (the beak opens after the tone has already started,
-then closes on time) — the remaining cycles are well-synced. Repeatable
-across multiple runs, so not random scheduling jitter. Ruled out:
-(a) a Python-side timing bug — a controlled run through the identical
-code path, logging the delay between Playback queuing a value and the
-Serial writer actually sending it, showed the *same* ~100-125ms latency
-on the very first command as on every later one, no anomaly; (b) servo
-stiction from sitting idle — the beak was already moving seconds
-earlier, finishing the boot self-test, not cold. Likely cause, per
-Chip's suggestion: something specific to the very first command
-actually reaching the Arduino over serial — `ServoControl.ino`'s
-`parseInt()` waits up to its 5ms timeout for a terminating character
-after a bare `b<BB>` (nothing follows it on the wire), and a first-call
-quirk in that path isn't ruled out. Two cheap experiments applied
-together in `serial_link.py`, effectiveness not yet confirmed: widened
+**First-cycle late start — found and visually fixed 2026-10-06, not
+root-caused**: in the first live run, the first tone/silence cycle
+after the Arduino boots started late (the beak opened after the tone
+had already started, then closed on time) — the remaining cycles were
+well-synced. Repeatable across multiple runs that day, so not random
+scheduling jitter. Ruled out: (a) a Python-side timing bug — a
+controlled run through the identical code path, logging the delay
+between Playback queuing a value and the Serial writer actually sending
+it, showed the *same* ~100-125ms latency on the very first command as on
+every later one, no anomaly; (b) servo stiction from sitting idle — the
+beak was already moving seconds earlier, finishing the boot self-test,
+not cold. Likely cause, per Chip's suggestion: something specific to the
+very first command actually reaching the Arduino over serial —
+`ServoControl.ino`'s `parseInt()` waits up to its 5ms timeout for a
+terminating character after a bare `b<BB>` (nothing follows it on the
+wire), and a first-call quirk in that path isn't ruled out. Two cheap
+experiments applied together in `serial_link.py`, not isolated: widened
 `ARDUINO_BOOT_DELAY_S` (3.5s → 5.0s, more settle time after reset) and
 added `WARMUP_CMD` (`t100`, sent once right after boot — stages a move
 duration without triggering or touching the beak, so it's invisible if
 it does nothing, but gives the parser one full cycle to settle before a
-command that needs to look right). Next confirmation: Chip's video
-analysis, already in progress for the main alignment measurement, can
-also show whether cycle 1 still starts late.
+command that needs to look right). **Re-watched after both changes**: all
+8 cycles, including the first, now look evenly timed by eye — visually
+fixed. Not root-caused (don't know which of the two mattered, or
+whether it was really the suspected `parseInt()` quirk at all), and not
+yet confirmed by Chip's frame-matched video measurement, still in
+progress.
 
 **Tunable defaults, not measured** (`playback.py`): envelope floor
 −40dBFS (rest closed), ceiling −15dBFS (fully open), attack time

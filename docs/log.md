@@ -958,18 +958,25 @@ Candidate mechanism: `ServoControl.ino`'s `parseInt()` waits up to a 5ms
 timeout for a terminator after a bare `b<BB>` command (nothing follows
 it on the wire) - a first-parse quirk on that path isn't ruled out.
 
-**Two experiments applied together, 2026-10-06, effectiveness not yet
-confirmed** (`serial_link.py`): widened `ARDUINO_BOOT_DELAY_S` from 3.5s
-to 5.0s (more settle time after the DTR reset), and added `WARMUP_CMD`
-(`t100`, sent once right after boot, before any real traffic) — stages a
-move duration without triggering a move or touching the beak, so it's
-invisible if it does nothing, but gives the Arduino's parser one full
-cycle to run before a command that actually needs to look right.
-Deliberately not isolated (tried both at once rather than one at a
-time) given the session was wrapping up — Chip's video analysis, once
-it's done, can also show whether the first cycle still starts late; if
-it does, these get revisited, possibly isolated to find out which one
-(if either) actually mattered.
+**Two experiments applied together, 2026-10-06** (`serial_link.py`):
+widened `ARDUINO_BOOT_DELAY_S` from 3.5s to 5.0s (more settle time after
+the DTR reset), and added `WARMUP_CMD` (`t100`, sent once right after
+boot, before any real traffic) — stages a move duration without
+triggering a move or touching the beak, so it's invisible if it does
+nothing, but gives the Arduino's parser one full cycle to run before a
+command that actually needs to look right. Deliberately not isolated
+(tried both at once rather than one at a time) given the session was
+wrapping up.
+
+**Re-watched same day, after both changes**: Chip recorded a second
+video and reported all 8 cycles, including the first, now look evenly
+timed by eye — "visually, the problem is fixed... very similar timing to
+the other 7." Not root-caused (don't know which of the two changes
+mattered, or whether the suspected `parseInt()` quirk was really the
+mechanism), and not yet confirmed by measurement — Chip's frame-matched
+video analysis against the audio waveform is still in progress,
+off-line, and will also serve as the real check on whether this holds
+up under precise measurement rather than just looking right by eye.
 
 ### Debounce-vs-throttle bug (first live test sent nothing at all)
 
