@@ -214,19 +214,26 @@ when it was last confirmed passing.
   dBFS-to-beak-angle mapping (floor/ceiling/clamping), that sustained
   loud audio opens the beak and sustained silence rests it closed, that
   nothing is sent when no `SerialWriter` is attached, and that
-  `SerialWriter` only ever sends the latest queued beak command and
-  never before its `dac_time` arrives — all against fake buffers/clocks,
-  no serial port or speaker needed.
+  `SerialWriter`'s bounded FIFO delay line sends queued beak commands in
+  order once each one's `dac_time` arrives, dropping only the oldest if
+  it ever backs up past `BEAK_QUEUE_MAXLEN` — all against fake
+  buffers/clocks, no serial port or speaker needed.
 - **Last confirmed passing**: 2026-10-06.
+- **First live watch, 2026-10-06** (`playback.py wavFiles/AlignmentTone.wav
+  --beak`, Chip watching the real bird): 7 of 8 tone/silence cycles
+  looked well-synced by eye; the first consistently starts late
+  (repeatable — see `docs/specification.md` section 4.8 and `docs/log.md`'s
+  4.8 history for the full diagnosis and two untested experiments tried).
+  `ALIGNMENT_FUDGE_S` and the envelope floor/ceiling/attack/release
+  defaults are still untuned — Chip is doing a frame-matched video
+  analysis off-line for a precise offset number.
 - **Not covered — needs a person watching and listening to the real
-  bird**: whether the beak's movement actually lines up with when sound
-  leaves the speaker (`ALIGNMENT_FUDGE_S` in `serial_link.py` is an
-  untuned starting guess), and whether the envelope mapping's floor/
-  ceiling/attack/release defaults in `playback.py` look natural rather
-  than too twitchy or too sluggish. Procedure: `venv/bin/python
-  playback.py wavFiles/AlignmentTone.wav --beak` (opens the Arduino) and
-  watch/listen for the beak opening exactly during the tone, closing
-  exactly during the silence.
+  bird**: whether the two first-cycle experiments
+  (`ARDUINO_BOOT_DELAY_S`, `WARMUP_CMD`) actually fixed it, and the
+  precise alignment offset/envelope tuning above. Procedure:
+  `venv/bin/python playback.py wavFiles/AlignmentTone.wav --beak` (opens
+  the Arduino) and watch/listen for the beak opening exactly during the
+  tone, closing exactly during the silence.
 
 
 ### Capture thread

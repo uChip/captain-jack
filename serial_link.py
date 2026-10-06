@@ -48,9 +48,28 @@ BAUD = 115200
 # ServoControl.ino's ~2.5s DEBUG startup self-test (beak open/close a few
 # times) before it's ready for real commands. See ServoControl.ino,
 # exercise_hardware.py.
-ARDUINO_BOOT_DELAY_S = 3.5
+#
+# Widened from 3.5s to 5.0s, 2026-10-06: live testing found the first
+# beak-sync cycle after boot consistently starts late (confirmed
+# repeatable, not random jitter), even though the Pi-side queue-to-send
+# timing measures identically to every later cycle - the cause is
+# something past the serial write, not in this file's own scheduling.
+# Not confirmed to fix it yet; see WARMUP_CMD below for the other half
+# of this experiment.
+ARDUINO_BOOT_DELAY_S = 5.0
 
 BEAK_RANGE = 60   # ServoControl.ino: 0 = beak open, 60 = beak fully closed (rest)
+
+# Sent once, right after boot, before any real beak/head command: `t100`
+# only stages a move duration (see spec 4.13) - it never triggers a move
+# (that needs `s`) and never touches the beak, so it's invisible if it
+# does nothing, but it gives the Arduino's parser one full parseInt()
+# cycle to settle before anything that actually needs to look right.
+# ServoControl.ino's parseInt() waits up to a 5ms timeout for a
+# terminator after a bare `b<BB>` (nothing follows it on the wire) -
+# plausible first-command-only quirk, not confirmed yet. The other half
+# of this experiment is ARDUINO_BOOT_DELAY_S, above.
+WARMUP_CMD = "t100"
 
 # Small fixed correction layered on top of the dac_time/now() delay
 # already available from Playback's stream clock: serial transmission
@@ -104,6 +123,7 @@ class SerialWriter:
             self._ser = serial.Serial(self._port_name, BAUD, timeout=0.2)
             time.sleep(ARDUINO_BOOT_DELAY_S)
             self._drain()
+            self._write(WARMUP_CMD)
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
 

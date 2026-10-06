@@ -250,15 +250,28 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     and speaker-ID accuracy testing, previously waiting on the board
     being physically mounted.
 23. Build step 6 done (2026-10-06): `serial_link.py` (the Serial writer
-    thread — latest-wins beak commands, timed against Playback's
-    dac_time; head/gesture FIFO path exists but unused until step 7) and
-    beak-sync added to `playback.py` (RMS envelope → beak angle per
-    20ms block). Automatic tests pass (`tests/test_beak_sync.py`);
-    found and fixed a real spec/firmware drift along the way (section
-    4.13's beak/head ranges had gone stale — see
-    `docs/specification.md` section 4.8). Not yet watched against the
-    real bird to tune `ALIGNMENT_FUDGE_S` and the envelope mapping
-    defaults, and not yet wired into `coordinator.py`'s live loop.
+    thread — a small bounded FIFO delay line for beak commands, timed
+    against Playback's dac_time; head/gesture FIFO path exists but
+    unused until step 7) and beak-sync added to `playback.py` (RMS
+    envelope → beak angle per 20ms block). Automatic tests pass
+    (`tests/test_beak_sync.py`); found and fixed a real spec/firmware
+    drift along the way (section 4.13's beak/head ranges had gone stale
+    — see `docs/specification.md` section 4.8).
+24. First live watch against the real bird, 2026-10-06
+    (`wavFiles/AlignmentTone.wav` via `playback.py --beak`): found and
+    fixed a debounce-vs-throttle bug that meant the first attempt sent
+    no beak commands at all (see `docs/specification.md` section 4.8 and
+    `docs/log.md`'s 4.8 history for the full diagnosis). Once fixed, 7
+    of 8 tone/silence cycles looked well-synced by eye; the first
+    consistently starts late (repeatable, root cause still open — ruled
+    out a Python-side timing bug, a device startup latency spike, and
+    cold-servo stiction). Tried two experiments together, not yet
+    confirmed: widened `ARDUINO_BOOT_DELAY_S` and added a throwaway
+    `WARMUP_CMD` sent once after boot. `ALIGNMENT_FUDGE_S` and the
+    envelope mapping defaults are still untuned — Chip is doing a
+    frame-matched video analysis off-line to get a precise offset
+    number, to bring back next session. Beak-sync is not yet wired into
+    `coordinator.py`'s live loop.
 
 ## Work list — split by hardware dependency
 
@@ -312,16 +325,18 @@ worked in parallel if priorities change.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — the current focus. Steps 1-6 are done: the thin
    end-to-end voice loop works (`coordinator.py`), and beak-sync exists
-   (`serial_link.py` + `playback.py`) but hasn't been watched against the
-   real bird or wired into `coordinator.py` yet. Before moving to step 7
-   (motion/idle thread, section 4.10, the state machine, and real
-   wake-word models): watch/listen to `playback.py
-   wavFiles/AlignmentTone.wav --beak` and tune `ALIGNMENT_FUDGE_S` and
-   the envelope floor/ceiling/attack/release defaults (section 4.8) if
-   needed, then wire the Serial writer + beak-sync into the live
-   coordinator loop. Open refinements from the live runs: replies still
-   often 25-45 words against a 20-word target; stream Haiku's reply into
-   TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts to
+   and has had its first live watch (see "Done so far" item 24) — 7 of 8
+   cycles looked synced, a first-cycle-late-start bug is being chased
+   (two untested experiments already applied), and the precise
+   `ALIGNMENT_FUDGE_S` offset is pending Chip's off-line video analysis.
+   Before moving to step 7 (motion/idle thread, section 4.10, the state
+   machine, and real wake-word models): get that offset and the envelope
+   floor/ceiling/attack/release defaults (section 4.8) tuned, confirm
+   whether the first-cycle fix worked, then wire the Serial writer +
+   beak-sync into the live coordinator loop. Open refinements from the
+   live conversation runs: replies still often 25-45 words against a
+   20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
+   delay; pass low-confidence transcripts to
    Haiku marked unclear (see spec 4.2).
 9. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
    "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training

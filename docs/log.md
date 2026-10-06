@@ -923,6 +923,78 @@ reasonable default, tune by watching the real bird" pattern already used
 for gesture amplitudes (Issue 25) and the TTS voice pick. Not yet tuned
 against a live listen.
 
+**First live watch, 2026-10-06**: played `AlignmentTone.wav` through
+`playback.py --beak` with Chip watching the real bird. First attempt
+sent nothing at all — see "Debounce-vs-throttle bug" below, found and
+fixed the same session. Once fixed, Chip counted 10 open/close cycles
+total: 2 from `ServoControl.ino`'s own startup self-test (it does two
+full open-close cycles, not one — confirmed directly from the firmware
+source) plus the 8 tone/silence reps, matching exactly. 7 of the 8 tone
+cycles looked well-synced by eye; the first (the 3rd cycle overall)
+consistently started late (beak opened after the tone had already
+started, closed on time) across multiple runs — repeatable, not random
+jitter per Chip's observation.
+
+Ruled out before guessing further: (1) checked `AlignmentTone.wav`
+itself directly (RMS per 10ms window) — clean ~100ms of near-silence
+then an immediate, click-free jump to the tone level; not a file
+artifact. (2) Hypothesized a device "pre-roll" startup latency spike
+(dac_time running further ahead of now() right after the stream starts,
+settling to steady-state later) — checked by logging dac_time/now() for
+the first 40 blocks of a real stream: the gap is already at its
+steady-state ~100-125ms from block 0, no spike. (3) Hypothesized a
+Python-side queueing delay specific to the first command — checked by
+tracing the actual queue-to-send latency per command through the real
+Playback+SerialWriter path (dry-run, no Arduino needed): identically
+~97-125ms for command 0 as for every later one, including right across
+the first closed→open transition. None of these explain it.
+
+Chip's read, which the evidence doesn't contradict: the servo itself
+was already moving seconds earlier (finishing its own boot self-test),
+so cold-servo stiction doesn't fit either — pointing instead at
+something specific to the very *first command* reaching the Arduino
+over serial specifically, not a Pi-side timing question at all.
+Candidate mechanism: `ServoControl.ino`'s `parseInt()` waits up to a 5ms
+timeout for a terminator after a bare `b<BB>` command (nothing follows
+it on the wire) - a first-parse quirk on that path isn't ruled out.
+
+**Two experiments applied together, 2026-10-06, effectiveness not yet
+confirmed** (`serial_link.py`): widened `ARDUINO_BOOT_DELAY_S` from 3.5s
+to 5.0s (more settle time after the DTR reset), and added `WARMUP_CMD`
+(`t100`, sent once right after boot, before any real traffic) — stages a
+move duration without triggering a move or touching the beak, so it's
+invisible if it does nothing, but gives the Arduino's parser one full
+cycle to run before a command that actually needs to look right.
+Deliberately not isolated (tried both at once rather than one at a
+time) given the session was wrapping up — Chip's video analysis, once
+it's done, can also show whether the first cycle still starts late; if
+it does, these get revisited, possibly isolated to find out which one
+(if either) actually mattered.
+
+### Debounce-vs-throttle bug (first live test sent nothing at all)
+
+**Found and fixed 2026-10-06**, same first live watch session, before
+the "first cycle" finding above: the original design held a single
+"latest" beak value and released it once `now()` reached its own
+`dac_time`. Measured against the real device, `dac_time` runs a fairly
+constant ~100-120ms ahead of `now()`, and blocks arrive every 20ms -
+faster than that gap can close. Every new block replaced the pending
+one and reset the target another ~100ms further out before the old
+target could ever be reached - a debounce pattern (reset the timer on
+every new event) applied to a continuous 50Hz stream, which by
+construction never goes quiet long enough to fire. Confirmed nothing
+was ever sent in either of the first two live attempts (zero "-> bXX"
+lines in both). Replaced the single slot with a small bounded FIFO delay
+line (`BEAK_QUEUE_MAXLEN=15`, well above the measured ~5-6 block
+pipeline depth): the front of the queue is always the *oldest* pending
+value, whose target time only gets closer as real time passes, so it
+converges to a steady lag instead of a receding one. A separate
+shutdown-ordering bug (`player.stop()` before `writer.stop()` let the
+writer thread query a torn-down stream's `.time` and crash silently) was
+found and fixed in the same pass - see `serial_link.py`'s and
+`playback.py`'s own history in version control for both fixes' full
+detail.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
