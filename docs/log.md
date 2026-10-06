@@ -643,6 +643,22 @@ speaker build) from the XVF3800's 3.5mm jack. The bird's speaker stayed
 silent while the headphones were plugged in — plugging into the jack
 mutes the onboard speaker output, so it's one or the other, not both.
 
+**Resolved 2026-10-06**: Chip wired his existing external amp (from the
+old MY1690 build) between the XVF3800's 3.5mm jack and the speaker, fed
+from the jack's left channel. The amp has no volume knob — gain is set
+by two strap pins tied high/low, four settings total. Ran the level
+ladder at each: clean at the three lower settings, clipping only at the
+highest. Picked the lowest gain setting per the original plan (least
+hiss, most headroom, with the other three available later if more
+loudness is ever needed) — loudness at that setting was already
+adequate. Extended the ladder's top step from −3dBFS to 0dBFS to check
+the full digital range at that gain setting: clean throughout. Updated
+`playback.py`'s `OUTPUT_GAIN_DB` from the interim −10dB cap to `0.0` —
+the external amp, not a digital cap, now does the job the cap was
+standing in for. Amp-vs-speaker as the original clipping culprit was
+never conclusively isolated (no speaker swap test was run), but that's
+now moot: the fix works regardless of which one it was.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
@@ -730,6 +746,18 @@ PCM, but `IAmIronman.wav` is 2-channel where the rest are mono.
 Fixed the same day: its right channel was effectively silent (peak 8
 of 32767), so the left channel was kept as-is rather than averaging
 both, which would have dropped the level 6dB.
+
+### Physical construction complete
+
+**Done 2026-10-06**: the electronics enclosure was remade to fit the
+full current hardware set — Pi 5, Arduino, servo power supply, XVF3800,
+external amp (see Issue 26), and speaker are all mounted inside it, and
+the board is now in its final acoustic geometry relative to the speaker.
+This closes out the last hardware dependency behind CLAUDE.md's former
+"Blocked until the XVF3800 is mounted" list: final AEC validation and
+speaker-ID accuracy testing (Issue 1) move to doable-now, since the
+geometry that was going to change no longer will. Barring future bugs
+or design changes, physical construction itself is done.
 
 ### Work-list items resolved before this log existed
 

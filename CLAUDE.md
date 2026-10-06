@@ -21,9 +21,12 @@ implemented (`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
 XVF3800 is USB-connected to the Pi with the bird's speaker (40mm, 4Ω,
-5W) wired to its output (2026-09-25), but isn't mounted to the statue yet. Playback through
-it is confirmed working, but the onboard amp/speaker clips well below
-digital full scale — see `docs/specification.md` Open Issues issue 26.
+5W) wired to its output through an external amp, and physical
+construction is complete (2026-10-06): the electronics enclosure was
+rebuilt and the Pi, Arduino, servo power supply, XVF3800, amp, and
+speaker are all mounted inside it. Playback is confirmed clean at full
+digital scale — the clipping problem is resolved, see
+`docs/specification.md` Open Issues issue 26.
 No home-automation tool calling yet
 either — the intent allowlist (next-step below) isn't wired into a tool
 schema.
@@ -234,19 +237,31 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     exposed Whisper retry stalls (20s) and gibberish turned into words;
     `stt.py` now skips retries and rejects repetition and very low
     confidence (all three gibberish samples caught, no real speech).
+21. Output headroom resolved (2026-10-06): external amp wired from the
+    XVF3800's 3.5mm jack, set to the lowest of its 4 strap-pin gain
+    settings — clean and adequately loud at full digital scale (the
+    other 3 settings stay available if more loudness is ever needed).
+    `playback.py`'s `OUTPUT_GAIN_DB` updated from the interim −10dB cap
+    to `0.0`. Closes Open Issues issue 26.
+22. Physical construction complete (2026-10-06): the electronics
+    enclosure was remade and the Pi, Arduino, servo power supply,
+    XVF3800, amp, and speaker are all mounted inside it — see
+    `docs/specification.md` section 3.6. Unblocks final AEC validation
+    and speaker-ID accuracy testing, previously waiting on the board
+    being physically mounted.
 
 ## Work list — split by hardware dependency
 
-Everything below "doable now" needs nothing that isn't already on hand —
-including the smart-home devices themselves, which already exist and are
-controllable today. Everything under "blocked" specifically needs the
-XVF3800 physically mounted to the statue (the board and its speaker are
-both on hand and working, just not mounted).
+Everything below needs nothing that isn't already on hand — including
+the smart-home devices themselves, which already exist and are
+controllable today, and now including final AEC validation and
+speaker-ID accuracy testing, previously waiting on the XVF3800 being
+physically mounted (construction completed 2026-10-06).
 
 ### Doable now
 
 Everything below is hardware-unblocked, but items 1/2/4 (home-automation)
-are being deliberately sequenced *after* items 3/6/7/9 (the core audio
+are being deliberately sequenced *after* items 3/6/7/8 (the core audio
 conversation loop) — Chip's own priority call, not a technical
 dependency between them. Nothing here stops home-automation from being
 worked in parallel if priorities change.
@@ -262,11 +277,10 @@ worked in parallel if priorities change.
    embeddings stored separately from `memory.md`) are both designed —
    see `docs/specification.md` section 4.15. Runtime match-confidence
    threshold still needs deciding (methodology, not numbers, matching
-   4.1/4.2's treatment). No hardware wait needed: the XVF3800's mic array
-   is already electrically functional even though unmounted, so
-   prototype against it directly rather than a stand-in mic. Real
-   accuracy still needs its physical mounting and the scheduled XVF3800
-   test (see Open Issues issue 1).
+   4.1/4.2's treatment). Prototyping and final accuracy validation can
+   both proceed now: the board's mic array is electrically functional
+   and, as of 2026-10-06, mounted in its final acoustic geometry (see
+   Open Issues issue 1).
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.
@@ -285,13 +299,7 @@ worked in parallel if priorities change.
    `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
-8. Resolve output headroom (Open Issues issue 26): the onboard
-   amp/speaker clips above roughly −10dBFS even with ALSA volume at max,
-   and −10dBFS may be too quiet in a real room. Decide the mechanism
-   (fixed digital gain cap in the shared playback step, a limiter, an
-   XVF3800-side output-gain setting if Seeed's tool exposes one — ties to
-   item 7 — or an external amp) before picking numbers.
-9. **Build the audio loop per `docs/specification.md` section 4.16's
+8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — the current focus. Steps 1-5 are done: the thin
    end-to-end voice loop works (`coordinator.py`). Next is step 6
    (beak-sync, section 4.8), then step 7 (motion/idle thread, section
@@ -300,24 +308,14 @@ worked in parallel if priorities change.
    20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
    delay; pass low-confidence transcripts to Haiku marked unclear (see
    spec 4.2).
-10. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
-    "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
-    notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
-    stand-in.
-11. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
+9. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
+   "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
+   notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
+   stand-in.
+10. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
     now in place (see `docs/specification.md` section 4.7 and Open Issues
     issue 16), judged primarily on voice quality with real-time
-    throughput as a secondary check. Best done after item 8, so clipping
-    doesn't muddy the voice comparison.
-12. First-pass AEC check against the bird's own speaker — possible now
-    with the board unmounted, but the geometry (speaker-to-mic distance)
-    will change once mounted, so this is a smoke test, not the final
-    validation.
-
-### Blocked until the XVF3800 is mounted to the statue
-
-1. Final AEC validation against the bird's own speaker in its real
-   mounted geometry.
-2. Speaker-ID accuracy validation against real household voices — needs
-   the real mounted acoustics and AEC-cleaned audio (see Open Issues
-   issue 1).
+    throughput as a secondary check.
+11. AEC validation against the bird's own speaker — now in its final
+    mounted geometry (2026-10-06, see `docs/specification.md` section
+    3.6), so this can be the real validation, not just a smoke test.

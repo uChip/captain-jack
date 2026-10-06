@@ -175,10 +175,10 @@ when it was last confirmed passing.
 ### Playback thread
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
-  build step 1 — `playback.py`: output gain cap (interim fix for
-  [Open Issue 26](specification.md#5-open-issues)), mono→2ch
-  duplication, gapless back-to-back queueing, and started/finished
-  events.
+  build step 1 — `playback.py`: output gain (`OUTPUT_GAIN_DB`, now
+  `0.0` — see [Open Issue 26](specification.md#5-open-issues), resolved
+  via an external amp), mono→2ch duplication, gapless back-to-back
+  queueing, and started/finished events.
 - **Script**: [`../tests/test_playback.py`](../tests/test_playback.py)
 - **Run**: `venv/bin/python tests/test_playback.py` (automatic, no
   hardware) or add `--listen` to also play `IllBeBack.wav` then

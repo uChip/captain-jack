@@ -34,10 +34,11 @@ DEVICE_MATCH = "XVF3800"
 ALSA_CARD = "Array"
 HW_VOLUME_MAX = 60
 
-# Interim fix for Open Issues issue 26: the onboard amp clips above about
-# -10dBFS even at max hardware volume. Clips and TTS peak near 0dBFS, so a
-# fixed -10dB gain holds output at the level ladder's clean step 2.
-OUTPUT_GAIN_DB = -10.0
+# Open Issues issue 26 (resolved 2026-10-06): the onboard amp clipped above
+# about -10dBFS even at max hardware volume. Fixed with an external amp fed
+# from the XVF3800's 3.5mm jack, set to its lowest gain setting -- clean and
+# adequately loud across the full digital range, so no gain cap is needed here.
+OUTPUT_GAIN_DB = 0.0
 
 
 def load_wav(path) -> np.ndarray:

@@ -311,15 +311,12 @@ History: [log.md#32-seeed-respeaker-xvf3800](log.md#32-seeed-respeaker-xvf3800).
 **Description**: USB 4-mic array board built on the XMOS XVF3800 chip,
 with onboard AEC, multi-beamforming, de-reverberation, direction-of-arrival,
 and dynamic noise suppression. **Status: connected to the Pi via USB,
-speaker wired to its output, playback verified by ear (2026-09-25)** —
-not yet physically mounted to the statue (currently sits on a table in
-front of the parrot), which may affect acoustics/DoA somewhat but doesn't
-block using its real mic array or speaker output. Final AEC validation
-and speaker-ID accuracy testing wait on mounting, since the
-speaker-to-mic geometry will change — see CLAUDE.md's "Blocked until the
-XVF3800 is mounted to the statue" list. Output headroom is limited: with
-ALSA `PCM Playback Volume` at max (60/60, 0dB), audio is clean up to
-about −10dBFS and audibly clips above that — see
+speaker wired to its output, and physically mounted inside the bird's
+rebuilt electronics enclosure (2026-10-06)** — construction is complete,
+so final AEC validation and speaker-ID accuracy testing, previously
+waiting on the speaker-to-mic geometry settling, can now proceed for
+real. Output headroom (previously limited to about −10dBFS before
+clipping) is resolved via an external amp — see
 [Open Issues](#5-open-issues) issue 26.
 
 Verified directly against the connected board (ALSA `hw_params` on both
@@ -349,24 +346,26 @@ History: [log.md#33-speaker](log.md#33-speaker), [log.md#issue-26](log.md#issue-
 
 **Description**: 40mm diameter, 4Ω, 5W speaker (the XVF3800 doesn't
 ship with one). Its 5W rating matches the XVF3800's nominal 5W onboard
-amp. **Status: connected** to the XVF3800's
-2-pin JST speaker output (2026-09-25) and verified playing; clips above
-roughly −10dBFS at max hardware volume — whether the limit is the
-XVF3800's onboard amp or the speaker itself isn't yet known (see
-[Open Issues](#5-open-issues) issue 26).
+amp. **Status: connected**, now via an external amp fed from the
+XVF3800's 3.5mm jack (bypassing the onboard amp's clipping, see
+[Open Issues](#5-open-issues) issue 26), set to the lowest of its 4
+strap-pin gain settings — clean and adequately loud at full digital
+scale, with 3 higher settings available if more loudness is ever needed.
+Mounted inside the bird's rebuilt electronics enclosure as of 2026-10-06
+— see [3.6](#36-physical-statue-and-perch).
 
 **Intended function**: audio output for TTS and idle/ambient clips.
 
 **Interconnect**: the audio the speaker plays **must originate from the
 XVF3800's own output** — not from a separate sound card or audio source
 (e.g. the removed MY1690) — or the XVF3800's AEC has no reference signal
-to cancel against, defeating the reason it was chosen. Currently wired
-directly to the XVF3800's 2-pin JST speaker terminals (onboard amp). An
-external amp placed *after* the XVF3800 is allowed, since the AEC
-reference is the XVF3800's own internal copy of what it outputs: the
-external amp should be fed from the XVF3800's 3.5mm jack, not its
-speaker terminals, so the onboard amp's clipping isn't amplified along
-with the signal (see [3.2](#32-seeed-respeaker-xvf3800) and
+to cancel against, defeating the reason it was chosen. Wired from the
+XVF3800's 3.5mm jack through the external amp rather than its 2-pin JST
+speaker terminals directly (plugging into the jack mutes the onboard
+speaker output, so it's one path or the other, never both) — this keeps
+the AEC reference (the XVF3800's own internal copy of what it outputs)
+clean of the onboard amp's clipping (see
+[3.2](#32-seeed-respeaker-xvf3800) and
 [Open Issues](#5-open-issues) issue 26).
 
 ### 3.4 Arduino Servo Controller
@@ -428,15 +427,17 @@ fast enough given easing math cost).
 History: none yet.
 
 **Description**: life-size 3D-printed parrot on a tree-stump perch, with a
-box base beneath housing all electronics. **Status: on hand and
-operational**, pre-existing this project; only head/beak articulation was
-added to an originally-rigid design, and the statue may be further modified
-as this project requires.
+box base beneath housing all electronics. **Status: construction
+complete (2026-10-06)** — the electronics enclosure was remade to fit
+the full current hardware set; only head/beak articulation was added to
+an originally-rigid design, and the statue may be further modified as
+this project requires.
 
 **Intended function**: the appliance's physical form factor and enclosure.
 
-**Interconnect**: houses and physically mounts the Pi 5, XVF3800, Arduino,
-servos, and speaker.
+**Interconnect**: houses and physically mounts the Pi 5, Arduino, servos
+and their power supply, the XVF3800, the external amp, and the
+speaker — all now installed inside the rebuilt enclosure.
 
 ### 3.7 Removed and Legacy Hardware
 
@@ -805,8 +806,9 @@ History: [log.md#issue-16](log.md#issue-16), [log.md#47-text-to-speech-tts](log.
 `bm_george`, `am_michael`; `tts.py --audition` reruns it). Synthesizes at
 about 0.37× real time on the Pi 5. The bake-off against Supertonic-3
 hasn't run; `kokoro-pi` is in place and sounds good, so the bake-off is
-now optional rather than a blocker. Best run, if at all, after
-[Open Issues](#5-open-issues) issue 26's output headroom is settled.
+now optional rather than a blocker. [Open Issues](#5-open-issues) issue
+26's output headroom is now resolved, so nothing blocks running the
+bake-off if Chip still wants the comparison.
 
 **Description**: local TTS rendering Jack's spoken reply to audio.
 Candidates narrowed to two, both local/offline/no-API-key, comparably
@@ -930,10 +932,10 @@ including after project end. Playback code itself is still unwritten.
 Clips stay **mono** on disk, not the 2-channel format the XVF3800 needs
 at playback time — that duplication happens once, shared, in the
 playback code rather than being baked into the files. Clips are
-normalized to peaks near 0dBFS, well above the ~−10dBFS clean-output
-ceiling found on the real speaker, so playback needs the level handling
-decided under [Open Issues](#5-open-issues) issue 26 before it'll sound
-clean at full volume.
+normalized to peaks near 0dBFS; output headroom
+([Open Issues](#5-open-issues) issue 26) is resolved via an external
+amp, so they play clean at full digital scale without a digital gain
+cap.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser
@@ -1577,13 +1579,12 @@ lock, so threads genuinely run in parallel where it matters.
   baseline yaw ([4.9](#49-direction-of-arrival-doa-reader)) feeds in
   here. Switches catalogs when the Coordinator changes mode.
 
-**Output gain cap — interim, decided 2026-09-25**: until
-[Open Issues](#5-open-issues) issue 26 is fixed, Playback scales every
-sample by a fixed −10dB (×0.316), with the XVF3800's ALSA `PCM Playback
-Volume` at max (60/60). Since clips and TTS peak near 0dBFS, that holds
-output at or below −10dBFS — step 2 of the level ladder, the loudest
-level heard clean through the onboard amp. A plain fixed gain, not a
-limiter; revisit when issue 26 is resolved.
+**Output gain — decided 2026-10-06**: Playback applies `OUTPUT_GAIN_DB`
+(`0.0` — no digital attenuation) with the XVF3800's ALSA `PCM Playback
+Volume` at max (60/60); headroom is handled by the external amp (see
+[3.3](#33-speaker)) set to its lowest gain setting, not a digital cap.
+[Open Issues](#5-open-issues) issue 26 is resolved; this supersedes the
+interim −10dB cap used before the amp was wired.
 
 **First build — a stand-in for the wake word**: until the custom
 openWakeWord models for "Ahoy, Captain Jack" and "Goodnight, Jack" are
@@ -1716,7 +1717,11 @@ and is tagged **[RESOLVED]** in place.
   empirical bake-off on the real Pi, judged primarily on voice quality
   per Chip's call, once the speaker is wired. **Unblocked 2026-09-25**:
   speaker wired and playing. **Left open**: which of the two wins the
-  bake-off — best run after issue 26's output headroom is settled.
+  bake-off — `kokoro-pi` is in place and sounds good (see
+  [4.7](#47-text-to-speech-tts)), so running the bake-off is now
+  optional rather than required; issue 26's output headroom (which would
+  have muddied the comparison) is resolved, so nothing blocks it if
+  Chip still wants to run it.
   History:
   [log.md#issue-16](log.md#issue-16).
 17. **[RESOLVED]** Idle-audio-on-Pi tradeoff (ambient sound depends on the
@@ -1779,34 +1784,13 @@ and is tagged **[RESOLVED]** in place.
   gestures haven't been retuned — Asleep's case is sharper, since it
   should read *quieter and slower* than Off Watch, cutting against the
   amplitude/duration fix. History: [log.md#issue-25](log.md#issue-25).
-26. Speaker output headroom: with the XVF3800's ALSA `PCM Playback
-  Volume` at max (60/60, 0dB), a speech clip plays clean at −10dBFS,
-  starts crackling by −6dBFS, and is mostly static near 0dBFS
-  (2026-09-25 listening ladder, board unmounted). −20dBFS is clean but
-  very quiet. Every `wavFiles/` clip peaks near 0dBFS, and TTS output
-  presumably will too, so something has to hold output below the
-  clipping point. **Narrowed 2026-09-25**: the same ladder through
-  headphones on the XVF3800's 3.5mm jack was clean and plenty loud at
-  every step up to −3dBFS, so the digital path and DAC are fine — the
-  clipping is in the speaker path (onboard amp or the speaker itself,
-  40mm/4Ω/5W, see [3.3](#33-speaker)), with the onboard amp the likelier
-  culprit given the speaker's 5W rating. That makes an external amp fed
-  from the 3.5mm jack a strong candidate. Plugging into the jack mutes
-  the onboard speaker output (confirmed the same day), so the jack and
-  the speaker terminals are one or the other, never both. **Left open**: amp vs. speaker
-  (a swap test with another speaker, or Chip's existing external amp,
-  will settle it); which mechanism to use (a fixed digital gain cap in the
-  shared mono→2ch playback step, a limiter/compressor there to keep
-  loudness up, an XVF3800-side output-gain setting if Seeed's control
-  tool exposes one, or an external amp fed from the XVF3800's output per
-  [3.2](#32-seeed-respeaker-xvf3800)); and whether ~−10dBFS is loud
-  enough in a real room. This matters for AEC too, not just sound
-  quality: clipping is nonlinear distortion that the XVF3800's echo
-  canceller can't model from its clean reference signal. **Interim
-  (2026-09-25)**: playback applies a fixed −10dB gain with hardware
-  volume at max, holding output at the ladder's clean step 2 until this
-  is fixed (see [4.16](#416-runtime-integration-end-to-end-turn)). History:
-  [log.md#issue-26](log.md#issue-26).
+26. **[RESOLVED]** Speaker output headroom: the XVF3800's onboard amp
+  clipped above roughly −10dBFS, well below where `wavFiles/` clips and
+  TTS output peak. Fixed with an external amp fed from the XVF3800's
+  3.5mm jack, set to the lowest of its 4 strap-pin gain settings — clean
+  and adequately loud at full digital scale; the interim −10dB digital
+  gain cap in [4.16](#416-runtime-integration-end-to-end-turn) is removed.
+  History: [log.md#issue-26](log.md#issue-26).
 
 ## 6. Possible Future Enhancements
 
