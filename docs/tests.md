@@ -195,8 +195,38 @@ when it was last confirmed passing.
   clean with no gap or click.
 - **Last confirmed passing**: 2026-09-25, including `--listen` (twice,
   confirmed clean by ear).
-- **Not covered**: beak-sync (build step 6), and behavior under load
-  (other threads competing for CPU).
+- **Not covered**: behavior under load (other threads competing for CPU).
+
+
+### Beak-sync
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 6 — `serial_link.py` (the Serial writer: latest-wins beak
+  commands, head commands as an ordinary FIFO not yet used) and
+  beak-sync in `playback.py` (RMS envelope → beak angle per block,
+  timed against the block's `dac_time`). See
+  [4.8](specification.md#48-beak-sync-rms-envelope-extraction).
+- **Script**: [`../tests/test_beak_sync.py`](../tests/test_beak_sync.py)
+- **Run**: `venv/bin/python tests/test_beak_sync.py` (automatic, no
+  hardware).
+- **Expected**: prints `PASS: beak mapping, envelope, callback wiring,
+  and SerialWriter latest-wins/timing correct` and exits 0. Checks the
+  dBFS-to-beak-angle mapping (floor/ceiling/clamping), that sustained
+  loud audio opens the beak and sustained silence rests it closed, that
+  nothing is sent when no `SerialWriter` is attached, and that
+  `SerialWriter` only ever sends the latest queued beak command and
+  never before its `dac_time` arrives — all against fake buffers/clocks,
+  no serial port or speaker needed.
+- **Last confirmed passing**: 2026-10-06.
+- **Not covered — needs a person watching and listening to the real
+  bird**: whether the beak's movement actually lines up with when sound
+  leaves the speaker (`ALIGNMENT_FUDGE_S` in `serial_link.py` is an
+  untuned starting guess), and whether the envelope mapping's floor/
+  ceiling/attack/release defaults in `playback.py` look natural rather
+  than too twitchy or too sluggish. Procedure: `venv/bin/python
+  playback.py wavFiles/AlignmentTone.wav --beak` (opens the Arduino) and
+  watch/listen for the beak opening exactly during the tone, closing
+  exactly during the silence.
 
 
 ### Capture thread

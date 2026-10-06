@@ -249,6 +249,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     `docs/specification.md` section 3.6. Unblocks final AEC validation
     and speaker-ID accuracy testing, previously waiting on the board
     being physically mounted.
+23. Build step 6 done (2026-10-06): `serial_link.py` (the Serial writer
+    thread — latest-wins beak commands, timed against Playback's
+    dac_time; head/gesture FIFO path exists but unused until step 7) and
+    beak-sync added to `playback.py` (RMS envelope → beak angle per
+    20ms block). Automatic tests pass (`tests/test_beak_sync.py`);
+    found and fixed a real spec/firmware drift along the way (section
+    4.13's beak/head ranges had gone stale — see
+    `docs/specification.md` section 4.8). Not yet watched against the
+    real bird to tune `ALIGNMENT_FUDGE_S` and the envelope mapping
+    defaults, and not yet wired into `coordinator.py`'s live loop.
 
 ## Work list — split by hardware dependency
 
@@ -300,14 +310,19 @@ worked in parallel if priorities change.
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-5 are done: the thin
-   end-to-end voice loop works (`coordinator.py`). Next is step 6
-   (beak-sync, section 4.8), then step 7 (motion/idle thread, section
-   4.10, the state machine, and real wake-word models). Open refinements
-   from the live runs: replies still often 25-45 words against a
-   20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
-   delay; pass low-confidence transcripts to Haiku marked unclear (see
-   spec 4.2).
+   build order** — the current focus. Steps 1-6 are done: the thin
+   end-to-end voice loop works (`coordinator.py`), and beak-sync exists
+   (`serial_link.py` + `playback.py`) but hasn't been watched against the
+   real bird or wired into `coordinator.py` yet. Before moving to step 7
+   (motion/idle thread, section 4.10, the state machine, and real
+   wake-word models): watch/listen to `playback.py
+   wavFiles/AlignmentTone.wav --beak` and tune `ALIGNMENT_FUDGE_S` and
+   the envelope floor/ceiling/attack/release defaults (section 4.8) if
+   needed, then wire the Serial writer + beak-sync into the live
+   coordinator loop. Open refinements from the live runs: replies still
+   often 25-45 words against a 20-word target; stream Haiku's reply into
+   TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts to
+   Haiku marked unclear (see spec 4.2).
 9. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
    "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
    notebook), not the Pi. Not a blocker: build step 4 uses a keyboard

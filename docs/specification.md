@@ -859,37 +859,74 @@ audio stream to the XVF3800 output path and to
 
 ### 4.8 Beak-Sync (RMS Envelope Extraction)
 
-History: none yet.
+History: [log.md#48-beak-sync-rms-envelope-extraction](log.md#48-beak-sync-rms-envelope-extraction).
 
-**Status: Not started** — no hardware wait: the XVF3800 and speaker are
-both connected and playing.
+**Status: Implemented (build step 6), 2026-10-06** — `playback.py` +
+`serial_link.py`; automatic correctness tests pass
+(`tests/test_beak_sync.py`). Alignment against the real bird (does the
+beak visibly move when the sound audibly leaves the speaker, not before
+or after) hasn't been watched yet — see **Output-latency delay** below.
 
 **Description**: real-time RMS amplitude envelope extraction from whatever
-audio is currently playing — idle clip or live TTS — at roughly 30–50Hz,
+audio is currently playing — idle clip or live TTS — at 50Hz (one
+beak-sync update per 20ms output block, the top of the spec's 30-50Hz
+range, falling out for free from Playback's existing block size),
 replacing the MY1690's old dual-channel pre-encoded beak-track trick with
 one code path for both cases. Operates on the canonical 16kHz/16-bit PCM
 stream established in [TTS](#47-text-to-speech-tts) — both sources are
 normalized to that one format before playback, so this module never
-needs source-specific handling.
+needs source-specific handling: Playback's audio callback computes the
+envelope from whatever it's actually writing to the device, with no
+notion of where that audio came from.
 
 **Intended function**: produce a live beak-position value from audio
 amplitude and stream it to the Arduino as `b<BB>` commands (nominal
-0–45, see [4.13](#413-pi-to-arduino-serial-link)). Because
-the envelope needs to be computed before playback timing catches up,
-audio playback likely needs a small deliberate delay to keep beak motion in
-sync — accounting for RMS processing, command generation/transmission, and
-Arduino-side parsing/mechanical response time.
-
-All beak smoothing happens here, as part of extracting the envelope itself
-(attack/release-style shaping) — not as a separate easing step on either
-side (see [Open Issues](#5-open-issues) issue 8). The Arduino applies the
-`b` value it receives directly to PWM, no interpolation; see
+0–60, 0 = open / 60 = closed — rest is closed — see
+[4.13](#413-pi-to-arduino-serial-link)). Each 20ms block's dBFS level
+feeds a one-pole attack/release envelope follower (fast attack, ~20ms,
+so the beak opens promptly; slower release, ~100ms, so it doesn't
+stutter between syllables — starting time constants, not measured, see
+**Tunable defaults** below), then linearly maps the smoothed envelope
+between a floor (beak fully closed) and a ceiling (fully open) dBFS
+value, clamped outside that range. All beak smoothing happens here, as
+part of extracting the envelope itself — not as a separate easing step
+on either side (see [Open Issues](#5-open-issues) issue 8). The Arduino
+applies the `b` value it receives directly to PWM, no interpolation; see
 [Arduino Firmware](#414-arduino-firmware).
+
+**Output-latency delay**: because the envelope is computed as a block is
+handed to the output device, not when that block's sound actually
+leaves the speaker, the beak command carries the block's `dac_time`
+(Playback's stream clock, already computed for other purposes — see
+[4.16](#416-runtime-integration-end-to-end-turn)) and is held by the
+Serial writer until that time arrives, rather than sent immediately —
+this falls out of data Playback already has, rather than needing a
+separate calibration pass of its own. A small additional fixed
+correction (`ALIGNMENT_FUDGE_S` in `serial_link.py`, covering serial
+transmission and servo mechanical response, expected near zero) is
+layered on top and is the one thing that needs a person watching and
+listening to the real bird to tune — done by playing
+`wavFiles/AlignmentTone.wav` through `playback.py --beak` (no separate
+calibration script: the same beak-sync mechanism this section describes
+already opens/closes the beak in sync with the tone's on/off pattern) and
+judging by eye/ear whether the beak leads or lags the audible tone.
+
+**Tunable defaults, not measured** (`playback.py`): envelope floor
+−40dBFS (rest closed), ceiling −15dBFS (fully open), attack time
+constant 20ms, release 100ms. Picked from general reasoning about
+typical speech RMS levels and a natural-looking mouth-flap rhythm, not
+derived from real recordings — expect to retune by watching the real
+bird talk, the same "ship a reasonable default, tune by observation"
+pattern already used for gesture amplitudes and the TTS voice pick.
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the
-[idle/ambient player](#410-idle-and-ambient-audio-player); writes `b`
-commands to the [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link).
+[idle/ambient player](#410-idle-and-ambient-audio-player) — in practice,
+whatever `playback.py`'s `Playback` is currently writing to the device,
+regardless of source; writes `b` commands to the
+[Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link) via
+`serial_link.py`'s `SerialWriter` (latest-wins: a stale beak position is
+worse than a skipped one).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
@@ -1299,10 +1336,11 @@ upstream sensor relay in the new design):
   as the superseded fixed-width design, just without the fixed width:
   - **Beak position**: `b<BB>` — moves the beak servo immediately on
     receipt, no easing (per [Open Issues](#5-open-issues) issue 8). `BB`
-    is a nominal 0–45 value, clamped, then offset in firmware onto the
-    physical 80–125 PWM range.
-  - **Head motion axes**: `p<PP>` (nominal 0–60), `r<RR>` (nominal 0–60),
-    and `y<YY>` (nominal 0–90) each stage a pitch/roll/yaw target —
+    is a nominal 0–60 value (0 = open, 60 = fully closed; rest is
+    closed), clamped, then offset in firmware onto the physical PWM
+    range.
+  - **Head motion axes**: `p<PP>` (nominal 0–50), `r<RR>` (nominal 0–50),
+    and `y<YY>` (nominal 0–130) each stage a pitch/roll/yaw target —
     clamped, then offset in firmware onto their physical PWM ranges —
     without moving anything yet. `t<TTTT>` (0–9999ms, clamped) stages
     the move duration. Any of `b`/`p`/`r`/`y`/`t` can arrive
@@ -1319,9 +1357,11 @@ upstream sensor relay in the new design):
     construction, so there's no positional/framing state to get out of
     sync, unlike the fixed-width proposal it replaced.
   - Per-axis nominal ranges and their offsets onto the physical PWM range
-    are now pinned by the constants in
-    `arduino/ServoControl/ServoControl.ino`: beak 0–45 → 80–125, pitch
-    0–60 → 60–120, roll 0–60 → 60–120, yaw 0–90 → 45–135.
+    are pinned by the constants in
+    `arduino/ServoControl/ServoControl.ino`: beak 0–60 → 65–125, pitch
+    0–50 → 70–120, roll 0–50 → 55–105, yaw 0–130 → 30–160. (Corrected
+    2026-10-06 — this text had drifted from the shipped firmware's actual
+    constants; the firmware itself was never wrong.)
   - `GESTURE <id>` is still dropped entirely, not just superseded in
     wording: gesture storage lives on the Pi (issue 7), so the
     Arduino never receives anything but the primitives above, whether a
@@ -1470,10 +1510,12 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build steps 1-5 implemented** — the thin
+**Status: Designed 2026-09-25; build steps 1-6 implemented** — the thin
 end-to-end voice loop works: `playback.py`, `capture.py`, `listener.py`,
 `stt.py`, `coordinator.py`, `tts.py`. First live voice conversations
-2026-09-25.
+2026-09-25. Beak-sync (`serial_link.py` + beak-sync in `playback.py`)
+added 2026-10-06, not yet wired into `coordinator.py`'s live loop or
+watched against the real bird — see [4.8](#48-beak-sync-rms-envelope-extraction).
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1570,7 +1612,9 @@ lock, so threads genuinely run in parallel where it matters.
   command strings from Playback (beak) and Motion (head) and writes
   them. Beak commands are latest-wins: if several queue up, only the
   newest is sent, since a stale beak position is worse than a skipped
-  one.
+  one. **Done** — `serial_link.py`'s `SerialWriter`; the Motion/head
+  path exists (`send_head()`, an ordinary FIFO) but nothing uses it yet
+  until build step 7.
 - **(g) Motion & idle** — runs the current mode's gesture behavior from
   [gesture-catalog.yaml](gesture-catalog.yaml) (the ambient/excursion
   loops `exercise_hardware.py` prototypes today) and, in Off
@@ -1616,7 +1660,13 @@ spotter later changes nothing downstream.
    to Jack's first sound: 2.6–3.8s (end-pointing ~0.7s, Whisper ~0.5s,
    Haiku ~1.1–1.9s, first sentence's synthesis), 1.75s for the local
    "say again" line. Streaming Haiku's reply into TTS is the next lever.
-6. Beak-sync in Playback + Serial writer.
+6. Beak-sync in Playback + Serial writer. **Done** — `serial_link.py`
+   (the Serial writer, latest-wins beak commands) and beak-sync in
+   `playback.py` (RMS envelope → beak angle, timed against the block's
+   dac_time). Automatic tests pass (`tests/test_beak_sync.py`); not yet
+   watched against the real bird to tune `ALIGNMENT_FUDGE_S`, and not
+   yet wired into `coordinator.py`'s live loop (that's step 7, below,
+   where the full thread set first runs together).
 7. Motion & idle thread, state machine and timeouts, real wake-word
    models.
 

@@ -206,6 +206,15 @@ details (calibration offsets, exact timing bounds), not the syntax
 itself. If that assumption turns out wrong, that's a bug to call out and
 deal with when found, not a reason to reopen the syntax question.
 
+**Correction, 2026-10-06**: that confidence note held for the syntax, but
+`specification.md`'s per-axis range/offset numbers themselves had
+drifted from the shipped firmware (found while building beak-sync, see
+[4.8](#48-beak-sync-rms-envelope-extraction)) — it said beak was nominal
+0–45; `ServoControl.ino`'s actual `BEAK_RANGE` is 60 (head axes were off
+too: pitch/roll 0–50 not 0–60, yaw 0–130 not 0–90). The firmware itself
+was never wrong, only the prose describing it. Fixed by reading the
+constants directly rather than trusting the existing text.
+
 ### Issue 15
 
 No `tests.md` existed, despite the goals document requiring at least one
@@ -869,6 +878,50 @@ mono storage is half the size for identical content, and the clip
 library is expected to keep growing; (3) it decouples the stored assets
 from this board's specific quirk, so a future firmware/hardware change
 only touches the one small duplication step, not the whole library.
+
+### 4.8 Beak-Sync (RMS Envelope Extraction)
+
+**Built 2026-10-06** (build step 6): `serial_link.py` (the Serial writer
+thread) and beak-sync added to `playback.py`'s audio callback.
+
+**Beak direction found while building this**: `specification.md` section
+4.13 had drifted from the real firmware (it said beak was nominal 0–45;
+the firmware's actual `BEAK_RANGE` is 60) and never stated which
+direction was open vs. closed. Checked `ServoControl.ino` directly
+rather than trust the stale prose: `b0` = open, `b60` = fully closed, and
+the servo's own startup/rest position is closed. Fixed 4.13's text
+(beak and head axis ranges all needed correcting, not just beak) while
+in there — see that section's history for the corrected numbers.
+Mapping an RMS envelope to beak angle therefore needs an *inverse*
+relationship (louder audio → lower angle, since 0 is open), not the
+naive "higher amplitude, higher number" a reader might assume without
+checking.
+
+**Output-latency delay, designed from data Playback already had**: the
+spec's original framing ("audio playback likely needs a small
+deliberate delay... accounting for RMS processing, command
+transmission, and mechanical response time") suggested a bespoke
+calibration pass would be needed. Realized while implementing that
+Playback already timestamps every block with its `dac_time` (the stream
+clock's prediction of when that block's audio actually reaches the
+speaker), originally added for `wait_played()`'s and the Coordinator's
+own timing needs — the same value a beak command needs to know *when*
+to go out. So the Serial writer just holds a beak command until
+`now() >= dac_time`, rather than needing a separately-derived delay
+constant. Only a small residual (`ALIGNMENT_FUDGE_S`, serial
+transmission + servo response, expected near zero) is left to tune, and
+it reuses the already-recorded `AlignmentTone.wav` rather than needing a
+new calibration script: playing it through `playback.py --beak` already
+opens/closes the beak in sync with the tone via the normal beak-sync
+path, so watching/listening to that *is* the calibration procedure.
+
+**Envelope mapping defaults** (floor −40dBFS, ceiling −15dBFS, attack
+20ms, release 100ms): reasoned from typical speech RMS levels and what
+reads as a natural mouth-flap rhythm, not measured against real
+recordings — explicitly a starting point for the same "ship a
+reasonable default, tune by watching the real bird" pattern already used
+for gesture amplitudes (Issue 25) and the TTS voice pick. Not yet tuned
+against a live listen.
 
 ### 4.10 Idle and Ambient Audio Player
 
