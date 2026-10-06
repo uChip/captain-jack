@@ -244,9 +244,11 @@ def main():
             kind, tag, t = events.get()
             print(f"  [{kind}] {tag}")
     finally:
-        player.stop()
+        # Stop the writer first: it calls player.now() on every poll, and
+        # that can raise once player.stop() has torn down the stream.
         if writer:
             writer.stop()
+        player.stop()
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ Run standalone for a quick wiggle check (no Playback needed):
 
 import argparse
 import queue
+import sys
 import threading
 import time
 
@@ -133,7 +134,16 @@ class SerialWriter:
         if pending is None:
             return False
         angle, dac_time = pending
-        if self.now_fn() < dac_time - ALIGNMENT_FUDGE_S:
+        try:
+            now = self.now_fn()
+        except Exception as e:
+            # now_fn (Playback.now()) can transiently raise right around the
+            # audio stream starting or stopping (PortAudio's stream.time
+            # isn't always available then). Not fatal - try again next poll
+            # rather than taking the whole writer thread down silently.
+            print(f"  [serial_link] now_fn() raised {e!r}, will retry", file=sys.stderr)
+            return False
+        if now < dac_time - ALIGNMENT_FUDGE_S:
             return False
         self._write(f"b{angle}")
         with self._beak_lock:
