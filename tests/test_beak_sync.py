@@ -4,8 +4,11 @@ Automatic, no hardware: checks the dBFS/envelope/beak-angle mapping
 functions directly, that Playback's callback drives a SerialWriter with
 a beak angle per block (opening for loud audio, resting closed for
 silence) and does nothing when no serial_writer is set, and that
-SerialWriter's latest-wins/time-release behavior is correct against a
-fake clock.
+SerialWriter's delay-line behavior (FIFO, oldest first, dropping the
+oldest only once genuinely backlogged) is correct against a fake clock -
+this replaced an original "latest wins, wait for its own dac_time"
+design that, live-tested, turned out to never send anything at all: see
+serial_link.py's module docstring for why.
 
 This doesn't check the *alignment* between a block's dac_time and when
 its sound actually leaves the speaker - that needs a person watching and
@@ -87,7 +90,7 @@ def check_no_serial_writer_is_a_noop():
     return []
 
 
-def check_serial_writer_latest_wins_and_timing():
+def check_serial_writer_fifo_and_timing():
     errors = []
     sent = []
     clock = [0.0]
@@ -96,15 +99,40 @@ def check_serial_writer_latest_wins_and_timing():
     writer.start()
     try:
         writer.send_beak(10, dac_time=1.0)
-        writer.send_beak(20, dac_time=1.0)   # supersedes b10 before either is due
+        writer.send_beak(20, dac_time=1.0)   # both queue, oldest (b10) due first
         time.sleep(0.1)
         if sent:
             errors.append(f"sent before dac_time arrived: {sent}")
 
         clock[0] = 1.0
         time.sleep(0.1)
-        if sent != [("b20", 1.0)]:
-            errors.append(f"expected only the latest value (b20), got {sent}")
+        if sent != [("b10", 1.0), ("b20", 1.0)]:
+            errors.append(f"expected both values in order (b10 then b20), got {sent}")
+    finally:
+        writer.stop()
+    return errors
+
+
+def check_serial_writer_drops_oldest_when_backlogged():
+    errors = []
+    sent = []
+    clock = [0.0]   # never advances: nothing becomes due, forcing a genuine backlog
+    writer = serial_link.SerialWriter(now_fn=lambda: clock[0], dry_run=True,
+                                       on_send=lambda cmd: sent.append(cmd))
+    writer.start()
+    try:
+        n = serial_link.BEAK_QUEUE_MAXLEN + 5
+        for i in range(n):
+            writer.send_beak(i, dac_time=1.0)
+        time.sleep(0.1)
+        if sent:
+            errors.append(f"sent before dac_time arrived: {sent}")
+        with writer._beak_lock:
+            queued = list(writer._beak_queue)
+        want = [(i, 1.0) for i in range(n - serial_link.BEAK_QUEUE_MAXLEN, n)]
+        if queued != want:
+            errors.append(f"expected only the newest {serial_link.BEAK_QUEUE_MAXLEN} values "
+                           f"kept (oldest dropped), got angles {[a for a, _ in queued]}")
     finally:
         writer.stop()
     return errors
@@ -112,9 +140,10 @@ def check_serial_writer_latest_wins_and_timing():
 
 if __name__ == "__main__":
     errors = (check_mapping() + check_callback_drives_beak()
-              + check_no_serial_writer_is_a_noop() + check_serial_writer_latest_wins_and_timing())
+              + check_no_serial_writer_is_a_noop() + check_serial_writer_fifo_and_timing()
+              + check_serial_writer_drops_oldest_when_backlogged())
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
-    print("PASS: beak mapping, envelope, callback wiring, and SerialWriter latest-wins/timing correct")
+    print("PASS: beak mapping, envelope, callback wiring, and SerialWriter FIFO/backlog/timing correct")

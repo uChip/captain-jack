@@ -2,11 +2,11 @@
 
 Implements the Serial writer thread from docs/specification.md section
 4.16(f), build step 6: owns /dev/ttyUSB0, the one-directional Pi->Arduino
-link (section 4.13). Takes beak commands from Playback - latest-wins, if
-several queue up before one is sent, only the newest goes out, since a
-stale beak position is worse than a skipped one - and (from build step 7
-onward) head/gesture commands from Motion, an ordinary FIFO, none
-dropped.
+link (section 4.13). Takes beak commands from Playback - a small bounded
+delay line, oldest-sent-first, dropping the oldest if it ever grows past
+BEAK_QUEUE_MAXLEN (the writer falling behind, not normal operation) -
+and (from build step 7 onward) head/gesture commands from Motion, an
+ordinary FIFO, unbounded, never dropped.
 
 A beak command carries the dac_time (Playback's stream clock) of the
 audio block it was computed from, and is held until that time arrives
@@ -15,11 +15,27 @@ leaves the speaker, compensating for the output device's own buffering
 delay, not when Playback happened to compute it. See
 docs/specification.md section 4.8 and ALIGNMENT_FUDGE_S below.
 
+Why a delay line and not a single "latest wins" slot (the first version
+of this file, and section 4.16(f)'s original wording): measured against
+the real device, dac_time runs a fairly constant ~100-120ms ahead of
+now() - call it one pipeline's worth of output buffering. Blocks arrive
+every 20ms, faster than that gap can close. A single slot that's
+overwritten on every new block and only sent once its *own* dac_time
+arrives never fires at all: by the time now() has advanced 100ms, five
+newer blocks have already replaced it, each resetting the target another
+100ms out from *its* own, later arrival time - a debounce pattern
+(reset the timer on every new event) applied to a continuous stream,
+which by construction never goes quiet long enough to fire. A bounded
+FIFO doesn't have this problem: the front of the queue is always the
+*oldest* pending value, whose target time only gets closer as real time
+passes, so it converges to a steady lag instead of a receding one.
+
 Run standalone for a quick wiggle check (no Playback needed):
     venv/bin/python serial_link.py [--port /dev/ttyUSB0] [--dry-run]
 """
 
 import argparse
+import collections
 import queue
 import sys
 import threading
@@ -41,9 +57,16 @@ BEAK_RANGE = 60   # ServoControl.ino: 0 = beak open, 60 = beak fully closed (res
 # (a few bytes at 115200 baud) plus Arduino parsing and servo mechanical
 # response (beak has no easing - Open Issues issue 8 - so this is just
 # raw PWM response time). Expected to be near zero by physics; tune by
-# watching/listening against AlignmentTone.wav
-# (tests/test_beak_sync_alignment.py) before trusting it.
+# watching/listening against AlignmentTone.wav (see docs/tests.md's
+# "Beak-sync" entry - playback.py's --beak flag is the procedure, no
+# separate calibration script) before trusting it.
 ALIGNMENT_FUDGE_S = 0.0
+
+# How many pending beak values the delay line holds before dropping the
+# oldest. Measured device latency is ~100-120ms (~5-6 blocks at 20ms
+# each); sized well above that so normal operation never drops anything,
+# only a writer that's genuinely fallen behind.
+BEAK_QUEUE_MAXLEN = 15
 
 # How often the writer thread checks for new work when there's nothing
 # to send. Small relative to the 20ms block period so a beak command
@@ -69,7 +92,7 @@ class SerialWriter:
         self._port_name = port
         self._ser = None
         self._beak_lock = threading.Lock()
-        self._beak_pending = None   # (angle, dac_time) not yet sent
+        self._beak_queue = collections.deque(maxlen=BEAK_QUEUE_MAXLEN)   # (angle, dac_time), oldest first
         self._head_queue = queue.Queue()
         self._stop = threading.Event()
         self._thread = None
@@ -93,11 +116,13 @@ class SerialWriter:
             self._ser = None
 
     def send_beak(self, angle: int, dac_time: float):
-        """Queue a beak angle (0=open..60=closed), released when dac_time
-        arrives. Overwrites any not-yet-sent beak command. Called from
-        Playback's audio callback - must not block."""
+        """Queue a beak angle (0=open..60=closed), released in order once
+        its dac_time arrives. If the queue is already at
+        BEAK_QUEUE_MAXLEN, the oldest pending value is dropped to make
+        room - the writer has fallen behind, not normal operation.
+        Called from Playback's audio callback - must not block."""
         with self._beak_lock:
-            self._beak_pending = (angle, dac_time)
+            self._beak_queue.append((angle, dac_time))
 
     def send_head(self, cmd: str):
         """Queue a raw p/r/y/t/s command string (build step 7+), sent in
@@ -130,10 +155,9 @@ class SerialWriter:
 
     def _send_beak_if_due(self) -> bool:
         with self._beak_lock:
-            pending = self._beak_pending
-        if pending is None:
-            return False
-        angle, dac_time = pending
+            if not self._beak_queue:
+                return False
+            angle, dac_time = self._beak_queue[0]   # oldest pending, not latest
         try:
             now = self.now_fn()
         except Exception as e:
@@ -147,8 +171,8 @@ class SerialWriter:
             return False
         self._write(f"b{angle}")
         with self._beak_lock:
-            if self._beak_pending == pending:
-                self._beak_pending = None
+            if self._beak_queue and self._beak_queue[0] == (angle, dac_time):
+                self._beak_queue.popleft()
         return True
 
 
