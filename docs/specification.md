@@ -1019,34 +1019,38 @@ for whichever mode has `doa_yaw_tracking` enabled
 
 History: [log.md#410-idle-and-ambient-audio-player](log.md#410-idle-and-ambient-audio-player).
 
-**Status: Not started; clip library seeded; both Asleep's and Off
-Watch's own behavior loops are designed (see below).** The `wavFiles/`
-folder holds 19 mono, 16kHz signed-16-bit-PCM clips (converted from
-their original 44100Hz 2026-09-23, per [TTS](#47-text-to-speech-tts)'s
-canonical output format)
-(movie lines, song snippets with music removed, etc.) plus
-`AlignmentTone.wav` — a 0.5s 880Hz-tone/0.5s-silence pattern repeated 8x,
-intended for measuring timing offset between audio output and beak
-movement once beak-sync exists. More clips, including short recordings of
-notable live Captain Jack responses, are expected to be added over time,
-including after project end. Playback code itself is still unwritten.
-Clips stay **mono** on disk, not the 2-channel format the XVF3800 needs
-at playback time — that duplication happens once, shared, in the
-playback code rather than being baked into the files. Clips are
-normalized to peaks near 0dBFS; output headroom
+**Status: Clip library complete (163 clips, 2026-10-07); playback/
+scheduling code itself still unwritten.** The `wavFiles/` folder holds
+19 mono, 16kHz signed-16-bit-PCM recorded/movie-line clips (converted
+from their original 44100Hz 2026-09-23, per [TTS](#47-text-to-speech-tts)'s
+canonical output format) plus `AlignmentTone.wav` — a 0.5s
+880Hz-tone/0.5s-silence pattern repeated 8x, used for measuring timing
+offset between audio output and beak movement (see
+[4.8](#48-beak-sync-rms-envelope-extraction)) — plus 144 TTS-sourced
+one-liners and philosophical quotes (see **TTS-sourced clips** below),
+rendered 2026-10-07. More clips, including short recordings of notable
+live Captain Jack responses, are expected to be added over time,
+including after project end. Clips stay **mono** on disk, not the
+2-channel format the XVF3800 needs at playback time — that duplication
+happens once, shared, in the playback code rather than being baked into
+the files. Clips are normalized to peaks near 0dBFS; output headroom
 ([Open Issues](#5-open-issues) issue 26) is resolved via an external
 amp, so they play clean at full digital scale without a digital gain
 cap.
 
 **TTS-sourced clips — pre-rendered once, not synthesized live, decided
-2026-10-06**: Off Watch's one-liner repertoire is being supplemented
-with philosophical quotes (outside Jack's pirate character, but there's
-a large supply of them) alongside Chip's own hand-picked jokes. Both are
-authored text run through [TTS](#47-text-to-speech-tts) **once**,
-offline, and stored as ordinary `wavFiles/` clips in the canonical
-format — not synthesized live at playback time — for reasons distinct
-from the earlier recorded/movie-line clips (which were never a TTS
-question at all):
+2026-10-06, rendered 2026-10-07**: Off Watch's one-liner repertoire is
+supplemented with philosophical quotes (outside Jack's pirate character,
+but there's a large supply of them) alongside Chip's own hand-picked
+jokes, plus a batch of Claude-written additions (pirate-flavored
+remixes of a few of the quotes above, a handful of new quotes treated
+the same way, and original lines in Jack's own voice — attributed
+"Claude as Captain Jack[, misquoting/paraphrasing X]" in the manifest).
+All of it is authored text run through [TTS](#47-text-to-speech-tts)
+**once**, offline, and stored as ordinary `wavFiles/` clips in the
+canonical format — not synthesized live at playback time — for reasons
+distinct from the earlier recorded/movie-line clips (which were never a
+TTS question at all):
 - **Compute contention**: Off Watch is exactly the mode where
   [openWakeWord](#41-wake-word-spotter) is running continuously,
   listening for the wake phrase. Live synthesis (`kokoro-pi` runs at
@@ -1075,9 +1079,20 @@ question at all):
   this is a batch re-run, not a search for what each clip originally
   said. The rendering step itself reuses `tts.py`'s existing
   synthesize-and-resample pipeline (already built and tested for live
-  speech), just run once rather than live — no new synthesis code
-  needed, only a small offline batch script to drive it (not yet
-  written, pending Chip finalizing the joke/quote text).
+  speech), just run once rather than live.
+
+**Rendered 2026-10-07**: `generate_idle_clips.py` reads
+`wavFiles/manifest.yaml` and writes each entry's `wavFiles/<file>` via
+`tts.py`'s `TTS.synthesize()` — a small, one-directional tool (manifest
+→ wav files) that never edits the manifest itself, so its hand-written
+comments and formatting are never at risk from a render pass. Supports
+`--only <file>` for a single re-render and `--dry-run` to preview.
+144 clips rendered in ~5.3 minutes (~2.2s/clip average). The manifest
+itself was also reviewed before this render: it hadn't actually parsed
+as YAML (a structural bug), had three sets of accidentally-duplicated
+filenames that would have silently overwritten each other, and had a
+handful of unbalanced quote marks inside `text` fields — all fixed; see
+[log.md](log.md#410-idle-and-ambient-audio-player) for the detail.
 
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser

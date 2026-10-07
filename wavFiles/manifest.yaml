@@ -16,750 +16,904 @@
 #
 # Fields per entry:
 #   file:        filename in this folder (same naming convention as the
-#                existing clips - PascalCase, no spaces/underscores)
+#                existing clips - PascalCase, no spaces/underscores).
+#                Must be unique - this is the actual output filename.
 #   text:        the exact text given to tts.py - the source of truth
 #                for regenerating this clip
 #   category:    joke | quote
-#   attribution: who said it (quotes only; omit or leave blank for jokes)
+#   attribution: who said it (quotes only; omit or leave blank for jokes).
+#                "Claude as Captain Jack, misquoting/paraphrasing X" marks
+#                a line Claude wrote in Jack's voice, inspired by a real
+#                quote but not a straight rendering of it; "Claude as
+#                Captain Jack" alone marks a wholly original line.
 #   engine:      the TTS engine/voice this was last rendered with, e.g.
 #                "kokoro-pi/am_santa" - lets a future regeneration pass
 #                know which clips already match the current voice and
 #                which don't
 #   rendered:    date last rendered (YYYY-MM-DD)
 #
-# No clips rendered yet - Chip is still finalizing the joke list (~20 so
-# far) and hasn't started picking quotes. Add entries here as lines are
-# chosen; the (not yet written) batch-render script reads this file and
-# writes the matching wavFiles/<file>.
-
-# Example entry, for reference - not a real clip. A real entry looks
-# like this, added as a list item under `clips:` below:
+# Rendered 2026-10-07 by generate_idle_clips.py against every entry below.
 #
-#   - file: TheUnexaminedLifeSquawk.wav
-#     text: "The unexamined life is not worth living, matey."
-#     category: quote
-#     attribution: Socrates (as paraphrased by Plato)
-#     engine: kokoro-pi/am_santa
-#     rendered: 2026-10-06
+# Chip's entries (lines 1-N below the `clips:` key) were reviewed for
+# syntax 2026-10-07: fixed a structural bug (this file didn't actually
+# parse - see log.md), three sets of accidentally-duplicated filenames
+# that would have silently overwritten each other when rendered
+# (InARoomAlone.wav x3, NothingPermanent.wav x2, InsufficientEvidence.wav
+# x2 - renamed the extras to match their own content), several missing/
+# unbalanced quote marks inside `text` (cosmetic, but would read oddly),
+# and a couple of plain typos. Content and attribution choices (including
+# loosely-sourced ones) are Chip's and were left as written.
 
-clips: []
-- file: TheUnexaminedLifeSquawk.wav
-  text: "The unexamined life is not worth living, matey."
-  category: quote
-  attribution: Socrates (as paraphrased by Plato and Claude as Captain Jack)
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HippoZippo.wav
-  text: "What's the difference between a hippo and a zippo? One's really heavy and one is a little lighter."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: AfraidOfElevators.wav
-  text: I'm afraid of elevators. But it's OK, I'm taking steps to avoid them."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: VacuumCollection.wav
-  text: "At home, I've got a collection of vacuum cleaners. They're just gathering dust."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: FirstTelephone.wav
-  text: "What was even more useful than the first telephone? The second telephone."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SignLanguage.wav
-  text: "What's the least spoken language? Sign language."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TwoGuysInABar.wav
-  text: "Two guys walked into a bar... the third one ducked."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CatAttack.wav
-  text: "What do you call a Frenchman who has been attacked by a cat? Claude."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CrocodileAlligator.wav
-  text: "How can you tell the difference between a crocodile and an alligator? Easy, one will see you later, the other will see you in a while."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OceanWave.wav
-  text: "What did the ocean say to the beach? Nothing, it just waved."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ImATurtle.wav
-  text: "A man arrives at a costume party with a girl on his back. 'I be a turtle,' he says. 'Who's on your back?' 'That's Michelle.'"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ParrotBirthday.wav
-  text: "Why don't parrots remember their past birthday parties? They're too focused on the present!"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: EnjoysMondays.wav
-  text: "What do you call someone who enjoys Mondays? Retired."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OlderGentleman.wav
-  text: "An old woman is sitting at a bar when an older gentleman sits down beside her. 'So,' he says, 'Do I come here often?'"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: MoonHaircut.wav
-  text: "How does the moon cut his hair? Eclipse it."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TitleWave.wav
-  text: "If you threw all the books in the ocean, would it cause a title wave?"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: FishVacation.wav
-  text: "Fish don't go on summer vacation, because they're always in schools."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SeagullsBagels.wav
-  text: "If seagulls only flew over the bay, they would be bagels."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: Pirates.wav
-  text: "Why are pirates called pirates? They just ARRRR!"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CrabsNeverShare.wav
-  text: "Crabs never share, because they're shellfish!"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TideCameIn.wav
-  text: "What did the beach say when the tide came in? Long time, no sea!"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: PiratePiercings.wav
-  text: "How much did the pirate pay for his piercings?  A buck-an-ear!"
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SwimmingWithSharks.wav
-  text: "Swimming with sharks is really expensive. Last time I did it, it cost me an arm and a leg."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: PirateBath.wav
-  text: "Do you know why pirates don't take a bath before they walk the plank? Because they wash up on shore."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: RestaurantOnTheMoon.wav
-  text: "Did you hear about the restaurant on the moon? Great food, no atmosphere."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DwarvesMiners.wav
-  text: "Why didn't the seven dwarves offer Snow White a glass of wine? They couldn't, they were miners."
-  category: joke
-  attribution: unknown
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: RemainSilent.wav
-  text: "Maurice Switzer said, 'It is better to remain silent and be thought a fool, than to speak and remove all doubt.'"
-  category: quote
-  attribution: Maurice Switzer
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LearnToAsk.wav
-  text: "Marcus Aurelius said, 'Learn to ask of all actions, 'Why are they doing that?', starting with your own."
-  category: quote
-  attribution: Marcus Aurelius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NotTheSameRiver.wav
-  text: "Heraclitus said, 'One cannot step twice into the same river.'"
-  category: quote
-  attribution: Heraclitus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HappinessGreatest.wav
-  text: "Aristotle said, 'Happiness is the highest good.'"
-  category: quote
-  attribution: Aristotle
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SufferingMeaning.wav
-  text: "Friedrich Nietzsche said, 'To live is to suffer, to survive is to find some meaning in the suffering.'"
-  category: quote
-  attribution: Friedrich Nietzsche
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: YourOwnActions.wav
-  text: "The Dalai Lama said, 'Happiness is not something ready-made. It comes from your own actions.'"
-  category: quote
-  attribution: The Dalai Lama
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhatLiesInside.wav
-  text: "Ralph Waldo Emerson said, 'What lies behind you and what lies in front of you, pales in comparison to what lies inside of you.'"
-  category: quote
-  attribution: Ralph Waldo Emerson
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LibertyDesires.wav
-  text: "John Stuart Mill said, 'Liberty consists in doing what one desires.'"
-  category: quote
-  attribution: John Stuart Mill
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CreatureOfTheAge.wav
-  text: "Voltaire said, 'Every man is a creature of the age in which he lives and few are able to raise themselves above the ideas of the time.'"
-  category: quote
-  attribution: Voltaire
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TeachesUsToAct.wav
-  text: "Seneca said, 'Philosophy teaches us to act, not to speak.'"
-  category: quote
-  attribution: Seneca
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: EmbodyIt.wav
-  text: "Epictetus said, 'Don't explain your philosophy. Embody it.'"
-  category: quote
-  attribution: Epictetus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HowYouReact.wav
-  text: "Epictetus said, 'It's not what happens to you, but how you react to it that matters.'"
-  category: quote
-  attribution: Epictetus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: PowerOverYourMind.wav
-  text: "Marcus Aurelius said, 'You have power over your mind - not outside events. Realize this, and you will find strength.'"
-  category: quote
-  attribution: Marcus Aurelius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: EndureCaterpillars.wav
-  text: "Antoine de Saint-Exupéry said, 'Well, I must endure the presence of a few caterpillars if I wish to become acquainted with the butterflies."
-  category: quote
-  attribution: Antoine de Saint-Exupéry
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ManIsAMystery.wav
-  text: "Fyodor Dostoevsky said, 'Man is a mystery. It needs to be unraveled, and if you spend your whole life unraveling it, don't say that you've wasted time."
-  category: quote
-  attribution: Fyodor Dostoevsky
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BeLikeWater.wav
-  text: "Lao Tzu said, 'Be like water making its way through cracks. Do not be assertive, but adjust to the object, and you shall find a way around or through it.'"
-  category: quote
-  attribution: Lao Tzu
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhatWorriesYou.wav
-  text: "John Locke said, 'What worries you, masters you.'"
-  category: quote
-  attribution: John Locke
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: StrongMinds.wav
-  text: "Socrates said, 'Strong minds discuss ideas, average minds discuss events, weak minds discuss people.'"
-  category: quote
-  attribution: Socrates
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: QualityOfYourThoughts.wav
-  text: "Marcus Aurelius said, 'The happiness of your life depends upon the quality of your thoughts.'"
-  category: quote
-  attribution: Marcus Aurelius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NotThatIAmMad.wav
-  text: "Diogenes said, 'It is not that I am mad, it is only that my head is different from yours.'"
-  category: quote
-  attribution: Diogenes
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CanBearAnyHow.wav
-  text: "Friedrich Nietzsche said, 'He who has a why to live can bear almost any how.'"
-  category: quote
-  attribution: Friedrich Nietzsche
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BetterToLightACandle.wav
-  text: "William Lonsdale Watkinson said, 'It is better to light one small candle than to curse the darkness.'"
-  category: quote
-  attribution: William Lonsdale Watkinson
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HowYouReactII.wav
-  text: "Mahatma Gandhi said, 'You can't change how people treat you or what they say about you.  All you can do is change how you react to it.'"
-  category: quote
-  attribution: Mahatma Gandhi
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InsufficientEvidence.wav
-  text: "W. K. Clifford said, 'It is wrong always, everywhere and for everyone, to believe anything on insufficient evidence.'"
-  category: quote
-  attribution: W. K. Clifford
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InvestmentInKnowledge.wav
-  text: "Benjamin Franklin said, 'An investment in knowledge pays the best interest.'"
-  category: quote
-  attribution: Benjamin Franklin
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: FreeThinker.wav
-  text: "Aristotle said, 'Be a free thinker and don't accept everything you hear as truth. Be critical and evaluate what you believe in.'"
-  category: quote
-  attribution: Aristotle
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InsufficientEvidence.wav
-  text: "Socrates said, 'The only true wisdom is in knowing you know nothing.'"
-  category: quote
-  attribution: Socrates
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InARoomAlone.wav
-  text: "Blaise Pascal said, 'All of humanity's problems stem from man's inability to sit quietly in a room alone.'"
-  category: quote
-  attribution: Blaise Pascal
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OutsideOfADog.wav
-  text: "Groucho Marx said, 'Outside of a dog, a book is man's best friend.  Inside of a dog it's too dark to read.'"
-  category: joke
-  attribution: Groucho Marx
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NothingPermanent.wav
-  text: "Heraclitus said, 'There is nothing permanent except change.'"
-  category: quote
-  attribution: Heraclitus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InARoomAlone.wav
-  text: "Plutarch said, 'Know how to listen and you will profit even from those who talk badly.'"
-  category: quote
-  attribution: Plutarch
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: InARoomAlone.wav
-  text: "Lau Tzu said, 'Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.'"
-  category: quote
-  attribution: Lau Tzu
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: GoodOrEvil.wav
-  text: "Aristotle said, 'It is our choice of good or evil that determines our character, not our opinion about good or evil.'"
-  category: quote
-  attribution: Aristotle
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhatTheyDo.wav
-  text: "Descartes said, 'To know what people really think, pay attention to what they do, rather than what they say.'"
-  category: quote
-  attribution: Descartes
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BeAsYouWishToSeem.wav
-  text: "Socrates said, 'Be as you wish to seem.'"
-  category: quote
-  attribution: Socrates
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NothingPermanent.wav
-  text: "Epictetus said, 'It is impossible for a man to learn what he thinks he already knows.'"
-  category: quote
-  attribution: Epictetus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OurThoughts.wav
-  text: "Marcus Aurelius said, 'Our life is what our thoughts make it.'"
-  category: quote
-  attribution: Marcus Aurelius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HeIsResponsible.wav
-  text: "Jean-Paul Sartre said, 'Man is condemned to be free: because once thrown into the world, he is responsible for everything he does.'"
-  category: quote
-  attribution: Jean-Paul Sartre
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LikeRidingABicycle.wav
-  text: "Albert Einstein said, Life is like riding a bicycle. To keep your balance, you must keep moving.'"
-  category: quote
-  attribution: Albert Einstein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OwningYourself.wav
-  text: "Friedrich Nietzsche said, 'No price is too high to pay for the privilege of owning yourself.'"
-  category: quote
-  attribution: Friedrich Nietzsche
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ChooseToStand.wav
-  text: "Jackie Chan said, 'Life will knock us down, but we can choose whether or not to stand back up.'"
-  category: quote
-  attribution: Jackie Chan
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DontAddToIt.wav
-  text: "Marcus Aurelius said, 'The wise man accepts his pain, endures it, but does not add to it.'"
-  category: quote
-  attribution: Marcus Aurelius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: MakeLightOfPhilosophy.wav
-  text: "Blaise Pascal said, 'To make light of philosophy is to be a true philosopher.'"
-  category: quote
-  attribution: Blaise Pascal
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BeTheChange.wav
-  text: "Mahatma Gandhi said, 'You must be the change you wish to see in the world.'"
-  category: quote
-  attribution: Mahatma Gandhi
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: MostImportantRelationship.wav
-  text: "Aristotle said, 'The most important relationship we can all have is the one you have with yourself, the most important journey you can take is one of self-discovery. To know yourself, you must spend time with yourself, you must not be afraid to be alone. Knowing yourself is the beginning of all wisdom.'"
-  category: quote
-  attribution: Aristotle
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WantOfCourage.wav
-  text: "Confucius said, 'To see what is right and not do it is want of courage.'"
-  category: quote
-  attribution: Confucius
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TurnOnTheLight.wav
-  text: "Albus Dumbledore said, 'Happiness can be found in the darkest of times when only one remembers to turn on the light.'"
-  category: quote
-  attribution: Albus Dumbledore / J. K. Rowling
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: AngerRemedy.wav
-  text: "Seneca said, 'The greatest remedy for anger is delay.'"
-  category: quote
-  attribution: Seneca
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NeverRuinApology.wav
-  text: "Benjamin Franklin said, Never ruin an apology with an excuse.'"
-  category: quote
-  attribution: Benjamin Franklin
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ExpressedInOurChoices.wav
-  text: "Eleanor Roosevelt said, 'One's philosophy is not best expressed in words; it is expressed in the choices one makes... and the choices we make are ultimately our responsibility.'"
-  category: quote
-  attribution: Eleanor Roosevelt
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WovenIntoOthers.wav
-  text: "Pericles said, 'What you leave behind is not what is engraved in stone monuments, but what is woven into the lives of others.'"
-  category: quote
-  attribution: Pericles
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HatersOfObscurity.wav
-  text: "Isaac Asimov said, ''Philosopher' is Greek for 'lover of wisdom.' How many students have longed for some philosophers to be, with equal dedication, 'haters of obscurity.''"
-  category: quote
-  attribution: Isaac Asimov
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ByOneWorkman.wav
-  text: "Plato said, 'All men are by nature equal, made all of the same earth by one workman.'"
-  category: quote
-  attribution: Plato
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SharedCelebration.wav
-  text: "Invajy said, 'When you reach at the peak of success and you have no one to celebrate along with, such success has no value.'"
-  category: quote
-  attribution: Invajy
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WithWhatYouHate.wav
-  text: "Al Ghazali said, 'To get what you love, you must first be patient with what you hate.'"
-  category: quote
-  attribution: Al Ghazali
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: MyWay.wav
-  text: "Ralph Waldo Emerson said, 'To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.'"
-  category: quote
-  attribution: Ralph Waldo Emerson
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NeverWalkBack.wav
-  text: "Abraham Lincoln said, 'I am a slow walker, but I never walk back.'"
-  category: quote
-  attribution: Abraham Lincoln
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DifferenceInPolitics.wav
-  text: "Thomas Jefferson said, 'I never considered a difference of opinion in politics, in religion, in philosophy as cause for withdrawing from a friend.'"
-  category: quote
-  attribution: Thomas Jefferson
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: SecretsToSuccess.wav
-  text: "Colin Powell said, 'There are no secrets to success.  It is the result of preparation, hard work, and learning from failure.'"
-  category: quote
-  attribution: Colin Powell
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: FreedomGoal.wav
-  text: "Epictetus said, 'Freedom is the only worthy goal in life.  It is won by disregarding things that lie beyond our control.'"
-  category: quote
-  attribution: Epictetus
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: StrengthenAuthority.wav
-  text: "Da Vinci said, 'Nothing strengthens authority so much as silence.'"
-  category: quote
-  attribution: Da Vinci
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TellMeIForget.wav
-  text: "Benjamin Franklin said, 'Tell me and I forget. Teach me and I remember. Involve me, and I learn.'"
-  category: quote
-  attribution: Benjamin Franklin
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BuildUpWeaknesses.wav
-  text: "Knute Rockne said, 'Build up your weaknesses until they become your strong points.'"
-  category: quote
-  attribution: Knute Rockne
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: CreatingYourself.wav
-  text: "George Bernard Shaw said, 'Life isn't about finding yourself.  Life is about creating yourself.'"
-  category: quote
-  attribution: George Bernard Shaw
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DifficultiesDoNotDiscourage.wav
-  text: "William Ellery Channing said, 'Difficulties are ment to rouse, not discourage. The human spirit is to grow strong by conflict.'"
-  category: quote
-  attribution: William Ellery Channing
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ThereYouAre.wav
-  text: "Buckaroo Bonzai said, 'Remember, no matter where you go, there you are.'"
-  category: quote
-  attribution: Buckaroo Bonzai
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: BuildADoor.wav
-  text: "Milton Berle said, 'If opportunity doesn't knock, build a door.'"
-  category: quote
-  attribution: Milton Berle
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhereYouStart.wav
-  text: "Nido R. Qubein said, 'Your present circumstances don't determine where you can go; they merely determine where you start.'"
-  category: quote
-  attribution: Nido R. Qubein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhatHeAspiresTo.wav
-  text: "Khalil Gibran said, 'To understand the heart and mind of a person, look not at what he has already achieved, but at what he aspires to.'"
-  category: quote
-  attribution: Khalil Gibran
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: ScienceGathers.wav
-  text: "Isaac Asimov said, 'The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.'"
-  category: quote
-  attribution: Isaac Asimov
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LoveCanTransform.wav
-  text: "Martin Luther King, Jr. said, 'Love is the only force capable of transforming an enemy into a friend.'"
-  category: quote
-  attribution: Martin Luther King, Jr.
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: OnceIsEnough.wav
-  text: "Mae West said, 'You only live once, but if you do it right, once is enough.'"
-  category: quote
-  attribution: Mae West
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: IAmFree.wav
-  text: "Robert A. Heinlein said, 'I am free, no matter what rules surround me. If I find them tolerable, I tolerate them; if I find them too obnoxious, I break them. I am free because I know that I alone am morally responsible for everything I do.'"
-  category: quote
-  attribution: Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TwoLearn.wav
-  text: "Robert A. Heinlein said, 'When one teaches, two learn.'"
-  category: quote
-  attribution: Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: NeverAttributeToMalice.wav
-  text: "Robert A. Heinlein said, 'Never attribute to malice that which can be adequately explained by stupidity. Never underestimate the power of human stupidity.'"
-  category: quote
-  attribution: Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: PeaceOrFreedom.wav
-  text: "Robert A. Heinlein said, 'You can have peace. Or you can have freedom. Don't ever count on having both at once.'"
-  category: quote
-  attribution: Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: YieldToTemptation.wav
-  text: "Robert A. Heinlein said, 'Yield to temptation. It may not pass your way again.'"
-  category: quote
-  attribution: Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: IHateAllPolitics.wav
-  text: "Ray Bradbury said, 'I hate all politics. I don't like either political party. One should not belong to them - one should be an individual, standing in the middle. Anyone that belongs to a party stops thinking.'"
-  category: quote
-  attribution: Ray Bradbury
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TimesYouGetUp.wav
-  text: "Vince Lombardi said, 'It does not matter how many times you get knocked down, but how many times you get up.'"
-  category: quote
-  attribution: Vince Lombardi
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: PassALaw.wav
-  text: "Groucho Marx said, 'This isn't a particularly novel observation, but the world is full of people who think they can manipulate the lives of others merely by getting a law passed.'"
-  category: quote
-  attribution: Groucho Marx
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: TimeFlies.wav
-  text: "Groucho Marx said, 'Time flies like an arrow; fruit flies like a banana.'"
-  category: joke
-  attribution: Groucho Marx
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DontLetFear.wav
-  text: "Groucho Marx said, 'Don't let the fear of the thorn keep you from the rose.'"
-  category: quote
-  attribution: Groucho Marx
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LuckyGrowingOld.wav
-  text: "Groucho Marx said, 'Growing old is something you do if you're lucky.'"
-  category: quote
-  attribution: Groucho Marx
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: DontStopLaughing.wav
-  text: "Maurice Chevalier said, 'You don't stop laughing because you grow older. You grow older because you stop laughing.'"
-  category: quote
-  attribution: Maurice Chevalier
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: LightSoDim.wav
-  text: "Maurice Chevalier said, 'Many a man has fallen in love with a girl in a light so dim he would not have chosen a suit by it.'"
-  category: quote
-  attribution: Maurice Chevalier
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WiccanCreed.wav
-  text: "The Wiccan Creed is, 'And it hurt none, do as you will.'"
-  category: quote
-  attribution: Wiccan Creed
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: JoyShared.wav
-  text: "Captain Jack says, 'Joy shared is multiplied. Sorrow shared is divided.'"
-  category: quote
-  attribution: paraphrased from Christoph August Tiedge
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: IfNotNow.wav
-  text: "Hillel the Elder said, 'If not now, when?'"
-  category: quote
-  attribution: Hillel the Elder
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: YoureRight.wav
-  text: "Henry Ford said, 'Whether you think you can or think you can't, you're right.'"
-  category: quote
-  attribution: Henry Ford
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: RightWrongNoThing.wav
-  text: "Theodore Roosevelt said, 'In any situation, the best thing you can do is the right thing; the next best thing you can do is the wrong thing; the worst thing you can do is nothing.'"
-  category: quote
-  attribution: Theodore Roosevelt
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: EverythingWillBeAlright.wav
-  text: "Domingos Sabino said, 'Everything will be alright in the end. So, if it is not alright, it is not yet the end.'"
-  category: quote
-  attribution: translated quote from Domingos Sabino
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: HopefullyYouDoTheRightThing.wav
-  text: "Alex said, 'You happen to be in one situation or another and you make your decisions based on who you are. Maybe you're the right person for that situation, maybe you're not. Hopefully you do the right thing for the world and you move on from there.'"
-  category: quote
-  attribution: Alex
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: WhyComesTemptation.wav
-  text: "Father Blackie said, 'Why else does temptation come, save that man may meet it, master it and so be pedestalled in glory.'"
-  category: quote
-  attribution: Father Blackie (Andrew Greeley) paraphrasing Robert Browning
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
-- file: IfYouDontLikeYourself.wav
-  text: "Lazarus Long said, 'If you don't like yourself, you can't like other people.'"
-  category: quote
-  attribution: Lazarus Long / Robert A. Heinlein
-  engine: kokoro-pi/am_santa
-  rendered: 2026-10-06
+clips:
+  - file: TheUnexaminedLifeSquawk.wav
+    text: "The unexamined life is not worth living, matey."
+    category: quote
+    attribution: Socrates (as paraphrased by Plato and Claude as Captain Jack)
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HippoZippo.wav
+    text: "What's the difference between a hippo and a zippo? One's really heavy and one is a little lighter."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: AfraidOfElevators.wav
+    text: "I'm afraid of elevators. But it's OK, I'm taking steps to avoid them."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: VacuumCollection.wav
+    text: "At home, I've got a collection of vacuum cleaners. They're just gathering dust."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FirstTelephone.wav
+    text: "What was even more useful than the first telephone? The second telephone."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SignLanguage.wav
+    text: "What's the least spoken language? Sign language."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TwoGuysInABar.wav
+    text: "Two guys walked into a bar... the third one ducked."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CatAttack.wav
+    text: "What do you call a Frenchman who has been attacked by a cat? Claude."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CrocodileAlligator.wav
+    text: "How can you tell the difference between a crocodile and an alligator? Easy, one will see you later, the other will see you in a while."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OceanWave.wav
+    text: "What did the ocean say to the beach? Nothing, it just waved."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ImATurtle.wav
+    text: "A man arrives at a costume party with a girl on his back. 'I be a turtle,' he says. 'Who's on your back?' 'That's Michelle.'"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ParrotBirthday.wav
+    text: "Why don't parrots remember their past birthday parties? They're too focused on the present!"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: EnjoysMondays.wav
+    text: "What do you call someone who enjoys Mondays? Retired."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OlderGentleman.wav
+    text: "An old woman is sitting at a bar when an older gentleman sits down beside her. 'So,' he says, 'Do I come here often?'"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: MoonHaircut.wav
+    text: "How does the moon cut his hair? Eclipse it."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TitleWave.wav
+    text: "If you threw all the books in the ocean, would it cause a title wave?"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FishVacation.wav
+    text: "Fish don't go on summer vacation, because they're always in schools."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SeagullsBagels.wav
+    text: "If seagulls only flew over the bay, they would be bagels."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: Pirates.wav
+    text: "Why are pirates called pirates? They just ARRRR!"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CrabsNeverShare.wav
+    text: "Crabs never share, because they're shellfish!"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TideCameIn.wav
+    text: "What did the beach say when the tide came in? Long time, no sea!"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PiratePiercings.wav
+    text: "How much did the pirate pay for his piercings? A buck-an-ear!"
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SwimmingWithSharks.wav
+    text: "Swimming with sharks is really expensive. Last time I did it, it cost me an arm and a leg."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PirateBath.wav
+    text: "Do you know why pirates don't take a bath before they walk the plank? Because they wash up on shore."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: RestaurantOnTheMoon.wav
+    text: "Did you hear about the restaurant on the moon? Great food, no atmosphere."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DwarvesMiners.wav
+    text: "Why didn't the seven dwarves offer Snow White a glass of wine? They couldn't, they were miners."
+    category: joke
+    attribution: unknown
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: RemainSilent.wav
+    text: "Maurice Switzer said, 'It is better to remain silent and be thought a fool, than to speak and remove all doubt.'"
+    category: quote
+    attribution: Maurice Switzer
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LearnToAsk.wav
+    text: "Marcus Aurelius said, 'Learn to ask of all actions, 'Why are they doing that?', starting with your own.'"
+    category: quote
+    attribution: Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NotTheSameRiver.wav
+    text: "Heraclitus said, 'One cannot step twice into the same river.'"
+    category: quote
+    attribution: Heraclitus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HappinessGreatest.wav
+    text: "Aristotle said, 'Happiness is the highest good.'"
+    category: quote
+    attribution: Aristotle
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SufferingMeaning.wav
+    text: "Friedrich Nietzsche said, 'To live is to suffer, to survive is to find some meaning in the suffering.'"
+    category: quote
+    attribution: Friedrich Nietzsche
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: YourOwnActions.wav
+    text: "The Dalai Lama said, 'Happiness is not something ready-made. It comes from your own actions.'"
+    category: quote
+    attribution: The Dalai Lama
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhatLiesInside.wav
+    text: "Ralph Waldo Emerson said, 'What lies behind you and what lies in front of you, pales in comparison to what lies inside of you.'"
+    category: quote
+    attribution: Ralph Waldo Emerson
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LibertyDesires.wav
+    text: "John Stuart Mill said, 'Liberty consists in doing what one desires.'"
+    category: quote
+    attribution: John Stuart Mill
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CreatureOfTheAge.wav
+    text: "Voltaire said, 'Every man is a creature of the age in which he lives and few are able to raise themselves above the ideas of the time.'"
+    category: quote
+    attribution: Voltaire
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TeachesUsToAct.wav
+    text: "Seneca said, 'Philosophy teaches us to act, not to speak.'"
+    category: quote
+    attribution: Seneca
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: EmbodyIt.wav
+    text: "Epictetus said, 'Don't explain your philosophy. Embody it.'"
+    category: quote
+    attribution: Epictetus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HowYouReact.wav
+    text: "Epictetus said, 'It's not what happens to you, but how you react to it that matters.'"
+    category: quote
+    attribution: Epictetus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PowerOverYourMind.wav
+    text: "Marcus Aurelius said, 'You have power over your mind - not outside events. Realize this, and you will find strength.'"
+    category: quote
+    attribution: Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: EndureCaterpillars.wav
+    text: "Antoine de Saint-Exupéry said, 'Well, I must endure the presence of a few caterpillars if I wish to become acquainted with the butterflies.'"
+    category: quote
+    attribution: Antoine de Saint-Exupéry
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ManIsAMystery.wav
+    text: "Fyodor Dostoevsky said, 'Man is a mystery. It needs to be unraveled, and if you spend your whole life unraveling it, don't say that you've wasted time.'"
+    category: quote
+    attribution: Fyodor Dostoevsky
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BeLikeWater.wav
+    text: "Lao Tzu said, 'Be like water making its way through cracks. Do not be assertive, but adjust to the object, and you shall find a way around or through it.'"
+    category: quote
+    attribution: Lao Tzu
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhatWorriesYou.wav
+    text: "John Locke said, 'What worries you, masters you.'"
+    category: quote
+    attribution: John Locke
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: StrongMinds.wav
+    text: "Socrates said, 'Strong minds discuss ideas, average minds discuss events, weak minds discuss people.'"
+    category: quote
+    attribution: Socrates
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: QualityOfYourThoughts.wav
+    text: "Marcus Aurelius said, 'The happiness of your life depends upon the quality of your thoughts.'"
+    category: quote
+    attribution: Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NotThatIAmMad.wav
+    text: "Diogenes said, 'It is not that I am mad, it is only that my head is different from yours.'"
+    category: quote
+    attribution: Diogenes
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CanBearAnyHow.wav
+    text: "Friedrich Nietzsche said, 'He who has a why to live can bear almost any how.'"
+    category: quote
+    attribution: Friedrich Nietzsche
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BetterToLightACandle.wav
+    text: "William Lonsdale Watkinson said, 'It is better to light one small candle than to curse the darkness.'"
+    category: quote
+    attribution: William Lonsdale Watkinson
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HowYouReactII.wav
+    text: "Mahatma Gandhi said, 'You can't change how people treat you or what they say about you. All you can do is change how you react to it.'"
+    category: quote
+    attribution: Mahatma Gandhi
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: InsufficientEvidence.wav
+    text: "W. K. Clifford said, 'It is wrong always, everywhere and for everyone, to believe anything on insufficient evidence.'"
+    category: quote
+    attribution: W. K. Clifford
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: InvestmentInKnowledge.wav
+    text: "Benjamin Franklin said, 'An investment in knowledge pays the best interest.'"
+    category: quote
+    attribution: Benjamin Franklin
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FreeThinker.wav
+    text: "Aristotle said, 'Be a free thinker and don't accept everything you hear as truth. Be critical and evaluate what you believe in.'"
+    category: quote
+    attribution: Aristotle
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: KnowingNothing.wav
+    text: "Socrates said, 'The only true wisdom is in knowing you know nothing.'"
+    category: quote
+    attribution: Socrates
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: InARoomAlone.wav
+    text: "Blaise Pascal said, 'All of humanity's problems stem from man's inability to sit quietly in a room alone.'"
+    category: quote
+    attribution: Blaise Pascal
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OutsideOfADog.wav
+    text: "Groucho Marx said, 'Outside of a dog, a book is man's best friend. Inside of a dog it's too dark to read.'"
+    category: joke
+    attribution: Groucho Marx
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NothingPermanent.wav
+    text: "Heraclitus said, 'There is nothing permanent except change.'"
+    category: quote
+    attribution: Heraclitus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: KnowHowToListen.wav
+    text: "Plutarch said, 'Know how to listen and you will profit even from those who talk badly.'"
+    category: quote
+    attribution: Plutarch
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LovedGivesStrength.wav
+    text: "Lao Tzu said, 'Being deeply loved by someone gives you strength, while loving someone deeply gives you courage.'"
+    category: quote
+    attribution: Lao Tzu
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: GoodOrEvil.wav
+    text: "Aristotle said, 'It is our choice of good or evil that determines our character, not our opinion about good or evil.'"
+    category: quote
+    attribution: Aristotle
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhatTheyDo.wav
+    text: "Descartes said, 'To know what people really think, pay attention to what they do, rather than what they say.'"
+    category: quote
+    attribution: Descartes
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BeAsYouWishToSeem.wav
+    text: "Socrates said, 'Be as you wish to seem.'"
+    category: quote
+    attribution: Socrates
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: AlreadyKnows.wav
+    text: "Epictetus said, 'It is impossible for a man to learn what he thinks he already knows.'"
+    category: quote
+    attribution: Epictetus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OurThoughts.wav
+    text: "Marcus Aurelius said, 'Our life is what our thoughts make it.'"
+    category: quote
+    attribution: Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HeIsResponsible.wav
+    text: "Jean-Paul Sartre said, 'Man is condemned to be free: because once thrown into the world, he is responsible for everything he does.'"
+    category: quote
+    attribution: Jean-Paul Sartre
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LikeRidingABicycle.wav
+    text: "Albert Einstein said, 'Life is like riding a bicycle. To keep your balance, you must keep moving.'"
+    category: quote
+    attribution: Albert Einstein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OwningYourself.wav
+    text: "Friedrich Nietzsche said, 'No price is too high to pay for the privilege of owning yourself.'"
+    category: quote
+    attribution: Friedrich Nietzsche
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ChooseToStand.wav
+    text: "Jackie Chan said, 'Life will knock us down, but we can choose whether or not to stand back up.'"
+    category: quote
+    attribution: Jackie Chan
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DontAddToIt.wav
+    text: "Marcus Aurelius said, 'The wise man accepts his pain, endures it, but does not add to it.'"
+    category: quote
+    attribution: Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: MakeLightOfPhilosophy.wav
+    text: "Blaise Pascal said, 'To make light of philosophy is to be a true philosopher.'"
+    category: quote
+    attribution: Blaise Pascal
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BeTheChange.wav
+    text: "Mahatma Gandhi said, 'You must be the change you wish to see in the world.'"
+    category: quote
+    attribution: Mahatma Gandhi
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: MostImportantRelationship.wav
+    text: "Aristotle said, 'The most important relationship we can all have is the one you have with yourself, the most important journey you can take is one of self-discovery. To know yourself, you must spend time with yourself, you must not be afraid to be alone. Knowing yourself is the beginning of all wisdom.'"
+    category: quote
+    attribution: Aristotle
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WantOfCourage.wav
+    text: "Confucius said, 'To see what is right and not do it is want of courage.'"
+    category: quote
+    attribution: Confucius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TurnOnTheLight.wav
+    text: "Albus Dumbledore said, 'Happiness can be found in the darkest of times when only one remembers to turn on the light.'"
+    category: quote
+    attribution: Albus Dumbledore / J. K. Rowling
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: AngerRemedy.wav
+    text: "Seneca said, 'The greatest remedy for anger is delay.'"
+    category: quote
+    attribution: Seneca
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NeverRuinApology.wav
+    text: "Benjamin Franklin said, 'Never ruin an apology with an excuse.'"
+    category: quote
+    attribution: Benjamin Franklin
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ExpressedInOurChoices.wav
+    text: "Eleanor Roosevelt said, 'One's philosophy is not best expressed in words; it is expressed in the choices one makes... and the choices we make are ultimately our responsibility.'"
+    category: quote
+    attribution: Eleanor Roosevelt
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WovenIntoOthers.wav
+    text: "Pericles said, 'What you leave behind is not what is engraved in stone monuments, but what is woven into the lives of others.'"
+    category: quote
+    attribution: Pericles
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HatersOfObscurity.wav
+    text: "Isaac Asimov said, 'Philosopher is Greek for lover of wisdom. How many students have longed for some philosophers to be, with equal dedication, haters of obscurity.'"
+    category: quote
+    attribution: Isaac Asimov
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ByOneWorkman.wav
+    text: "Plato said, 'All men are by nature equal, made all of the same earth by one workman.'"
+    category: quote
+    attribution: Plato
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SharedCelebration.wav
+    text: "Invajy said, 'When you reach at the peak of success and you have no one to celebrate along with, such success has no value.'"
+    category: quote
+    attribution: Invajy
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WithWhatYouHate.wav
+    text: "Al Ghazali said, 'To get what you love, you must first be patient with what you hate.'"
+    category: quote
+    attribution: Al Ghazali
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: MyWay.wav
+    text: "Ralph Waldo Emerson said, 'To be yourself in a world that is constantly trying to make you something else is the greatest accomplishment.'"
+    category: quote
+    attribution: Ralph Waldo Emerson
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NeverWalkBack.wav
+    text: "Abraham Lincoln said, 'I am a slow walker, but I never walk back.'"
+    category: quote
+    attribution: Abraham Lincoln
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DifferenceInPolitics.wav
+    text: "Thomas Jefferson said, 'I never considered a difference of opinion in politics, in religion, in philosophy as cause for withdrawing from a friend.'"
+    category: quote
+    attribution: Thomas Jefferson
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SecretsToSuccess.wav
+    text: "Colin Powell said, 'There are no secrets to success. It is the result of preparation, hard work, and learning from failure.'"
+    category: quote
+    attribution: Colin Powell
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FreedomGoal.wav
+    text: "Epictetus said, 'Freedom is the only worthy goal in life. It is won by disregarding things that lie beyond our control.'"
+    category: quote
+    attribution: Epictetus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: StrengthenAuthority.wav
+    text: "Da Vinci said, 'Nothing strengthens authority so much as silence.'"
+    category: quote
+    attribution: Da Vinci
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TellMeIForget.wav
+    text: "Benjamin Franklin said, 'Tell me and I forget. Teach me and I remember. Involve me, and I learn.'"
+    category: quote
+    attribution: Benjamin Franklin
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BuildUpWeaknesses.wav
+    text: "Knute Rockne said, 'Build up your weaknesses until they become your strong points.'"
+    category: quote
+    attribution: Knute Rockne
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CreatingYourself.wav
+    text: "George Bernard Shaw said, 'Life isn't about finding yourself. Life is about creating yourself.'"
+    category: quote
+    attribution: George Bernard Shaw
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DifficultiesDoNotDiscourage.wav
+    text: "William Ellery Channing said, 'Difficulties are meant to rouse, not discourage. The human spirit is to grow strong by conflict.'"
+    category: quote
+    attribution: William Ellery Channing
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ThereYouAre.wav
+    text: "Buckaroo Banzai said, 'Remember, no matter where you go, there you are.'"
+    category: quote
+    attribution: Buckaroo Banzai
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BuildADoor.wav
+    text: "Milton Berle said, 'If opportunity doesn't knock, build a door.'"
+    category: quote
+    attribution: Milton Berle
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhereYouStart.wav
+    text: "Nido R. Qubein said, 'Your present circumstances don't determine where you can go; they merely determine where you start.'"
+    category: quote
+    attribution: Nido R. Qubein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhatHeAspiresTo.wav
+    text: "Khalil Gibran said, 'To understand the heart and mind of a person, look not at what he has already achieved, but at what he aspires to.'"
+    category: quote
+    attribution: Khalil Gibran
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ScienceGathers.wav
+    text: "Isaac Asimov said, 'The saddest aspect of life right now is that science gathers knowledge faster than society gathers wisdom.'"
+    category: quote
+    attribution: Isaac Asimov
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LoveCanTransform.wav
+    text: "Martin Luther King, Jr. said, 'Love is the only force capable of transforming an enemy into a friend.'"
+    category: quote
+    attribution: Martin Luther King, Jr.
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OnceIsEnough.wav
+    text: "Mae West said, 'You only live once, but if you do it right, once is enough.'"
+    category: quote
+    attribution: Mae West
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: IAmFree.wav
+    text: "Robert A. Heinlein said, 'I am free, no matter what rules surround me. If I find them tolerable, I tolerate them; if I find them too obnoxious, I break them. I am free because I know that I alone am morally responsible for everything I do.'"
+    category: quote
+    attribution: Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TwoLearn.wav
+    text: "Robert A. Heinlein said, 'When one teaches, two learn.'"
+    category: quote
+    attribution: Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NeverAttributeToMalice.wav
+    text: "Robert A. Heinlein said, 'Never attribute to malice that which can be adequately explained by stupidity. Never underestimate the power of human stupidity.'"
+    category: quote
+    attribution: Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PeaceOrFreedom.wav
+    text: "Robert A. Heinlein said, 'You can have peace. Or you can have freedom. Don't ever count on having both at once.'"
+    category: quote
+    attribution: Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: YieldToTemptation.wav
+    text: "Robert A. Heinlein said, 'Yield to temptation. It may not pass your way again.'"
+    category: quote
+    attribution: Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: IHateAllPolitics.wav
+    text: "Ray Bradbury said, 'I hate all politics. I don't like either political party. One should not belong to them - one should be an individual, standing in the middle. Anyone that belongs to a party stops thinking.'"
+    category: quote
+    attribution: Ray Bradbury
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TimesYouGetUp.wav
+    text: "Vince Lombardi said, 'It does not matter how many times you get knocked down, but how many times you get up.'"
+    category: quote
+    attribution: Vince Lombardi
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PassALaw.wav
+    text: "Groucho Marx said, 'This isn't a particularly novel observation, but the world is full of people who think they can manipulate the lives of others merely by getting a law passed.'"
+    category: quote
+    attribution: Groucho Marx
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TimeFlies.wav
+    text: "Groucho Marx said, 'Time flies like an arrow; fruit flies like a banana.'"
+    category: joke
+    attribution: Groucho Marx
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DontLetFear.wav
+    text: "Groucho Marx said, 'Don't let the fear of the thorn keep you from the rose.'"
+    category: quote
+    attribution: Groucho Marx
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LuckyGrowingOld.wav
+    text: "Groucho Marx said, 'Growing old is something you do if you're lucky.'"
+    category: quote
+    attribution: Groucho Marx
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DontStopLaughing.wav
+    text: "Maurice Chevalier said, 'You don't stop laughing because you grow older. You grow older because you stop laughing.'"
+    category: quote
+    attribution: Maurice Chevalier
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LightSoDim.wav
+    text: "Maurice Chevalier said, 'Many a man has fallen in love with a girl in a light so dim he would not have chosen a suit by it.'"
+    category: quote
+    attribution: Maurice Chevalier
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WiccanCreed.wav
+    text: "The Wiccan Creed is, 'And it hurt none, do as you will.'"
+    category: quote
+    attribution: Wiccan Creed
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: JoyShared.wav
+    text: "Captain Jack says, 'Joy shared is multiplied. Sorrow shared is divided.'"
+    category: quote
+    attribution: paraphrased from Christoph August Tiedge
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: IfNotNow.wav
+    text: "Hillel the Elder said, 'If not now, when?'"
+    category: quote
+    attribution: Hillel the Elder
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: YoureRight.wav
+    text: "Henry Ford said, 'Whether you think you can or think you can't, you're right.'"
+    category: quote
+    attribution: Henry Ford
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: RightWrongNoThing.wav
+    text: "Theodore Roosevelt said, 'In any situation, the best thing you can do is the right thing; the next best thing you can do is the wrong thing; the worst thing you can do is nothing.'"
+    category: quote
+    attribution: Theodore Roosevelt
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: EverythingWillBeAlright.wav
+    text: "Domingos Sabino said, 'Everything will be alright in the end. So, if it is not alright, it is not yet the end.'"
+    category: quote
+    attribution: translated quote from Domingos Sabino
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: HopefullyYouDoTheRightThing.wav
+    text: "Alex said, 'You happen to be in one situation or another and you make your decisions based on who you are. Maybe you're the right person for that situation, maybe you're not. Hopefully you do the right thing for the world and you move on from there.'"
+    category: quote
+    attribution: Alex
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WhyComesTemptation.wav
+    text: "Father Blackie said, 'Why else does temptation come, save that man may meet it, master it and so be pedestalled in glory.'"
+    category: quote
+    attribution: Father Blackie (Andrew Greeley) paraphrasing Robert Browning
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: IfYouDontLikeYourself.wav
+    text: "Lazarus Long said, 'If you don't like yourself, you can't like other people.'"
+    category: quote
+    attribution: Lazarus Long / Robert A. Heinlein
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+
+  # --- Claude's additions, 2026-10-07 ---
+  # Invited by Chip: pirate-flavored remixes of a few quotes above, a
+  # handful of new quotes similarly treated, and wholly original lines in
+  # Jack's voice - grounded in memory/identity.md's Persona section
+  # (nautical speech woven into ordinary sentences, not forced into every
+  # line; salty stand-ins, never cursing; short - one or two sentences).
+
+  - file: GripTheWheel.wav
+    text: "Ye hold the helm over yer own mind, Captain — the squalls outside be none of yer doin'. Grip that wheel, and ye'll weather anything."
+    category: quote
+    attribution: Claude as Captain Jack, misquoting Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ASailorNeverCrosses.wav
+    text: "A sailor never crosses the same sea twice, matey — the tide's already turned 'fore yer boots have dried."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Heraclitus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: GoRoundTheRock.wav
+    text: "Be like the tide, Captain. Don't fight the rock — just go 'round it, and ye'll reach shore all the same."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Lao Tzu
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TrimTheSails.wav
+    text: "A storm don't care how ye feel about it, matey. All that matters be how ye trim the sails."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Epictetus
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: KnowinWhatYeDontKnow.wav
+    text: "The wisest old sea dog I ever sailed with couldn't read a chart to save his life. That be true wisdom, Captain — knowin' what ye don't know."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Socrates
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: BilgePumpForAnger.wav
+    text: "When yer temper rises like a squall, don't haul on the wheel just yet. Count ten waves first — delay be the best bilge pump for anger."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Seneca
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FeathersAndBone.wav
+    text: "Tell this old parrot somethin' and it's gone with the wind, matey. Show me, and I'll remember 'til I'm feathers and bone."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Benjamin Franklin
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: JustBeOne.wav
+    text: "Stop debatin' what makes a fine captain, Captain. Just be one."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Marcus Aurelius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: DontDropAnchor.wav
+    text: "Don't matter how slow the ship sails, matey, so long as she don't drop anchor for good."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Confucius
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: GritToKeepSailing.wav
+    text: "A sunk ship ain't the end, Captain, and smooth sailin' ain't the finish neither. It's the grit to keep sailin' that counts."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Winston Churchill
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: TwoDaysMatterMost.wav
+    text: "Two days matter most in a sailor's life, Captain: the day ye first set sail, and the day ye finally figure out why."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Mark Twain
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: SinkYerOwnHappiness.wav
+    text: "Eyeballin' another ship's treasure be the fastest way to sink yer own happiness, matey."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Theodore Roosevelt
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CrumbToAGull.wav
+    text: "Toss a crumb to a gull today, Captain, and don't be surprised when the whole flock remembers ye kindly."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing Aesop
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: StormsYeSailInto.wav
+    text: "Fill yer head with storms, matey, and storms is all ye'll ever sail into."
+    category: quote
+    attribution: Claude as Captain Jack, paraphrasing the Buddha
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WorthHearin.wav
+    text: "A parrot who only repeats what he hears never learns to say somethin' worth hearin'."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: PackYerCoatAnyway.wav
+    text: "The sea don't care if ye planned for rain, Captain. Pack yer coat anyway."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: ForgottenPockets.wav
+    text: "I've buried more treasure in forgotten pockets than any chart ever showed me."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: QuietPerchGoodFriend.wav
+    text: "A quiet perch and a good friend be worth more than any sunk galleon, matey."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: FindsHisWayHome.wav
+    text: "Even a bird who can't fly still finds his way home, Captain."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: LoudestSquawkInTheFlock.wav
+    text: "The loudest squawk in the flock ain't always got the most worth sayin', matey."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: WindHasOpinions.wav
+    text: "Chart yer course, Captain, but don't be surprised when the wind has opinions of its own."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: CalmBetweenStorms.wav
+    text: "An old bird who's seen one too many storms learns to love the calm between 'em."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: NeverLeavesPort.wav
+    text: "A captain who waits for perfect winds never leaves port, matey."
+    category: quote
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07
+  - file: OnlyOneGotAnywhere.wav
+    text: "I've known captains who feared the open sea, and captains who feared standin' still. Only one of 'em ever got anywhere, Captain."
+    category: joke
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-07

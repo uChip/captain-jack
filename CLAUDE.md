@@ -283,8 +283,6 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     rather than live). Added `wavFiles/manifest.yaml` to track each
     TTS-sourced clip's source text/category/attribution/rendering voice,
     so a future voice change is a batch re-run, not a lost-text search.
-    Not populated yet — Chip is still finalizing the joke list and
-    hasn't started picking quotes.
 26. `ALIGNMENT_FUDGE_S` measured, 2026-10-07: Chip's frame-matched video
     (30fps, against the file's own precisely-measured tone-on/off
     timing) showed the beak consistently starting to move about one
@@ -296,6 +294,23 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     100ms release time constant predicts — not changed yet, better
     confirmed against real conversational speech (step 7) than further
     analysis of one test tone. See `docs/specification.md` section 4.8.
+27. Idle-clip library complete and rendered, 2026-10-07: `wavFiles/`
+    grew from 19 to 163 clips. Chip populated `wavFiles/manifest.yaml`
+    with ~90 jokes and quotes; review before rendering caught a real
+    structural bug (the file never actually parsed), three sets of
+    accidentally-duplicated filenames that would have silently
+    overwritten each other, and several unbalanced quote marks — all
+    fixed, Chip's content/attribution choices left alone. Chip then
+    invited Claude to add content of its own (explicitly budgeted, up to
+    the rest of the session) — 24 entries: pirate-voiced remixes of a
+    few of his quotes, new quotes treated the same way, and original
+    lines, attributed "Claude as Captain Jack[, misquoting/paraphrasing
+    X]." Wrote `generate_idle_clips.py` (reads the manifest, calls
+    `tts.py`'s existing synthesize function, writes `wavFiles/<file>` —
+    never edits the manifest itself) and rendered all 144 TTS-sourced
+    clips. `tests/test_wavfiles_format.py` is glob-based and now covers
+    all 163 automatically. See `docs/specification.md` section 4.10 and
+    `docs/log.md`'s 4.10 history for the full review detail.
 
 ## Work list — split by hardware dependency
 
@@ -375,8 +390,3 @@ worked in parallel if priorities change.
 11. AEC validation against the bird's own speaker — now in its final
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.
-12. Once Chip has finalized joke/quote text: write the small batch
-    script that reads `wavFiles/manifest.yaml`, calls `tts.py`'s
-    existing synthesize-and-resample functions once per entry, and
-    writes the result to `wavFiles/<file>` — then populate the manifest
-    and render. See `docs/specification.md` section 4.10.

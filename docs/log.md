@@ -1118,6 +1118,56 @@ that will read this file and call `tts.py`'s existing synthesize/
 resample functions is deliberately not written yet, since there's
 nothing real to render against.
 
+**Content finalized and rendered, 2026-10-07**: Chip filled in
+`wavFiles/manifest.yaml` with ~90 entries (jokes plus philosophical
+quotes) and asked for a syntax review before rendering.
+
+Found before trusting it: the file didn't actually parse — `clips: []`
+was followed by top-level `- file:` items that were never nested under
+it, a structural bug, not a cosmetic one (PyYAML: "expected <block end>,
+but found '-'"). Also found three sets of accidentally-duplicated
+filenames from copy-pasting entries without renaming them
+(`InARoomAlone.wav` used for three unrelated quotes, `NothingPermanent.wav`
+and `InsufficientEvidence.wav` each for two) — each would have silently
+overwritten the previous render, permanently losing whichever clip
+rendered first. Renamed the extras to match their own content rather
+than just appending "II"/"III" to the wrong name. Several entries also
+had unbalanced quote marks inside `text` (an opening `'` with no
+matching close, or vice versa, mostly from editing a template by hand)
+— fixed; one entry's nested quoting (a quote about quoting Greek
+etymology) was simplified rather than made to nest correctly, since TTS
+doesn't need the punctuation and the nesting was genuinely ambiguous.
+Left Chip's actual content and attribution choices alone, including
+loosely-sourced ones (a "best quotes" listicle-style attribution, one
+quote attributed just to "Alex") — those are curatorial calls, not bugs.
+
+Tone check on the two personal items Chip flagged (jokes at his own
+expense as "retired and aged," and one nod to Claude via a cat/Claude
+pun): both land as the genre of warm, groan-worthy pun they're going
+for, nothing read as mean-spirited.
+
+Chip then invited Claude to add content of its own — remixes of a few
+of his quotes in Jack's voice, new quotes treated the same way, and
+wholly original lines — attributed "Claude as Captain Jack[, misquoting/
+paraphrasing X]" per his suggested convention, explicitly budgeted "up
+to the remainder of this 5-hour period's tokens." Added 24 entries,
+grounded in `memory/identity.md`'s Persona section (nautical speech
+woven into ordinary sentences, not forced into every line; salty
+stand-ins, never cursing; short). 144 entries total, no duplicates.
+
+**Rendered the same day**: wrote `generate_idle_clips.py` — reads the
+manifest, calls `tts.py`'s existing `TTS.synthesize()` per entry
+(already resamples to the canonical format), writes `wavFiles/<file>`.
+Deliberately one-directional (manifest → files, never the reverse) so
+the manifest's hand-written comments and formatting are never at risk
+from a render pass — `rendered`/`engine` get updated by hand, not by the
+script, when a real re-render happens. All 144 clips rendered clean in
+~5.3 minutes; `tests/test_wavfiles_format.py` (glob-based, no file list
+to update) now covers all 163 `wavFiles/` clips automatically and
+passes. Format verified programmatically; actual pronunciation/quality
+of the new content needs Chip listening for real, not something Claude
+can judge directly.
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library
