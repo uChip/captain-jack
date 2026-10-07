@@ -46,7 +46,7 @@ clips: []
 - file: TheUnexaminedLifeSquawk.wav
   text: "The unexamined life is not worth living, matey."
   category: quote
-  attribution: Socrates (as paraphrased by Plato and Captain Jack)
+  attribution: Socrates (as paraphrased by Plato and Claude as Captain Jack)
   engine: kokoro-pi/am_santa
   rendered: 2026-10-06
 - file: HippoZippo.wav
