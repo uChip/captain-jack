@@ -869,11 +869,11 @@ well-synced by eye, including the first, after the two experiments from
 the first watch (see **First-cycle late start** below). Frame-matched
 video measurement confirmed a consistent ~30ms response lag on every
 cycle and `ALIGNMENT_FUDGE_S` is now set accordingly (see
-**`ALIGNMENT_FUDGE_S` measured** below) — the envelope mapping's
-release time constant is a secondary, lower-confidence open question
-from the same measurement (see **Tunable defaults** below), better
-confirmed against real conversational speech than further analysis of
-one test tone.
+**`ALIGNMENT_FUDGE_S` measured** below). The envelope mapping's release
+time constant, initially a secondary lower-confidence open question
+from that same measurement, was confirmed against real conversational
+speech once beak-sync was wired into the live loop (step 7, see
+**Tunable defaults** below) — `BEAK_RELEASE_S` stands as shipped.
 
 **Description**: real-time RMS amplitude envelope extraction from whatever
 audio is currently playing — idle clip or live TTS — at 50Hz (one
@@ -962,25 +962,24 @@ whether it was really the suspected `parseInt()` quirk at all) — but no
 longer a live concern for this clip, since the behavior that prompted
 the question is gone.
 
-**Tunable defaults, mostly not measured** (`playback.py`): envelope
-floor −40dBFS (rest closed), ceiling −15dBFS (fully open), attack time
-constant 20ms (see above — the alignment-tone measurement is consistent
-with this one), release 100ms. Picked from general reasoning about
-typical speech RMS levels and a natural-looking mouth-flap rhythm, not
-derived from real recordings — expect to retune by watching the real
-bird talk, the same "ship a reasonable default, tune by observation"
-pattern already used for gesture amplitudes and the TTS voice pick.
-**Open question from the same video**: the closing edge looked faster
-by eye than the 100ms release constant would predict — full closure in
-roughly 2 frames (~65ms) rather than the several hundred ms a 100ms
-time constant implies for a visually-complete transition. Chip flagged
-the closing edge as harder to read from the waveform than the opening
-edge, so this is lower-confidence than the `ALIGNMENT_FUDGE_S` finding,
-not applied yet — better confirmed by watching/listening to real
-conversational speech once beak-sync is wired into the live loop (step
-7) than by further analysis of one test tone, since release's whole
-purpose is avoiding a stutter between syllables in continuous speech,
-not a single on/off edge.
+**Tunable defaults** (`playback.py`): envelope floor −40dBFS (rest
+closed), ceiling −15dBFS (fully open), attack time constant 20ms (see
+above — the alignment-tone measurement is consistent with this one),
+release 100ms. Picked from general reasoning about typical speech RMS
+levels and a natural-looking mouth-flap rhythm, not derived from real
+recordings at first. A test tone's single on/off edge had suggested the
+closing edge might look faster by eye than 100ms predicts, but Chip
+flagged that reading as harder to judge from the waveform than the
+opening edge, so it was deliberately left unconfirmed rather than
+applied — release's whole purpose is avoiding a stutter between
+syllables in continuous speech, not a single on/off edge, so the real
+test was always real conversational speech once beak-sync reached the
+live loop (step 7). **Confirmed, 2026-10-07**: watched
+`playback.py wavFiles/BilgePumpForAnger.wav --beak` (a clean, dry
+`kokoro-pi/am_santa` clip, the same voice/engine Jack speaks with) —
+"looks about right, closing does not seem too early." `BEAK_RELEASE_S`
+stands as shipped; floor/ceiling/attack remain informal defaults, not
+yet separately stress-tested against real speech.
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the

@@ -191,22 +191,35 @@ when it was last confirmed passing.
 ### Coordinator turn
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
-  build step 4 and the [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
+  build step 4, the [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
   `take_turn()` — utterance → Whisper → Haiku → reply + memory save,
-  session start/end, noise rejection.
+  session start/end, noise rejection — and the
+  [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)'s
+  transitions (`MODE: END_SESSION`/`NAP`, wake from Asleep, the
+  sleep-phrase stand-in's Off-Watch-only gating, both timeouts), driven
+  directly through `_handle_event()`/`_handle_timeout()` without
+  starting real audio threads. Also covers a real race found in a live
+  test: a multi-sentence reply must keep the mic deaf across its own
+  internal sentence gaps, not just after the whole reply ends, or a
+  stray sound there can clobber the in-flight reply's tag tracking and
+  silently drop a pending `MODE:` tag (see log.md 4.16, "Goodnight,
+  Jack" live test, 2026-10-07).
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no
   hardware, no API — a fake Haiku client) or add `--live` for one real
   Haiku call (needs `ANTHROPIC_API_KEY`; a fraction of a cent).
 - **Expected**: prints `PASS: coordinator transcribes, calls Haiku, saves
-  memory to scratch only, rejects noise` (plus `, live Haiku replied`)
-  and exits 0. Everything runs on a scratch copy of `memory/`; the test
-  fails if the real `memory.md` changes.
-- **Last confirmed passing**: 2026-09-25, including `--live`.
-- **Not covered**: the keyboard wake and the 2-minute timeout firing in
-  real time (logic checked directly, not the timer); a live voice
-  session (deliberately deferred to step 5, see log.md 4.16).
+  memory to scratch only, rejects noise, the Sleep-Mode State Machine
+  transitions correctly, and the mic stays deaf across a multi-sentence
+  reply's own sentence gaps` (plus `, live Haiku replied`) and exits 0.
+  Everything runs on a scratch copy of `memory/`; the test fails if the
+  real `memory.md` changes.
+- **Last confirmed passing**: 2026-10-07.
+- **Not covered**: the keyboard wake and the timeouts firing in real
+  time (logic checked directly, not the timer); beak-sync/motion
+  together with a live reply (checked live by hand against the real
+  bird, see log.md 4.16).
 
 ### Listener VAD + STT
 

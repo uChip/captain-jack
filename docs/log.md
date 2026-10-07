@@ -1018,6 +1018,16 @@ listening to real conversation once beak-sync is wired into the live
 loop (step 7) than by further analysis of one on/off test tone. Left as
 an open question in `specification.md` section 4.8 rather than acted on.
 
+**Release time constant confirmed against real speech, 2026-10-07**:
+exactly the retest suggested above, now that step 7 is live. Chip
+watched `playback.py wavFiles/BilgePumpForAnger.wav --beak` (a clean,
+dry `kokoro-pi/am_santa` clip - the same voice/engine Jack actually
+speaks with, no reverb like the earlier movie-line clip he tried
+first and found harder to read), recording video again for a
+frame-by-frame look later. Verdict: "looks about right, closing does
+not seem too early" - `BEAK_RELEASE_S = 0.10` stands as-is. Closes the
+open question left above; nothing to change in `playback.py`.
+
 ### Debounce-vs-throttle bug (first live test sent nothing at all)
 
 **Found and fixed 2026-10-06**, same first live watch session, before
@@ -1569,3 +1579,115 @@ Still needed to close this out: a fresh API key, then a real live run
 exercising a `MODE:` transition and beak-sync/motion together, and
 confirming the beep-timing fix actually stops the clipped-start
 problem.
+
+**Beep-timing fix confirmed live, 2026-10-07**: the expired key was a
+red herring (a typo in Chip's own notes - it was still valid); he
+generated a fresh one anyway. Reran `coordinator.py --scratch-memory
+--port ...`: Off Watch's periodic clip playback and the Enter-to-beep
+On Watch transition both looked correct, and "Ahoy Jack, where are we
+sailing today?" came back as 4.2s of transcribed audio ("Oh holy Jack,
+where are we sailing today?" - Whisper mis-hearing "Ahoy" as "Oh holy",
+p=0.61) matching the whole sentence, not a 1-2s fragment - strong
+evidence the `beep_done` fix actually fixed the clipped-start problem
+from the first live test, not just a plausible theory anymore. Jack's
+reply was in character and conversationally apt, first audio 4.93s
+after Chip stopped talking (consistent with the already-known
+long-reply/no-streaming latency, not a new issue). This run ended via
+the ordinary 2-minute no-prompt timeout, so it still didn't exercise a
+`MODE:` transition or confirm beak-sync/motion against real speech -
+both remain open for the next live run.
+
+**Beak-sync/motion confirmed live, `MODE:` tag still not, 2026-10-07**:
+same session, another attempt. Off Watch's idle clips now visibly
+beak-synced correctly against real speech-shaped audio (previously only
+checked against `AlignmentTone.wav` and standalone `motion.py --dry-run`)
+- the first live confirmation of 4.8+4.10+4.12 all working together
+through the real `coordinator.py` loop. Enter-to-On-Watch worked again.
+Chip then said "That's all for now, Jack," meaning to end the session,
+and Jack did return to Off Watch - but the printed line was `"[Off
+Watch - no prompt for 2 minutes...]"`, the literal string
+`_handle_timeout()` uses, not `_apply_pending_mode()`'s `"Jack ended the
+conversation"` - so this was the ordinary 2-minute timeout firing, not
+a `MODE: END_SESSION` tag. Root cause: Whisper transcribed the sentence
+as "I'm so over now, Jack" (p=0.47, accepted - well above `PROB_FLOOR`
+0.3), which doesn't read as an end-of-conversation cue, so Haiku
+reasonably treated it as Chip sounding worn out and asked a clarifying
+follow-up ("...Or just need a proper rest?") instead of signaling
+`MODE: END_SESSION`. Not a coordinator bug and not the clipping bug
+recurring (3.0s audio, a plausible length for the sentence) - it's
+whisper-tiny's known rough accuracy on short out-of-context phrases,
+the same gap spec 4.2 already flags as pending real-audio calibration.
+A live `MODE:` transition still hasn't been confirmed - worth retrying,
+ideally with a phrase Whisper is likely to transcribe cleanly.
+
+**`MODE: NAP` confirmed live, and a real mic-reopen race found and
+fixed, 2026-10-07**: same session, a third attempt - Chip said
+"Goodnight, Jack" while On Watch. Whisper heard it correctly (p=0.49),
+Jack replied in character with a two-sentence goodnight, and Jack did
+go to Asleep - the first live confirmation of a `MODE:` tag actually
+driving a transition - but the transcript showed an extra, unexplained
+exchange in between: a rejected "no words" utterance (p=0.03) and its
+own "didn't catch that" reply, printed *before* the `"[Asleep - Jack
+said goodnight...]"` line. Root cause: `_on_playback` reopened the mic
+(a finite `ignore_until`) after *every* sentence finished, not just the
+reply's last one - so the ~0.3s gap between the goodnight reply's two
+sentences was a real listening window. A stray sound there got
+dispatched as a genuine `utterance` event while `mode` was still
+`on_watch`, `handle_utterance()` rejected it but still called
+`speak()` for the "didn't catch that" filler, which reassigns
+`_first_tag`/`_last_tag` - clobbering the original reply's own tags
+before its real last sentence could fire `reply_done`. The nap still
+happened, but only because the filler reply's own completion later
+reused the still-set `_pending_mode = "NAP"` by coincidence; had no
+further utterance arrived, Jack would have silently never applied the
+tag and sat in On Watch indefinitely (`speak()` also clears `deadline`,
+so even the 2-minute timeout can't recover from this). Fixed in
+`_on_playback`: only reopen the mic when the sentence that just
+finished is the reply's actual last one (or the beep) - mid-reply
+sentence boundaries now leave the mic deaf (`ignore_until(inf)`
+untouched) straight through to the end of the whole reply, matching
+the turn-taking (no barge-in) design already decided for this build
+(see this section's "Designed 2026-09-25" entry, above) rather than
+treating each sentence as its own turn boundary. Added
+`check_mid_reply_sentence_gap()` to `tests/test_coordinator.py`,
+verified it fails without the fix and passes with it.
+
+**Mic-reopening fix confirmed live; `MODE: END_SESSION` and the
+sleep-phrase stand-in both confirmed clean, 2026-10-07**: a fourth
+live `--port` attempt, same session. Chip said "that's all for now
+Jack" (transcribed correctly this time, 2.7s audio, p=0.50); Jack's
+reply was again two sentences ("Aye, aye!... Matey. I'll be here when
+ye need me.") - the same shape that triggered the mic-reopening race
+above - and this time it went straight to `"[Off Watch - Jack ended
+the conversation...]"` with no intervening rejected utterance,
+confirming the fix holds live, not just in the regression test. This
+is also the first clean live confirmation of `MODE: END_SESSION`
+itself (the NAP transition two attempts ago only worked by the
+coincidence the fix above describes). Chip then typed `sleep`
+immediately after the `"[Off Watch ...]"` line, with no Enter first,
+and got `"[Asleep - Goodnight, Jack...]"` - confirming the sleep-phrase
+stand-in works correctly when tried as designed, resolving the "did
+nothing" mystery from the very first live test as the suspected
+stray-Enter explanation, not a bug.
+
+This closes out the last open item from section 4.16's build order for
+step 7: a real live voice conversation with beak-sync, ambient motion,
+and a `MODE:` transition all confirmed working together end to end.
+Remaining work (timeout/phrase tuning, real wake-word models, On Watch
+excursions, reply-length/streaming refinements) is tracked in
+CLAUDE.md's work list, not here - none of it changes this section's
+design.
+
+Correction from Chip after the fact: the leading rejected utterance in
+this run (`"[BLANK_AUDIO]"`, 1.3s audio) wasn't silence caught before
+he started talking, as first guessed above - the Listener actually
+cut him off and Jack replied "didn't catch that" while he was still
+mid-sentence. That's the VAD's end-pointing (`END_SILENCE_MS`)
+declaring the utterance over too early, most likely on a brief natural
+pause, rather than a beep-timing or mic-reopening issue (both of which
+are about the *start* of an utterance, not an early cutoff mid-way
+through). Repeating the sentence worked. Not a new bug - this is
+exactly the kind of gap spec 4.1/4.2 already flag as pending
+real-audio calibration (the VAD/STT thresholds are initial numbers,
+not tuned against real speech cadence yet) - logged here as a concrete
+data point for that future tuning, not actioned now.

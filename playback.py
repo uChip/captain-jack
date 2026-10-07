@@ -50,7 +50,7 @@ OUTPUT_GAIN_DB = 0.0
 # Beak-sync (spec 4.8): maps the played audio's smoothed RMS envelope to a
 # beak angle (0=open, 60=closed - ServoControl.ino; silence rests closed).
 # Starting points, not measured - tune by watching the real bird talk via
-# tests/test_beak_sync_alignment.py.
+# `venv/bin/python playback.py <clip.wav> --beak`.
 BEAK_RANGE = 60
 BEAK_FLOOR_DBFS = -40.0   # envelope at or below this: beak fully closed
 BEAK_CEIL_DBFS = -15.0    # envelope at or above this: beak fully open
