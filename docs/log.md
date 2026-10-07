@@ -1569,3 +1569,20 @@ Still needed to close this out: a fresh API key, then a real live run
 exercising a `MODE:` transition and beak-sync/motion together, and
 confirming the beep-timing fix actually stops the clipped-start
 problem.
+
+**Beep-timing fix confirmed live, 2026-10-07**: the expired key was a
+red herring (a typo in Chip's own notes - it was still valid); he
+generated a fresh one anyway. Reran `coordinator.py --scratch-memory
+--port ...`: Off Watch's periodic clip playback and the Enter-to-beep
+On Watch transition both looked correct, and "Ahoy Jack, where are we
+sailing today?" came back as 4.2s of transcribed audio ("Oh holy Jack,
+where are we sailing today?" - Whisper mis-hearing "Ahoy" as "Oh holy",
+p=0.61) matching the whole sentence, not a 1-2s fragment - strong
+evidence the `beep_done` fix actually fixed the clipped-start problem
+from the first live test, not just a plausible theory anymore. Jack's
+reply was in character and conversationally apt, first audio 4.93s
+after Chip stopped talking (consistent with the already-known
+long-reply/no-streaming latency, not a new issue). This run ended via
+the ordinary 2-minute no-prompt timeout, so it still didn't exercise a
+`MODE:` transition or confirm beak-sync/motion against real speech -
+both remain open for the next live run.
