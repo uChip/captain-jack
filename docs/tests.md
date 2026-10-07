@@ -40,6 +40,31 @@ when it was last confirmed passing.
   tags' existing live-API testing noted in
   [captain-jack-memory-design.md](captain-jack-memory-design.md).
 
+### `MODE:` end-session/nap tag
+
+- **Covers**: [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)
+  — the `MODE:` meta-tag `orchestrate.py` reads from Haiku's own reply
+  (mirroring the `MEMORY:` line's mechanism) to signal `END_SESSION` or
+  `NAP`, parsed by `split_mode_line()` and threaded through `take_turn()`
+  into `Turn.mode`.
+- **Script**: [`../tests/test_mode_tag.py`](../tests/test_mode_tag.py)
+- **Run**: `venv/bin/python tests/test_mode_tag.py` (automatic, no
+  hardware, no real API — a fake Haiku client).
+- **Expected**: prints `PASS: MODE: tag splits correctly and take_turn()
+  wires it into Turn.mode` and exits 0. Checks `split_mode_line()`
+  splits `END_SESSION`/`NAP`/`NONE` correctly, normalizes case, and fails
+  closed to `None` on a missing or malformed line (e.g. an older reply
+  with no `MODE:` line at all); checks `take_turn()` strips both the
+  `MODE:` and `MEMORY:` lines from the spoken reply and surfaces
+  `END_SESSION` correctly in `Turn.mode`, with explicit `MODE: NONE` and
+  a missing `MODE:` line both surfacing as `Turn.mode is None`.
+- **Last confirmed passing**: 2026-10-07.
+- **Not covered**: the live Haiku API path (whether Haiku actually emits
+  `MODE:` correctly in conversation), `identity.md`'s instructions
+  (added this session) actually producing good end-of-session behavior,
+  and `coordinator.py` acting on `Turn.mode` — none of that is wired up
+  yet.
+
 ## Gesture Engine and Catalog
 
 ### `gesture-catalog.yaml` sanity checks
@@ -67,6 +92,42 @@ when it was last confirmed passing.
   behave correctly (none of that is implemented yet), or the
   `NEEDS-RUNTIME-PARAM` entry's fallback values, which are known
   placeholders, not real behavior.
+
+### Motion engine
+
+- **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 7's Motion & idle thread — `motion.py`'s `resolve_move()`
+  (baseline-relative deltas → absolute servo command, with clamping and
+  beak handling), `find_gesture_anywhere()` (cross-library gesture
+  lookup for wav-paired gestures), and the Off Watch/Asleep/On Watch
+  per-mode step logic (ambient, due excursions, idle wav scheduling) —
+  a faithful port of `exercise_hardware.py`'s already hardware-validated
+  gesture logic into a real long-lived thread with `set_mode()`.
+- **Script**: [`../tests/test_motion.py`](../tests/test_motion.py)
+- **Run**: `venv/bin/python tests/test_motion.py` (automatic, no
+  hardware — a small synthetic catalog, not the real
+  `gesture-catalog.yaml`, to avoid its real `wait_ms` timings).
+- **Expected**: prints `PASS: resolve_move clamping, cross-library
+  gesture lookup, and ambient/excursion/wav scheduling correct` and
+  exits 0. Checks delta clamping against each axis's range, that beak is
+  absolute (not baseline-relative) and leads the command, that omitting
+  beak emits no `b<N>` token, that `find_gesture_anywhere()` finds a
+  gesture living in `wav_paired` or directly in a mode library (and
+  raises `KeyError` for an unknown id), and that a single Off Watch step
+  plays the ambient gesture, fires a due excursion, and schedules the
+  one off_watch wav (with Asleep's wav-paired-gesture beak move firing
+  alongside its clip, and On Watch using its own ambient).
+- **Last confirmed passing**: 2026-10-07.
+- **First live watch, 2026-10-07** (`motion.py --mode off_watch
+  --dry-run --seconds 15` against the real bird, Chip watching): clean
+  output, no crash, correct asymmetric breathing swing from
+  [Open Issue 25](specification.md#5-open-issues) plus an excursion;
+  Chip confirmed the bird moved correctly.
+- **Not covered**: DoA-based yaw tracking (`read_doa_azimuth()` is still
+  a stub), On Watch excursions (not implemented — conversation/emotion-
+  triggered, per spec 4.12), and `Motion` wired into the live
+  `coordinator.py` loop (not done yet — this test and the dry-run above
+  only exercise `motion.py` standalone).
 
 ## Idle and Ambient Audio Player
 

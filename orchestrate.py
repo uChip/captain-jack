@@ -25,6 +25,13 @@ TAG_RE = re.compile(
     r"^\[(?:household:(?P<name>[A-Za-z][\w'-]*)|(?P<tag>joke|automation|home))\]\s+(?P<fact>.+)$"
 )
 
+# Spec 4.11: Haiku's own understanding of session-end/nap intent, read from
+# a meta-tag on the reply rather than a fixed phrase - the Coordinator only
+# needs the local wake/sleep-phrase spotter to listen for fixed phrases
+# while Jack isn't already On Watch. Sits right before the MEMORY: line,
+# which stays the true last line.
+MODE_LINE_RE = re.compile(r"^MODE:\s*(NONE|END_SESSION|NAP)\s*$", re.IGNORECASE)
+
 SECTION_HEADINGS = {
     "household": "Household",
     "joke": "Running jokes & preferences",
@@ -79,6 +86,22 @@ def split_memory_line(reply: str) -> tuple[str, str | None]:
 
     spoken = "\n".join(lines[:cut]).rstrip()
     return spoken, match.group(1).strip()
+
+
+def split_mode_line(text: str) -> tuple[str, str | None]:
+    """Split Jack's trailing `MODE: ...` meta-tag off text that's already
+    had MEMORY: split off (MODE: is the line before it, not the true last
+    line - see MODE_LINE_RE above). Returns (text, None) if the last line
+    isn't a recognized MODE: line - e.g. older replies or a malformed one
+    fail closed to None (treated as NONE) rather than guessing.
+    """
+    lines = text.rstrip().splitlines()
+    if not lines:
+        return text, None
+    match = MODE_LINE_RE.match(lines[-1].strip())
+    if not match:
+        return text, None
+    return "\n".join(lines[:-1]).rstrip(), match.group(1).upper()
 
 
 def parse_memory_proposal(raw: str):
@@ -210,6 +233,7 @@ def get_reply(client: anthropic.Anthropic, history: list[dict], memory_dir: Path
 class Turn:
     spoken: str             # what Jack says aloud
     saved: str | None       # "section: fact" if a memory was saved, else None
+    mode: str | None        # "END_SESSION" or "NAP" if Jack signaled either, else None
 
 
 def take_turn(
@@ -229,6 +253,9 @@ def take_turn(
     history.append({"role": "assistant", "content": reply})
 
     spoken, raw_memory = split_memory_line(reply)
+    spoken, mode = split_mode_line(spoken)
+    if mode == "NONE":
+        mode = None
     saved = None
     if raw_memory:
         proposal = parse_memory_proposal(raw_memory)
@@ -237,7 +264,7 @@ def take_turn(
             if save_memory(section, name, fact, memory_dir / "memory.md"):
                 label = f"{section}:{name}" if name else section
                 saved = f"{label}: {fact}"
-    return Turn(spoken, saved)
+    return Turn(spoken, saved, mode)
 
 
 def main():
