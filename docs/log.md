@@ -1609,3 +1609,35 @@ whisper-tiny's known rough accuracy on short out-of-context phrases,
 the same gap spec 4.2 already flags as pending real-audio calibration.
 A live `MODE:` transition still hasn't been confirmed - worth retrying,
 ideally with a phrase Whisper is likely to transcribe cleanly.
+
+**`MODE: NAP` confirmed live, and a real mic-reopen race found and
+fixed, 2026-10-07**: same session, a third attempt - Chip said
+"Goodnight, Jack" while On Watch. Whisper heard it correctly (p=0.49),
+Jack replied in character with a two-sentence goodnight, and Jack did
+go to Asleep - the first live confirmation of a `MODE:` tag actually
+driving a transition - but the transcript showed an extra, unexplained
+exchange in between: a rejected "no words" utterance (p=0.03) and its
+own "didn't catch that" reply, printed *before* the `"[Asleep - Jack
+said goodnight...]"` line. Root cause: `_on_playback` reopened the mic
+(a finite `ignore_until`) after *every* sentence finished, not just the
+reply's last one - so the ~0.3s gap between the goodnight reply's two
+sentences was a real listening window. A stray sound there got
+dispatched as a genuine `utterance` event while `mode` was still
+`on_watch`, `handle_utterance()` rejected it but still called
+`speak()` for the "didn't catch that" filler, which reassigns
+`_first_tag`/`_last_tag` - clobbering the original reply's own tags
+before its real last sentence could fire `reply_done`. The nap still
+happened, but only because the filler reply's own completion later
+reused the still-set `_pending_mode = "NAP"` by coincidence; had no
+further utterance arrived, Jack would have silently never applied the
+tag and sat in On Watch indefinitely (`speak()` also clears `deadline`,
+so even the 2-minute timeout can't recover from this). Fixed in
+`_on_playback`: only reopen the mic when the sentence that just
+finished is the reply's actual last one (or the beep) - mid-reply
+sentence boundaries now leave the mic deaf (`ignore_until(inf)`
+untouched) straight through to the end of the whole reply, matching
+the turn-taking (no barge-in) design already decided for this build
+(see this section's "Designed 2026-09-25" entry, above) rather than
+treating each sentence as its own turn boundary. Added
+`check_mid_reply_sentence_gap()` to `tests/test_coordinator.py`,
+verified it fails without the fix and passes with it.

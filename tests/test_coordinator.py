@@ -170,6 +170,46 @@ def check_state_machine():
     return errors
 
 
+def check_mid_reply_sentence_gap():
+    """A multi-sentence reply shouldn't reopen the mic between its own
+    sentences - only once the whole reply is done - or a stray sound in
+    that gap can clobber _first_tag/_last_tag and silently drop the
+    MODE: tag (see docs/log.md's 4.16 history, "Goodnight, Jack" live
+    test, 2026-10-07)."""
+    errors = []
+    client = FakeClient("Aye, sweet dreams to ye, Matey. Fair winds and following seas till "
+                         "morning!\nMODE: NAP\nMEMORY: NONE")
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
+                                     out=lambda *a: None)
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    first, last = coord._first_tag, coord._last_tag
+    if first == last:
+        errors.append(f"test reply didn't split into 2+ sentences: {first!r} == {last!r}")
+
+    def pump():
+        while not coord.events.empty():
+            coord._handle_event(*coord.events.get())
+
+    coord._on_playback("started", first, 0.0)
+    coord._on_playback("finished", first, 1.0)   # first sentence done, more still queued
+    pump()
+    if coord.listener._ignore_until != float("inf"):
+        errors.append("mic reopened between sentences of the same reply, not just after it")
+    if coord.mode == "asleep":
+        errors.append("reply_done fired early, from a mid-reply sentence boundary")
+
+    coord._on_playback("started", last, 1.0)
+    coord._on_playback("finished", last, 2.0)    # the reply's actual last sentence
+    pump()
+    if coord.listener._ignore_until == float("inf"):
+        errors.append("mic never reopened after the whole reply finished")
+    if coord.mode != "asleep":
+        errors.append(f"MODE: NAP should apply once the real last sentence finishes, got {coord.mode!r}")
+
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -184,7 +224,7 @@ def check_live():
 
 
 if __name__ == "__main__":
-    errors = check_offline() + check_state_machine()
+    errors = check_offline() + check_state_machine() + check_mid_reply_sentence_gap()
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -193,5 +233,6 @@ if __name__ == "__main__":
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise, "
-          "and the Sleep-Mode State Machine transitions correctly"
+          "the Sleep-Mode State Machine transitions correctly, and the mic stays deaf across a "
+          "multi-sentence reply's own sentence gaps"
           + (", live Haiku replied" if live else ""))

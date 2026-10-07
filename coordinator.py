@@ -121,7 +121,14 @@ class Coordinator:
             if tag == self._first_tag:
                 self.events.put(("reply_started", time.monotonic()))
         else:
-            self.listener.ignore_until(dac_time + HOLDOFF_S)
+            # Only reopen the mic once the *whole* reply is done, not after
+            # each sentence - otherwise a stray sound in the gap between two
+            # sentences becomes a real "utterance" event while the reply is
+            # still mid-flight, and handling it clobbers _first_tag/_last_tag
+            # (see docs/log.md's 4.16 history) before the reply's own last
+            # sentence gets a chance to fire reply_done.
+            if tag == self._last_tag or tag == BEEP_TAG:
+                self.listener.ignore_until(dac_time + HOLDOFF_S)
             if tag == self._last_tag:
                 self.events.put(("reply_done", None))
             elif tag == BEEP_TAG:
