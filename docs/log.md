@@ -1586,3 +1586,26 @@ long-reply/no-streaming latency, not a new issue). This run ended via
 the ordinary 2-minute no-prompt timeout, so it still didn't exercise a
 `MODE:` transition or confirm beak-sync/motion against real speech -
 both remain open for the next live run.
+
+**Beak-sync/motion confirmed live, `MODE:` tag still not, 2026-10-07**:
+same session, another attempt. Off Watch's idle clips now visibly
+beak-synced correctly against real speech-shaped audio (previously only
+checked against `AlignmentTone.wav` and standalone `motion.py --dry-run`)
+- the first live confirmation of 4.8+4.10+4.12 all working together
+through the real `coordinator.py` loop. Enter-to-On-Watch worked again.
+Chip then said "That's all for now, Jack," meaning to end the session,
+and Jack did return to Off Watch - but the printed line was `"[Off
+Watch - no prompt for 2 minutes...]"`, the literal string
+`_handle_timeout()` uses, not `_apply_pending_mode()`'s `"Jack ended the
+conversation"` - so this was the ordinary 2-minute timeout firing, not
+a `MODE: END_SESSION` tag. Root cause: Whisper transcribed the sentence
+as "I'm so over now, Jack" (p=0.47, accepted - well above `PROB_FLOOR`
+0.3), which doesn't read as an end-of-conversation cue, so Haiku
+reasonably treated it as Chip sounding worn out and asked a clarifying
+follow-up ("...Or just need a proper rest?") instead of signaling
+`MODE: END_SESSION`. Not a coordinator bug and not the clipping bug
+recurring (3.0s audio, a plausible length for the sentence) - it's
+whisper-tiny's known rough accuracy on short out-of-context phrases,
+the same gap spec 4.2 already flags as pending real-audio calibration.
+A live `MODE:` transition still hasn't been confirmed - worth retrying,
+ideally with a phrase Whisper is likely to transcribe cleanly.
