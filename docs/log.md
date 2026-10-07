@@ -1667,3 +1667,17 @@ Remaining work (timeout/phrase tuning, real wake-word models, On Watch
 excursions, reply-length/streaming refinements) is tracked in
 CLAUDE.md's work list, not here - none of it changes this section's
 design.
+
+Correction from Chip after the fact: the leading rejected utterance in
+this run (`"[BLANK_AUDIO]"`, 1.3s audio) wasn't silence caught before
+he started talking, as first guessed above - the Listener actually
+cut him off and Jack replied "didn't catch that" while he was still
+mid-sentence. That's the VAD's end-pointing (`END_SILENCE_MS`)
+declaring the utterance over too early, most likely on a brief natural
+pause, rather than a beep-timing or mic-reopening issue (both of which
+are about the *start* of an utterance, not an early cutoff mid-way
+through). Repeating the sentence worked. Not a new bug - this is
+exactly the kind of gap spec 4.1/4.2 already flag as pending
+real-audio calibration (the VAD/STT thresholds are initial numbers,
+not tuned against real speech cadence yet) - logged here as a concrete
+data point for that future tuning, not actioned now.
