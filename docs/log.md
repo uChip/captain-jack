@@ -1018,6 +1018,16 @@ listening to real conversation once beak-sync is wired into the live
 loop (step 7) than by further analysis of one on/off test tone. Left as
 an open question in `specification.md` section 4.8 rather than acted on.
 
+**Release time constant confirmed against real speech, 2026-10-07**:
+exactly the retest suggested above, now that step 7 is live. Chip
+watched `playback.py wavFiles/BilgePumpForAnger.wav --beak` (a clean,
+dry `kokoro-pi/am_santa` clip - the same voice/engine Jack actually
+speaks with, no reverb like the earlier movie-line clip he tried
+first and found harder to read), recording video again for a
+frame-by-frame look later. Verdict: "looks about right, closing does
+not seem too early" - `BEAK_RELEASE_S = 0.10` stands as-is. Closes the
+open question left above; nothing to change in `playback.py`.
+
 ### Debounce-vs-throttle bug (first live test sent nothing at all)
 
 **Found and fixed 2026-10-06**, same first live watch session, before

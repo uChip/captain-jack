@@ -360,6 +360,15 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     live voice conversation with `--port`" item from section 4.16's
     build order. See `docs/log.md`'s 4.16 history for the full
     diagnosis of each issue found.
+31. Beak-sync's release time constant confirmed, 2026-10-07: the open
+    question from item 26 (a test tone's closing edge looked faster
+    than the 100ms release constant predicts) was retested by watching
+    a clean, dry `kokoro-pi/am_santa` clip (`BilgePumpForAnger.wav`) —
+    the same voice/engine Jack actually speaks with — through
+    `playback.py --beak`. Chip confirmed "looks about right, closing
+    does not seem too early"; `BEAK_RELEASE_S` (0.10) stands unchanged.
+    See `docs/specification.md` section 4.8 and `docs/log.md`'s 4.8
+    history.
 
 ## Work list — split by hardware dependency
 
@@ -417,9 +426,6 @@ worked in parallel if priorities change.
    runs together against the real bird, gated behind `--port`/
    `--dry-run` so the no-hardware test suite stays unaffected. What's
    left, roughly in order:
-   - The release time constant question from item 24/26 (may be faster
-     than 100ms in practice) — listen for it once real speech is
-     flowing through beak-sync live.
    - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
      the wake/sleep-phrase fixed-phrase match tolerance against real use
      (spec 4.11 flags all of these as initial numbers).
