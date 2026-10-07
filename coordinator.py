@@ -64,6 +64,10 @@ OFF_WATCH_TIMEOUT_S = 15 * 60  # spec 4.11: 15 minutes with no wake phrase -> As
 # Spec 4.2: a rejected utterance gets an in-character prompt, not silence.
 DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
 
+# Distinct from any (reply, sentence) tag, so _on_playback can tell the
+# listening beep apart from a spoken reply.
+BEEP_TAG = "listening beep"
+
 
 def beep() -> np.ndarray:
     t = np.arange(int(0.15 * RATE)) / RATE
@@ -120,6 +124,8 @@ class Coordinator:
             self.listener.ignore_until(dac_time + HOLDOFF_S)
             if tag == self._last_tag:
                 self.events.put(("reply_done", None))
+            elif tag == BEEP_TAG:
+                self.events.put(("beep_done", None))
 
     def wake(self):
         """Wake-phrase stand-in ("Ahoy, Captain Jack"): same event the
@@ -186,6 +192,8 @@ class Coordinator:
             self._heard_at = None
         elif kind == "reply_done" and self.mode == "on_watch":
             self._apply_pending_mode()
+        elif kind == "beep_done":
+            self.out("[On Watch - speak to Jack]")
         # events that don't match the current mode are ignored
 
     def _apply_pending_mode(self):
@@ -205,9 +213,12 @@ class Coordinator:
         self.history = []
         if self.motion:
             self.motion.set_mode("on_watch")
-        self.player.play(beep(), "listening beep")
+        # "speak to Jack" is printed on beep_done (below), not here - printing
+        # it immediately races ahead of the beep actually playing, inviting
+        # someone to start talking before the mic is open again and losing
+        # the start of their sentence (see docs/log.md's 4.16 history).
+        self.player.play(beep(), BEEP_TAG)
         self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
-        self.out("[On Watch - speak to Jack]")
 
     def end_session(self, why):
         self.mode = "off_watch"

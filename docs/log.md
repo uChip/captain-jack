@@ -1529,3 +1529,43 @@ this one (gesture/idle-clip execution), per the spec/log split.
 Build order (spec 4.16) is now fully implemented through step 7, except
 the real wake-word models, which are GPU-blocked and not part of this
 step - the keyboard stand-ins remain until Chip trains them.
+
+**First live test with `--port`, 2026-10-07**: Chip ran
+`coordinator.py --scratch-memory --port /dev/ttyUSB0` against the real
+bird. The 2-minute On Watch no-prompt timeout fired correctly. Two real
+findings:
+
+- Every Haiku call failed with a 401 (`API key is invalid`) - Chip's
+  key had hit its 30-day expiry, not a code problem; he'll get a fresh
+  one. (This blocked testing the `MODE:` tag and beak-sync/motion
+  against a real reply - still outstanding.)
+- Both of two attempts at "Hi Jack, where are we sailing to today?"
+  came back wrong and short (`"What should I do?"`, 1.4s audio; `"We're
+  sailing to it today."`, 2.2s audio) - the transcribed audio length is
+  much shorter than that whole sentence, and the first run's text bears
+  no resemblance to it at all, consistent with the *start* of the
+  utterance being lost rather than an ordinary Whisper mis-hearing.
+  Root cause found by inspection (not yet re-confirmed live): `coordinator.py`
+  printed `"[On Watch - speak to Jack]"` the instant `start_session()`
+  queued the listening beep, not once the beep had actually finished
+  playing - so someone reading that cue and immediately talking could
+  easily speak into the ~0.3s the Listener is still deliberately deaf
+  for (beep playback + `HOLDOFF_S`), losing exactly the sentence's
+  opening words. Fixed by deferring that print to a new `beep_done`
+  event, posted from `_on_playback` the same way `reply_started`/
+  `reply_done` already are, so it's timed to when the beep actually
+  left the speaker rather than when it was queued.
+- Chip also tried the `sleep`-stand-in from what he thought was Off
+  Watch and saw no effect. Reading the transcript: an Enter press
+  (blank line, not visible in the pasted transcript) woke Jack back
+  into On Watch between the timeout and typing `sleep` - so the fixed
+  sleep phrase was correctly ignored outside Off Watch, per spec 4.11
+  (nap from On Watch goes through the `MODE:` tag, never a fixed
+  phrase). Working as designed, not a bug; worth re-testing by typing
+  `sleep` immediately after `"[Off Watch ...]"` appears, with no Enter
+  in between.
+
+Still needed to close this out: a fresh API key, then a real live run
+exercising a `MODE:` transition and beak-sync/motion together, and
+confirming the beep-timing fix actually stops the clipped-start
+problem.
