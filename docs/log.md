@@ -362,6 +362,54 @@ it. Actual calibration happens as part of the wake-word groundwork
 already queued once the board can be exercised for real (see
 `CLAUDE.md`'s work list) — not a separate task.
 
+**Custom model training started, in progress 2026-10-07/08**: Chip
+began training both custom models (item 9 of CLAUDE.md's work list) on
+Colab, using a community-maintained notebook
+([alfiedennen/openwakeword-colab-2026](https://github.com/alfiedennen/openwakeword-colab-2026))
+rather than openWakeWord's own official notebook, since the official
+one is reported broken since 2023 (Python-version/dependency rot) and
+the community fork specifically claims to fix that.
+
+The wake-phrase ("Ahoy, Captain Jack") run completed and produced
+`wake_phrase.onnx` (now in the repo root - **not yet validated**, see
+below), but needed on the order of 30 manual error-patch-restart
+cycles with another AI (Gemini) to get there. The sleep-phrase
+("Goodnight, Jack") rerun hit a new, more fundamental error: Colab's
+current default runtime has moved to Python 3.13, and `piper-phonemize`
+(a dependency of both notebooks, for TTS-based positive-sample
+generation) has no prebuilt wheel for 3.13 yet - attempting to build it
+anyway led to an ABI mismatch (`undefined symbol:
+espeak_TextToPhonemesWithTerminator`), most likely a conflicting
+system-installed espeak-ng shadowing the one the wheel bundles.
+
+Fix in progress: Colab's "Use fallback runtime version" command
+(Command Palette, `Ctrl+Shift+P`) rolls the VM back to an older image.
+The earliest offered snapshot (2025.07) came up as Python 3.11.13 -
+old enough to avoid the 3.13/piper-phonemize problem entirely. Rerunning
+the whole notebook from scratch on that snapshot got much further with
+far fewer errors (none fatal through section 5) than the original
+3.13-based attempts - strong evidence the Python version, not the
+notebook's own logic, was the real root cause of most of Gemini's 30
+patches. It then stopped at section 6 with a silent Colab disconnect
+(no Python traceback) - cause not yet identified (the usual suspects are
+tab-inactivity disconnects or free-tier GPU/RAM reclaim after a lot of
+GPU time used today); the resource-usage indicators and runtime log were
+both unavailable to check after the disconnect. Paused here for the
+day - picking back up with a fresh Colab session, same approach
+(fallback runtime to 2025.07, Python 3.11.13).
+
+**Still outstanding**: confirm `wake_phrase.onnx` is actually usable
+(the notebook's own validation output, if any, hasn't been checked yet;
+failing that, a local onnxruntime smoke test against known positive/
+negative clips once the file's been reviewed is the fallback plan) - a
+model produced by 30 improvised patches is not self-evidently trustworthy
+just because it exported a file. Also still needed: a trained
+`sleep_phrase.onnx`, and - separately, once both models exist - the
+actual Pi-side wake-word spotter module (loading both `.onnx` files via
+onnxruntime inside the Capture/Listener pipeline, replacing the Enter/
+`sleep` keyboard stand-ins) is not built yet; training the models is
+necessary but not sufficient for item 9.
+
 ### 4.2 Speech to Text (STT)
 
 **Confidence/no-speech threshold methodology, 2026-09-23**: same
