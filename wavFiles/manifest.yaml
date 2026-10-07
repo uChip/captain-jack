@@ -716,9 +716,9 @@ clips: []
   engine: kokoro-pi/am_santa
   rendered: 2026-10-06
 - file: JoyShared.wav
-  text: "Who said, 'Joy shared is multiplied. Sorrow shared is divided.'"
+  text: "Captain Jack says, 'Joy shared is multiplied. Sorrow shared is divided.'"
   category: quote
-  attribution: Unknown
+  attribution: paraphrased from Christoph August Tiedge
   engine: kokoro-pi/am_santa
   rendered: 2026-10-06
 - file: IfNotNow.wav
@@ -740,9 +740,9 @@ clips: []
   engine: kokoro-pi/am_santa
   rendered: 2026-10-06
 - file: EverythingWillBeAlright.wav
-  text: "Everything will be alright in the end. So, if it is not alright, it is not yet the end."
+  text: "Domingos Sabino said, 'Everything will be alright in the end. So, if it is not alright, it is not yet the end.'"
   category: quote
-  attribution: Unknown
+  attribution: translated quote from Domingos Sabino
   engine: kokoro-pi/am_santa
   rendered: 2026-10-06
 - file: HopefullyYouDoTheRightThing.wav
