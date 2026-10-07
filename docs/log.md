@@ -1641,3 +1641,29 @@ the turn-taking (no barge-in) design already decided for this build
 treating each sentence as its own turn boundary. Added
 `check_mid_reply_sentence_gap()` to `tests/test_coordinator.py`,
 verified it fails without the fix and passes with it.
+
+**Mic-reopening fix confirmed live; `MODE: END_SESSION` and the
+sleep-phrase stand-in both confirmed clean, 2026-10-07**: a fourth
+live `--port` attempt, same session. Chip said "that's all for now
+Jack" (transcribed correctly this time, 2.7s audio, p=0.50); Jack's
+reply was again two sentences ("Aye, aye!... Matey. I'll be here when
+ye need me.") - the same shape that triggered the mic-reopening race
+above - and this time it went straight to `"[Off Watch - Jack ended
+the conversation...]"` with no intervening rejected utterance,
+confirming the fix holds live, not just in the regression test. This
+is also the first clean live confirmation of `MODE: END_SESSION`
+itself (the NAP transition two attempts ago only worked by the
+coincidence the fix above describes). Chip then typed `sleep`
+immediately after the `"[Off Watch ...]"` line, with no Enter first,
+and got `"[Asleep - Goodnight, Jack...]"` - confirming the sleep-phrase
+stand-in works correctly when tried as designed, resolving the "did
+nothing" mystery from the very first live test as the suspected
+stray-Enter explanation, not a bug.
+
+This closes out the last open item from section 4.16's build order for
+step 7: a real live voice conversation with beak-sync, ambient motion,
+and a `MODE:` transition all confirmed working together end to end.
+Remaining work (timeout/phrase tuning, real wake-word models, On Watch
+excursions, reply-length/streaming refinements) is tracked in
+CLAUDE.md's work list, not here - none of it changes this section's
+design.

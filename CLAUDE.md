@@ -344,6 +344,22 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     yet confirmed by an actual live voice conversation. See
     `docs/specification.md` section 4.11 and `docs/log.md`'s 4.11 and
     4.16 history.
+30. Step 7 fully validated live, 2026-10-07: across four `--port` runs
+    against the real Arduino, confirmed in turn: a beep/listening-cue
+    timing fix (full utterances now captured, not clipped at the
+    start); beak-sync and ambient motion correctly tracking real
+    conversational speech; then a real race found while first
+    confirming `MODE: NAP` live — a multi-sentence reply's own
+    sentence gaps reopened the mic early, letting a stray sound
+    clobber the in-flight reply's tag tracking and nearly drop the
+    `MODE:` tag silently (fixed in `coordinator.py`'s `_on_playback`,
+    regression test `check_mid_reply_sentence_gap` added); and finally,
+    after the fix, a clean `MODE: END_SESSION` transition with no
+    recurrence, plus the `sleep` stand-in correctly moving Off Watch ->
+    Asleep when typed right after entering Off Watch. Closes the "real
+    live voice conversation with `--port`" item from section 4.16's
+    build order. See `docs/log.md`'s 4.16 history for the full
+    diagnosis of each issue found.
 
 ## Work list — split by hardware dependency
 
@@ -395,15 +411,12 @@ worked in parallel if priorities change.
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — steps 1-7 are now done (see "Done so far" items
-   24/26/28/29): the full thread set (`coordinator.py`, beak-sync,
-   Motion, the Sleep-Mode State Machine) runs together, gated behind
-   `--port`/`--dry-run` so the no-hardware test suite stays unaffected.
-   What's left, roughly in order:
-   - **A real live voice conversation with `--port` against the real
-     Arduino** — confirm beak-sync, ambient motion, and a `MODE:`
-     transition (try "Goodnight, Jack" or "that's all for now, Jack")
-     all actually work together, not just in dry-run/fake-client tests.
+   build order** — steps 1-7 are now done and fully live-validated (see
+   "Done so far" items 24/26/28/29/30): the full thread set
+   (`coordinator.py`, beak-sync, Motion, the Sleep-Mode State Machine)
+   runs together against the real bird, gated behind `--port`/
+   `--dry-run` so the no-hardware test suite stays unaffected. What's
+   left, roughly in order:
    - The release time constant question from item 24/26 (may be faster
      than 100ms in practice) — listen for it once real speech is
      flowing through beak-sync live.
