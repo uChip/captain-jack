@@ -1040,6 +1040,44 @@ own live line already covers on the On-Watch path. It's a good candidate
 for `sl-waking-up` instead (grumbling about *being* woken), a separate,
 not-yet-tackled pairing.
 
+**TTS-sourced clips pre-rendered, not live, 2026-10-06**: Chip is
+supplementing Jack's Off Watch one-liners (~20 collected so far, still
+gathering) with philosophical quotes — a large, readily available
+supply, even though quoting philosophers isn't really in Jack's pirate
+character. Design question raised: run the text through TTS live, every
+time it plays, or render once and store as an ordinary `wavFiles/` clip?
+Decided: render once, store as WAV, same as the existing recorded clips.
+
+Reasoning, roughly in order of how much it mattered:
+- Off Watch is exactly the mode where openWakeWord runs continuously
+  for the wake phrase; live synthesis every 30-90 seconds would compete
+  with that always-on detection for CPU, where a pre-rendered clip costs
+  nothing at playback beyond reading bytes.
+- Wav-Paired gestures (4.12) are scripted against a *known* clip
+  duration; live synthesis time varies with text length and system
+  load, which would break that pairing mechanism as designed.
+- Quality control: philosophical quotes bring in exactly the vocabulary
+  TTS mispronounces (archaic phrasing, foreign names, Latin phrases).
+  Pre-rendering means listening to each line once during curation and
+  fixing or dropping bad ones, rather than a bad pronunciation
+  surfacing live in front of the household.
+- Storage turned out not to be a real factor either way: at the
+  canonical 16kHz/16-bit mono format, even a few hundred clips is tens
+  of MB.
+
+The one real downside — if the TTS voice/engine ever changes, every
+pre-rendered clip needs regenerating — is mitigated by
+`wavFiles/manifest.yaml`, a new sidecar file tracking each TTS-sourced
+clip's source text, category (joke/quote), attribution (quotes only),
+and the engine/voice it was last rendered with. Scoped to TTS-sourced
+clips only; the pre-existing recorded/movie-line clips never went
+through TTS and have no source text to track. Not populated yet — Chip
+hasn't finalized the joke list or started picking quotes; the schema
+and an example entry are in place, and the small batch-render script
+that will read this file and call `tts.py`'s existing synthesize/
+resample functions is deliberately not written yet, since there's
+nothing real to render against.
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library

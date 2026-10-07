@@ -1006,6 +1006,47 @@ normalized to peaks near 0dBFS; output headroom
 amp, so they play clean at full digital scale without a digital gain
 cap.
 
+**TTS-sourced clips — pre-rendered once, not synthesized live, decided
+2026-10-06**: Off Watch's one-liner repertoire is being supplemented
+with philosophical quotes (outside Jack's pirate character, but there's
+a large supply of them) alongside Chip's own hand-picked jokes. Both are
+authored text run through [TTS](#47-text-to-speech-tts) **once**,
+offline, and stored as ordinary `wavFiles/` clips in the canonical
+format — not synthesized live at playback time — for reasons distinct
+from the earlier recorded/movie-line clips (which were never a TTS
+question at all):
+- **Compute contention**: Off Watch is exactly the mode where
+  [openWakeWord](#41-wake-word-spotter) is running continuously,
+  listening for the wake phrase. Live synthesis (`kokoro-pi` runs at
+  roughly 0.37x real-time on the Pi 5 — comfortably faster than
+  real-time, but still real CPU work) would repeatedly compete with that
+  always-on detection every 30-90 seconds; a pre-rendered clip costs
+  nothing at playback beyond reading bytes.
+- **Fixed duration for gesture pairing**: [Wav-Paired
+  gestures](#412-gesture-engine-and-catalog) are scripted against a
+  *known* clip length. Live synthesis time varies with text length and
+  system load; a pre-rendered clip has a fixed duration to script
+  against, like every other entry in the Wav Library.
+- **Quality control before anyone hears it**: philosophical quotes bring
+  in exactly the vocabulary TTS mispronounces — archaic phrasing,
+  foreign philosophers' names, Latin phrases. Pre-rendering means each
+  line gets listened to once during curation and re-rendered or dropped
+  if it sounds wrong, rather than a bad pronunciation surfacing live in
+  front of whoever's in the room.
+- **Storage is not a real cost**: at the canonical 16kHz/16-bit mono
+  format, even a few hundred clips at a handful of seconds each is tens
+  of MB, not a meaningful tradeoff against the above.
+- **One real downside, mitigated by a manifest**: if the TTS voice or
+  engine ever changes, every pre-rendered clip needs regenerating. The
+  source text (and, for quotes, attribution) is tracked in
+  [`wavFiles/manifest.yaml`](../wavFiles/manifest.yaml) specifically so
+  this is a batch re-run, not a search for what each clip originally
+  said. The rendering step itself reuses `tts.py`'s existing
+  synthesize-and-resample pipeline (already built and tested for live
+  speech), just run once rather than live — no new synthesis code
+  needed, only a small offline batch script to drive it (not yet
+  written, pending Chip finalizing the joke/quote text).
+
 **Description**: Pi-side playback of local audio clip files (one-liners,
 movie quotes, pirate sayings) during Off Watch mode, and the sparser
 breathing/snore/shift clips during Asleep.

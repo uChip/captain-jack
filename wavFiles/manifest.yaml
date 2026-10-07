@@ -1,0 +1,45 @@
+# Manifest for TTS-sourced clips in this folder (one-liners, philosophical
+# quotes) - see docs/specification.md section 4.10 for why these are
+# pre-rendered once rather than synthesized live.
+#
+# Scope: only clips that started as text run through tts.py belong here.
+# The pre-existing recorded/movie-line clips (DeadMenTellNoTales.wav,
+# BondJamesBond.wav, etc.) never went through TTS and have no "source
+# text" to track, so they're not listed.
+#
+# Why this file exists: if the TTS voice or engine ever changes (a real
+# Supertonic-3 bake-off, or retuning kokoro-pi's voice - see Open Issues
+# issue 16), every clip below needs regenerating to match. Keeping the
+# source text (and, for quotes, attribution) here means that's a batch
+# re-run against this file, not a search for what each clip originally
+# said.
+#
+# Fields per entry:
+#   file:        filename in this folder (same naming convention as the
+#                existing clips - PascalCase, no spaces/underscores)
+#   text:        the exact text given to tts.py - the source of truth
+#                for regenerating this clip
+#   category:    joke | quote
+#   attribution: who said it (quotes only; omit or leave blank for jokes)
+#   engine:      the TTS engine/voice this was last rendered with, e.g.
+#                "kokoro-pi/am_santa" - lets a future regeneration pass
+#                know which clips already match the current voice and
+#                which don't
+#   rendered:    date last rendered (YYYY-MM-DD)
+#
+# No clips rendered yet - Chip is still finalizing the joke list (~20 so
+# far) and hasn't started picking quotes. Add entries here as lines are
+# chosen; the (not yet written) batch-render script reads this file and
+# writes the matching wavFiles/<file>.
+
+# Example entry, for reference - not a real clip. A real entry looks
+# like this, added as a list item under `clips:` below:
+#
+#   - file: TheUnexaminedLifeSquawk.wav
+#     text: "The unexamined life is not worth living, matey."
+#     category: quote
+#     attribution: Socrates (as paraphrased by Plato)
+#     engine: kokoro-pi/am_santa
+#     rendered: 2026-10-06
+
+clips: []

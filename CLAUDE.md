@@ -274,6 +274,17 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     video analysis off-line to get a precise offset number, to bring
     back next session. Beak-sync is not yet wired into
     `coordinator.py`'s live loop.
+25. Decided TTS-sourced Off Watch clips (one-liners + philosophical
+    quotes, supplementing Chip's jokes) get pre-rendered once and stored
+    as ordinary `wavFiles/` clips, not synthesized live — see
+    `docs/specification.md` section 4.10 for the reasoning (compute
+    contention with the always-on wake-word listener, fixed duration for
+    gesture pairing, catching TTS mispronunciation during curation
+    rather than live). Added `wavFiles/manifest.yaml` to track each
+    TTS-sourced clip's source text/category/attribution/rendering voice,
+    so a future voice change is a batch re-run, not a lost-text search.
+    Not populated yet — Chip is still finalizing the joke list and
+    hasn't started picking quotes.
 
 ## Work list — split by hardware dependency
 
@@ -352,3 +363,8 @@ worked in parallel if priorities change.
 11. AEC validation against the bird's own speaker — now in its final
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.
+12. Once Chip has finalized joke/quote text: write the small batch
+    script that reads `wavFiles/manifest.yaml`, calls `tts.py`'s
+    existing synthesize-and-resample functions once per entry, and
+    writes the result to `wavFiles/<file>` — then populate the manifest
+    and render. See `docs/specification.md` section 4.10.
