@@ -95,6 +95,81 @@ def check_offline():
     return errors
 
 
+def check_state_machine():
+    """Exercises the Sleep-Mode State Machine (spec 4.11) end to end
+    through _handle_event()/_handle_timeout() - the same dispatch run()
+    uses - without starting any real audio threads."""
+    errors = []
+
+    def new_coord(reply):
+        client = FakeClient(reply)
+        return coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
+                                        out=lambda *a: None)
+
+    # MODE: END_SESSION, applied once the reply "finishes playing" (reply_done).
+    coord = new_coord("Fair winds, matey!\nMODE: END_SESSION\nMEMORY: NONE")
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    if coord.mode != "on_watch":
+        errors.append("handle_utterance shouldn't switch mode before reply_done")
+    coord._handle_event("reply_done", None)
+    if coord.mode != "off_watch":
+        errors.append(f"MODE: END_SESSION should end the session, got mode={coord.mode!r}")
+    if coord.deadline is None:
+        errors.append("Off Watch should start its 15-minute nap timeout")
+
+    # MODE: NAP, same mechanism, -> Asleep instead.
+    coord = new_coord("Sleepy now, goodnight!\nMODE: NAP\nMEMORY: NONE")
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    coord._handle_event("reply_done", None)
+    if coord.mode != "asleep":
+        errors.append(f"MODE: NAP should start a nap, got mode={coord.mode!r}")
+    if coord.deadline is not None:
+        errors.append("Asleep should have no timeout deadline")
+
+    # Waking from Asleep goes straight to On Watch, never through Off Watch.
+    coord._handle_event("wake", None)
+    if coord.mode != "on_watch":
+        errors.append(f"wake from Asleep should enter On Watch directly, got mode={coord.mode!r}")
+
+    # No MODE: tag -> the ordinary 2-minute On Watch timer, mode unchanged.
+    coord = new_coord("Just chatting, Captain.\nMODE: NONE\nMEMORY: NONE")
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    coord._handle_event("reply_done", None)
+    if coord.mode != "on_watch":
+        errors.append("MODE: NONE shouldn't change mode")
+    if coord.deadline is None:
+        errors.append("MODE: NONE should still (re)start the 2-minute timer")
+
+    # The sleep-phrase stand-in only takes effect from Off Watch...
+    coord._handle_event("reply_done", None)   # already on_watch/no pending mode - harmless
+    coord.end_session("test")                 # -> off_watch
+    coord._handle_event("sleep_phrase", None)
+    if coord.mode != "asleep":
+        errors.append("sleep-phrase stand-in from Off Watch should start a nap")
+
+    # ...not from On Watch or Asleep (the local spotter never listens for it there).
+    coord = new_coord("Just chatting, Captain.\nMODE: NONE\nMEMORY: NONE")
+    coord.start_session()
+    coord._handle_event("sleep_phrase", None)
+    if coord.mode != "on_watch":
+        errors.append("sleep-phrase stand-in should be ignored while On Watch")
+
+    # Timeouts: On Watch -> Off Watch, Off Watch -> Asleep.
+    coord = new_coord("Just chatting, Captain.\nMODE: NONE\nMEMORY: NONE")
+    coord.start_session()
+    coord._handle_timeout()
+    if coord.mode != "off_watch":
+        errors.append("On Watch timeout should end the session")
+    coord._handle_timeout()
+    if coord.mode != "asleep":
+        errors.append("Off Watch timeout should start a nap")
+
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -109,7 +184,7 @@ def check_live():
 
 
 if __name__ == "__main__":
-    errors = check_offline()
+    errors = check_offline() + check_state_machine()
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -117,5 +192,6 @@ if __name__ == "__main__":
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
-    print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise"
+    print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise, "
+          "and the Sleep-Mode State Machine transitions correctly"
           + (", live Haiku replied" if live else ""))

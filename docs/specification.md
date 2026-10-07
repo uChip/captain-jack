@@ -1211,9 +1211,15 @@ which doesn't yet exist as a discrete module.
 
 ### 4.11 Sleep-Mode State Machine
 
-History: [log.md#issue-5](log.md#issue-5), [log.md#issue-6](log.md#issue-6).
+History: [log.md#issue-5](log.md#issue-5), [log.md#issue-6](log.md#issue-6),
+[log.md#411-sleep-mode-state-machine](log.md#411-sleep-mode-state-machine).
 
-**Status: Transition design specified; not implemented.**
+**Status: Implemented (2026-10-07), as part of build step 7** —
+`orchestrate.py`'s `MODE:` meta-tag and `coordinator.py`'s full
+Off Watch/On Watch/Asleep state machine. Not yet confirmed by a live
+voice conversation (tested against a fake Haiku client); the real
+wake-word spotter is still the keyboard stand-ins below, pending
+GPU-trained models.
 
 **Description**: the mode-transition logic among the three
 [Operational Modes](#24-operational-modes). This section covers
@@ -1281,15 +1287,23 @@ catalogs is active, and hand off to/from the
 
 **Interfaces**: sits "above" the orchestrator, wake-word spotter, and
 idle player, coordinating all three — runs in the Coordinator thread (see
-[4.16](#416-runtime-integration-end-to-end-turn)); not yet implemented.
-`orchestrate.py` today only implements the On Watch conversation loop in
-isolation.
+[4.16](#416-runtime-integration-end-to-end-turn)). `coordinator.py`'s
+`Coordinator` owns `self.mode`, switches [Motion](#412-gesture-engine-and-catalog)'s
+catalog on every transition, and (via `--port`/`--dry-run`) wires in the
+Serial writer; `orchestrate.py`'s `MODE:` meta-tag is how the
+Conversation Orchestrator signals an exit back up to it.
 
 ### 4.12 Gesture Engine and Catalog
 
-History: [log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog).
+History: [log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog),
+[log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Content drafted, not implemented.**
+**Status: Catalog content drafted; execution engine implemented
+(2026-10-07)** — `motion.py`, ported from `exercise_hardware.py`'s
+already hardware-validated ambient/excursion logic. Not yet done: On
+Watch excursions (content/DoA/emotion-triggered, ambient-only today),
+gesture interruptibility/preemption (Open Issues issue 24), and the
+Asleep gesture subset content itself (Open Issues issue 5).
 
 **Description**: a library of named motion primitives (speech-driven,
 emotional, idle, conversational, and "expressive" categories) — each a
@@ -1630,12 +1644,18 @@ Orchestrator](#43-conversation-orchestrator) to use when addressing
 
 History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn).
 
-**Status: Designed 2026-09-25; build steps 1-6 implemented** — the thin
-end-to-end voice loop works: `playback.py`, `capture.py`, `listener.py`,
-`stt.py`, `coordinator.py`, `tts.py`. First live voice conversations
-2026-09-25. Beak-sync (`serial_link.py` + beak-sync in `playback.py`)
-added 2026-10-06, not yet wired into `coordinator.py`'s live loop or
-watched against the real bird — see [4.8](#48-beak-sync-rms-envelope-extraction).
+**Status: Designed 2026-09-25; build steps 1-7 implemented** — the
+full thread set now runs together: `playback.py`, `capture.py`,
+`listener.py`, `stt.py`, `coordinator.py`, `tts.py`, `serial_link.py`,
+`motion.py`. First live voice conversations 2026-09-25. Beak-sync
+(step 6) and Motion/the state machine (step 7, 2026-10-07) are wired
+into `coordinator.py`'s live loop behind `--port`/`--dry-run` — see
+[4.8](#48-beak-sync-rms-envelope-extraction) and
+[4.11](#411-sleep-mode-state-machine). Still open: real wake-word
+models (GPU-blocked, keyboard stand-ins remain) and a live voice
+conversation actually exercising a `MODE:` transition or beak-sync
+together (tested separately so far, not confirmed together by ear/eye
+in one run).
 
 **Description**: how the modules in 4.1–4.15 run together as one
 program. Each module section above states its own interfaces; this
@@ -1736,15 +1756,17 @@ lock, so threads genuinely run in parallel where it matters.
   to never send anything at all against a continuous 50Hz stream (see
   [4.8](#48-beak-sync-rms-envelope-extraction)'s history for why).
   **Done** — `serial_link.py`'s `SerialWriter`; the Motion/head path
-  exists (`send_head()`, an ordinary FIFO) but nothing uses it yet until
-  build step 7.
+  (`send_head()`, an ordinary FIFO) is used by Motion as of build step 7.
 - **(g) Motion & idle** — runs the current mode's gesture behavior from
   [gesture-catalog.yaml](gesture-catalog.yaml) (the ambient/excursion
-  loops `exercise_hardware.py` prototypes today) and, in Off
-  Watch/Asleep, schedules idle clips into the Playback queue per
-  [4.10](#410-idle-and-ambient-audio-player). Later, DoA-driven
-  baseline yaw ([4.9](#49-direction-of-arrival-doa-reader)) feeds in
-  here. Switches catalogs when the Coordinator changes mode.
+  loops, ported from `exercise_hardware.py`'s already hardware-validated
+  logic) and, in Off Watch/Asleep, schedules idle clips into the
+  Playback queue per [4.10](#410-idle-and-ambient-audio-player). Later,
+  DoA-driven baseline yaw ([4.9](#49-direction-of-arrival-doa-reader))
+  feeds in here. Switches catalogs when the Coordinator changes mode
+  (`set_mode()`, called from every transition method). **Done** —
+  `motion.py`; On Watch's conversation/DoA/emotion-triggered excursions
+  are the one piece not implemented yet (ambient-only for now).
 
 **Output gain — decided 2026-10-06**: Playback applies `OUTPUT_GAIN_DB`
 (`0.0` — no digital attenuation) with the XVF3800's ALSA `PCM Playback
@@ -1789,11 +1811,16 @@ spotter later changes nothing downstream.
    `playback.py` (RMS envelope → beak angle, timed against the block's
    dac_time). Automatic tests pass (`tests/test_beak_sync.py`);
    `ALIGNMENT_FUDGE_S` is now measured against the real bird (see
-   [4.8](#48-beak-sync-rms-envelope-extraction)), but not yet wired into
-   `coordinator.py`'s live loop (that's step 7, below, where the full
-   thread set first runs together).
+   [4.8](#48-beak-sync-rms-envelope-extraction)).
 7. Motion & idle thread, state machine and timeouts, real wake-word
-   models.
+   models. **Done (2026-10-07) except real wake-word models** —
+   `motion.py` (ported from `exercise_hardware.py`, live-watched against
+   the real bird) and the full state machine
+   ([4.11](#411-sleep-mode-state-machine)) are both wired into
+   `coordinator.py` behind `--port`/`--dry-run`, so the no-hardware test
+   suite is unaffected. Real wake-word models remain GPU-blocked; the
+   keyboard stand-ins (Enter / typing `sleep`) cover both fixed phrases
+   until then.
 
 **Interfaces**: this section *is* the wiring between 4.1–4.15; each
 module's own Interfaces paragraph remains the source for what it

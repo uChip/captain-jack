@@ -1168,6 +1168,62 @@ passes. Format verified programmatically; actual pronunciation/quality
 of the new content needs Chip listening for real, not something Claude
 can judge directly.
 
+### 4.11 Sleep-Mode State Machine
+
+**`MODE:` meta-tag, 2026-10-07**: implementing the Off Watch/On
+Watch/Asleep transitions needed a way for Jack to signal "this
+conversation (or watch) is winding down" from inside a normal reply,
+mirroring the problem the `MEMORY:` line already solves for proposed
+facts (see [4.5](specification.md#45-memory-subsystem)). Rather than
+inventing a separate mechanism, `orchestrate.py` reuses the same
+pattern: a new trailing `MODE: NONE|END_SESSION|NAP` line, sitting right
+before `MEMORY:` (which stays the true last line of the reply),
+`split_mode_line()` splits it off the same fail-closed way
+`split_memory_line()` does — a missing or malformed line (e.g. an older
+reply with no `MODE:` line at all) is treated as `NONE` rather than
+guessed at. `take_turn()`'s `Turn` dataclass gained a third field,
+`mode`, threaded through unchanged into the Coordinator.
+`memory/identity.md` gained a new "Ending the session" section (placed
+before "Memory") teaching Haiku the three values and that signaling
+either one should come with a natural in-character sign-off as the
+spoken reply itself, not a silent tag with an unrelated line. Tested in
+`tests/test_mode_tag.py` with a fake Haiku client — no real API call
+needed to verify the parsing/wiring.
+
+**Full state machine wired into `coordinator.py`, same day**: the
+Coordinator now owns all three modes, not just Off Watch/On Watch.
+Transitions, per [specification.md#411](specification.md#411-sleep-mode-state-machine):
+Haiku's `MODE:` tag (applied once the reply finishes playing, not the
+instant it's received, so the in-character sign-off is actually heard
+first) drives On Watch's two exits; a keyboard stand-in for "Goodnight,
+Jack" (type `sleep` then Enter, alongside the existing bare-Enter wake
+stand-in) and a 15-minute no-wake idle timeout drive Off Watch's exit to
+Asleep; waking from Asleep goes straight back to On Watch, never through
+Off Watch, per the spec's explicit call. The run loop's per-event
+dispatch was factored out into `_handle_event()`/`_handle_timeout()`
+specifically so tests could drive every transition directly without
+starting the real audio threads — `tests/test_coordinator.py`'s
+`check_state_machine()` exercises all of them (both `MODE:` values, the
+plain `NONE` case, both stand-in phrases, both timeouts, and the
+Asleep-skips-Off-Watch wake path) against a fake Haiku client.
+
+Motion ([4.12](#412-gesture-engine-and-catalog)) and the Serial writer
+([4.13](specification.md#413-pi-to-arduino-serial-link)) are wired in
+too, but only when asked for (`--port`/`--dry-run`) — a bare
+`--scratch-memory` run or any automatic test still gets `None` for both,
+so nothing here needed real hardware to test. `set_mode()` is called on
+every transition method (`start_session`/`end_session`/`start_nap`) so
+Motion's ambient/excursion behavior always matches the Coordinator's own
+mode. Confirmed end to end in dry-run (no Arduino attached): Capture,
+Listener, Playback, the dry-run Serial writer, Motion, and TTS all start
+and stop cleanly together.
+
+**Not yet done**: a real live voice conversation exercising a `MODE:`
+transition by ear (only the fake-client path is tested); the real wake-
+word spotter (GPU-blocked, still the keyboard stand-ins); tuning either
+timeout against real use (both are still spec 4.11's initial,
+unvalidated numbers).
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library
@@ -1442,3 +1498,34 @@ Also from the second run: utt08 was someone else in the room ("I'm
 going to the bathroom..."), which Whisper transcribed in parentheses as
 background, so it was rejected and Jack said "Say again?" to nobody.
 Left alone until DoA and speaker ID can tell who's talking to Jack.
+
+**Build step 7, 2026-10-07 — Motion & idle thread, full state machine**:
+`motion.py` ports `exercise_hardware.py`'s already hardware-validated
+gesture logic (Baseline, `resolve_move`, the ambient/excursion loops)
+into a real long-lived thread — deliberately not a redesign, since that
+logic is what Issue 25's breathing-gesture tuning was validated against.
+The only real change from the dev harness is driving mode from
+`set_mode()` (the Coordinator calls it on every transition) instead of a
+blind random timer, and sending over the real `serial_link.py` writer
+instead of a blocking one. A cross-library `find_gesture_anywhere()` was
+needed because a Wav's paired gesture id can live in the dedicated
+`wav_paired` library or directly in a mode library, as the existing
+Asleep examples do — `find_gesture()` alone only checks one. Tested in
+`tests/test_motion.py` against a small synthetic catalog (the real
+catalog's `wait_ms` timings would make an automatic test slow); live-
+checked standalone against the real bird (`motion.py --mode off_watch
+--dry-run --seconds 15`, no Playback) — clean output, no crash, correct
+asymmetric breathing swing, Chip confirmed correct movement by eye.
+`gesture-catalog.yaml`'s `wavs: off_watch:` list was populated with all
+162 real `wavFiles/` clips in the same pass (previously empty).
+
+The `MODE:` meta-tag and the rest of the state machine (Asleep, the
+15-minute Off Watch timeout, both keyboard phrase stand-ins, Motion/
+Serial wiring into `coordinator.py`) were built the same session — see
+[4.11](#411-sleep-mode-state-machine) for that half's own history, kept
+separate since it's a distinct piece of design (transition logic) from
+this one (gesture/idle-clip execution), per the spec/log split.
+
+Build order (spec 4.16) is now fully implemented through step 7, except
+the real wake-word models, which are GPU-blocked and not part of this
+step - the keyboard stand-ins remain until Chip trains them.

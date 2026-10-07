@@ -14,10 +14,16 @@ Early implementation. `orchestrate.py` is Captain Jack's text-only
 conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
-`coordinator.py` runs the voice loop (spec section 4.16): press Enter,
-speak, and Jack answers aloud (`tts.py`, kokoro-pi, voice `am_santa`).
-It builds on `playback.py`, `capture.py`, `listener.py` and `stt.py`. The Pi<->Arduino serial link's command syntax is locked down and
-implemented (`arduino/ServoControl/ServoControl.ino`, see
+`coordinator.py` runs the voice loop (spec section 4.16) and the full
+Off Watch/On Watch/Asleep state machine (spec 4.11): press Enter to
+wake Jack, speak, and he answers aloud (`tts.py`, kokoro-pi, voice
+`am_santa`); typing `sleep` then Enter stands in for "Goodnight, Jack".
+It builds on `playback.py`, `capture.py`, `listener.py`, `stt.py`, and
+(via `--port`/`--dry-run`) `serial_link.py` + `motion.py` for beak-sync
+and ambient/excursion gestures — omitted by default so the no-hardware
+test suite stays hardware-free. The Pi<->Arduino serial link's command
+syntax is locked down and implemented
+(`arduino/ServoControl/ServoControl.ino`, see
 `docs/specification.md` section 4.13); the Arduino drives all four servos
 (head pitch/roll/yaw + beak) correctly from real commands. The reSpeaker
 XVF3800 is USB-connected to the Pi with the bird's speaker (40mm, 4Ω,
@@ -311,6 +317,33 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     clips. `tests/test_wavfiles_format.py` is glob-based and now covers
     all 163 automatically. See `docs/specification.md` section 4.10 and
     `docs/log.md`'s 4.10 history for the full review detail.
+28. Build step 7 done, 2026-10-07 — Motion & idle thread: `motion.py`,
+    a faithful port of `exercise_hardware.py`'s already hardware-validated
+    ambient/excursion gesture logic into a real `set_mode()`-driven
+    thread over `serial_link.py`'s real writer (not a blocking one).
+    `gesture-catalog.yaml`'s `wavs: off_watch:` list populated with all
+    162 real `wavFiles/` clips (previously empty). Automatic tests pass
+    (`tests/test_motion.py`, a small synthetic catalog); live-watched
+    standalone against the real bird (`motion.py --mode off_watch
+    --dry-run --seconds 15`) — clean output, no crash, Chip confirmed
+    correct movement.
+29. Build step 7 done, 2026-10-07 — the full Sleep-Mode State Machine
+    (spec 4.11): `orchestrate.py` gained a `MODE: NONE|END_SESSION|NAP`
+    meta-tag (same mechanism as `MEMORY:`), and `coordinator.py` now
+    owns all three modes — Haiku's tag (applied once the reply finishes
+    playing) and the 2-minute no-prompt timeout drive On Watch's exits;
+    a keyboard stand-in for "Goodnight, Jack" (type `sleep` + Enter) and
+    a 15-minute idle timeout drive Off Watch's exit to Asleep; waking
+    from Asleep goes straight back to On Watch, never through Off Watch.
+    Motion and the Serial writer are wired in behind new `--port`/
+    `--dry-run` flags, so the no-hardware test suite is unaffected.
+    Automatic tests pass (`tests/test_mode_tag.py`,
+    `tests/test_coordinator.py`'s new state-machine checks); confirmed
+    in dry-run that the full thread set (Capture, Listener, Playback,
+    Serial writer, Motion, TTS) starts and stops cleanly together. Not
+    yet confirmed by an actual live voice conversation. See
+    `docs/specification.md` section 4.11 and `docs/log.md`'s 4.11 and
+    4.16 history.
 
 ## Work list — split by hardware dependency
 
@@ -362,23 +395,29 @@ worked in parallel if priorities change.
    the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
    needs Seeed's real reference application, not reverse-engineering.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
-   build order** — the current focus. Steps 1-6 are done: the thin
-   end-to-end voice loop works (`coordinator.py`), and beak-sync exists,
-   has had its first live watch, and `ALIGNMENT_FUDGE_S` is now measured
-   (see "Done so far" items 24/26) — all 8 cycles look synced by eye and
-   by frame-matched video measurement. One secondary, lower-confidence
-   open question remains: the release time constant may be faster than
-   100ms in practice (see section 4.8), better confirmed against real
-   conversational speech than further test-tone analysis.
-   Before moving to step 7 (motion/idle thread, section 4.10, the state
-   machine, and real wake-word models): wire the Serial writer +
-   beak-sync into the live coordinator loop, and keep an ear on the
-   release-constant question once real speech is flowing through it.
-   Open refinements from the live conversation runs: replies still
-   often 25-45 words against a
-   20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
-   delay; pass low-confidence transcripts to
-   Haiku marked unclear (see spec 4.2).
+   build order** — steps 1-7 are now done (see "Done so far" items
+   24/26/28/29): the full thread set (`coordinator.py`, beak-sync,
+   Motion, the Sleep-Mode State Machine) runs together, gated behind
+   `--port`/`--dry-run` so the no-hardware test suite stays unaffected.
+   What's left, roughly in order:
+   - **A real live voice conversation with `--port` against the real
+     Arduino** — confirm beak-sync, ambient motion, and a `MODE:`
+     transition (try "Goodnight, Jack" or "that's all for now, Jack")
+     all actually work together, not just in dry-run/fake-client tests.
+   - The release time constant question from item 24/26 (may be faster
+     than 100ms in practice) — listen for it once real speech is
+     flowing through beak-sync live.
+   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
+     the wake/sleep-phrase fixed-phrase match tolerance against real use
+     (spec 4.11 flags all of these as initial numbers).
+   - Train the real wake-word models (item 9, below) and retire the
+     keyboard stand-ins.
+   - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
+     only runs ambient motion in On Watch today.
+   - Open refinements from the live conversation runs: replies still
+     often 25-45 words against a 20-word target; stream Haiku's reply
+     into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
+     to Haiku marked unclear (see spec 4.2).
 9. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
    "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
    notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
