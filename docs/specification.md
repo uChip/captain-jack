@@ -864,12 +864,16 @@ History: [log.md#48-beak-sync-rms-envelope-extraction](log.md#48-beak-sync-rms-e
 **Status: Implemented (build step 6), 2026-10-06** — `playback.py` +
 `serial_link.py`; automatic correctness tests pass
 (`tests/test_beak_sync.py`). Watched live against
-`wavFiles/AlignmentTone.wav`: all 8 tone/silence cycles now look
-well-synced by eye, including the first, after the two untried
-experiments from the first watch (see **First-cycle late start**
-below) — visually fixed, not yet root-caused, and not yet confirmed by
-measurement. Precise frame-matched offset (video against the audio
-waveform) is in progress, off-line — numbers not in yet.
+`wavFiles/AlignmentTone.wav`: all 8 tone/silence cycles look
+well-synced by eye, including the first, after the two experiments from
+the first watch (see **First-cycle late start** below). Frame-matched
+video measurement confirmed a consistent ~30ms response lag on every
+cycle and `ALIGNMENT_FUDGE_S` is now set accordingly (see
+**`ALIGNMENT_FUDGE_S` measured** below) — the envelope mapping's
+release time constant is a secondary, lower-confidence open question
+from the same measurement (see **Tunable defaults** below), better
+confirmed against real conversational speech than further analysis of
+one test tone.
 
 **Description**: real-time RMS amplitude envelope extraction from whatever
 audio is currently playing — idle clip or live TTS — at 50Hz (one
@@ -907,13 +911,24 @@ Serial writer until that time arrives, rather than sent immediately —
 this falls out of data Playback already has, rather than needing a
 separate calibration pass of its own. A small additional fixed
 correction (`ALIGNMENT_FUDGE_S` in `serial_link.py`, covering serial
-transmission and servo mechanical response, expected near zero) is
-layered on top and is the one thing that needs a person watching and
-listening to the real bird to tune — done by playing
-`wavFiles/AlignmentTone.wav` through `playback.py --beak` (no separate
-calibration script: the same beak-sync mechanism this section describes
-already opens/closes the beak in sync with the tone's on/off pattern) and
-judging by eye/ear whether the beak leads or lags the audible tone.
+transmission and servo mechanical response) is layered on top.
+
+**`ALIGNMENT_FUDGE_S` measured, 2026-10-06 — `0.03` (30ms)**: Chip
+filmed `wavFiles/AlignmentTone.wav` playing through `playback.py --beak`
+at 30fps and matched frames against the audio waveform. Cross-checked
+against the file's own precisely-measured tone-on/off timing (each rep
+turns on at +106ms and off at +608ms, not the nominal 0/500ms — found
+by threshold-crossing the RMS at 2ms resolution) rather than trusting
+eyeballed timestamps alone. With `ALIGNMENT_FUDGE_S` still at its
+assumed-near-zero default, the beak visibly started moving about one
+video frame (~30ms) *after* the sound it was responding to, on both the
+opening and closing edge — not sent too early or too late in the
+direction originally guessed, but consistently late by about that much.
+Once that delay is subtracted, the shape of the opening ramp (barely
+started at +33ms, essentially fully open by +100ms) is a reasonable
+match for the existing 20ms attack time constant, so that constant
+isn't suspected of needing a change. Updated `ALIGNMENT_FUDGE_S` from
+`0.0` to `0.03` accordingly.
 
 **First-cycle late start — found and visually fixed 2026-10-06, not
 root-caused**: in the first live run, the first tone/silence cycle
@@ -938,18 +953,34 @@ duration without triggering or touching the beak, so it's invisible if
 it does nothing, but gives the parser one full cycle to settle before a
 command that needs to look right). **Re-watched after both changes**: all
 8 cycles, including the first, now look evenly timed by eye — visually
-fixed. Not root-caused (don't know which of the two mattered, or
-whether it was really the suspected `parseInt()` quirk at all), and not
-yet confirmed by Chip's frame-matched video measurement, still in
-progress.
+fixed, and confirmed by the frame-matched video measurement too (see
+**`ALIGNMENT_FUDGE_S` measured** above): the video Chip analyzed shows
+the same consistent ~30ms lag on *every* one of the 8 cycles, first
+included, with no cycle standing out as different from the rest. Still
+not root-caused (don't know which of the two experiments mattered, or
+whether it was really the suspected `parseInt()` quirk at all) — but no
+longer a live concern for this clip, since the behavior that prompted
+the question is gone.
 
-**Tunable defaults, not measured** (`playback.py`): envelope floor
-−40dBFS (rest closed), ceiling −15dBFS (fully open), attack time
-constant 20ms, release 100ms. Picked from general reasoning about
+**Tunable defaults, mostly not measured** (`playback.py`): envelope
+floor −40dBFS (rest closed), ceiling −15dBFS (fully open), attack time
+constant 20ms (see above — the alignment-tone measurement is consistent
+with this one), release 100ms. Picked from general reasoning about
 typical speech RMS levels and a natural-looking mouth-flap rhythm, not
 derived from real recordings — expect to retune by watching the real
 bird talk, the same "ship a reasonable default, tune by observation"
 pattern already used for gesture amplitudes and the TTS voice pick.
+**Open question from the same video**: the closing edge looked faster
+by eye than the 100ms release constant would predict — full closure in
+roughly 2 frames (~65ms) rather than the several hundred ms a 100ms
+time constant implies for a visually-complete transition. Chip flagged
+the closing edge as harder to read from the waveform than the opening
+edge, so this is lower-confidence than the `ALIGNMENT_FUDGE_S` finding,
+not applied yet — better confirmed by watching/listening to real
+conversational speech once beak-sync is wired into the live loop (step
+7) than by further analysis of one test tone, since release's whole
+purpose is avoiding a stutter between syllables in continuous speech,
+not a single on/off edge.
 
 **Interfaces**: reads the live audio stream from
 [TTS](#47-text-to-speech-tts) or the
@@ -957,8 +988,9 @@ pattern already used for gesture amplitudes and the TTS voice pick.
 whatever `playback.py`'s `Playback` is currently writing to the device,
 regardless of source; writes `b` commands to the
 [Pi-to-Arduino Serial Link](#413-pi-to-arduino-serial-link) via
-`serial_link.py`'s `SerialWriter` (latest-wins: a stale beak position is
-worse than a skipped one).
+`serial_link.py`'s `SerialWriter` (a small bounded FIFO delay line,
+oldest-sent-first, dropping only the oldest if it ever backs up past
+capacity — see [4.16](#416-runtime-integration-end-to-end-turn)(f)).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
@@ -1683,11 +1715,14 @@ lock, so threads genuinely run in parallel where it matters.
   Coordinator's timers.
 - **(f) Serial writer** — sole owner of the Arduino serial port. Accepts
   command strings from Playback (beak) and Motion (head) and writes
-  them. Beak commands are latest-wins: if several queue up, only the
-  newest is sent, since a stale beak position is worse than a skipped
-  one. **Done** — `serial_link.py`'s `SerialWriter`; the Motion/head
-  path exists (`send_head()`, an ordinary FIFO) but nothing uses it yet
-  until build step 7.
+  them. Beak commands go through a small bounded FIFO delay line
+  (oldest-sent-first), dropping only the oldest if it ever backs up
+  past capacity — a single "latest wins" slot was tried first and found
+  to never send anything at all against a continuous 50Hz stream (see
+  [4.8](#48-beak-sync-rms-envelope-extraction)'s history for why).
+  **Done** — `serial_link.py`'s `SerialWriter`; the Motion/head path
+  exists (`send_head()`, an ordinary FIFO) but nothing uses it yet until
+  build step 7.
 - **(g) Motion & idle** — runs the current mode's gesture behavior from
   [gesture-catalog.yaml](gesture-catalog.yaml) (the ambient/excursion
   loops `exercise_hardware.py` prototypes today) and, in Off
@@ -1734,12 +1769,14 @@ spotter later changes nothing downstream.
    Haiku ~1.1–1.9s, first sentence's synthesis), 1.75s for the local
    "say again" line. Streaming Haiku's reply into TTS is the next lever.
 6. Beak-sync in Playback + Serial writer. **Done** — `serial_link.py`
-   (the Serial writer, latest-wins beak commands) and beak-sync in
+   (the Serial writer, a bounded FIFO delay line for beak commands) and
+   beak-sync in
    `playback.py` (RMS envelope → beak angle, timed against the block's
-   dac_time). Automatic tests pass (`tests/test_beak_sync.py`); not yet
-   watched against the real bird to tune `ALIGNMENT_FUDGE_S`, and not
-   yet wired into `coordinator.py`'s live loop (that's step 7, below,
-   where the full thread set first runs together).
+   dac_time). Automatic tests pass (`tests/test_beak_sync.py`);
+   `ALIGNMENT_FUDGE_S` is now measured against the real bird (see
+   [4.8](#48-beak-sync-rms-envelope-extraction)), but not yet wired into
+   `coordinator.py`'s live loop (that's step 7, below, where the full
+   thread set first runs together).
 7. Motion & idle thread, state machine and timeouts, real wake-word
    models.
 

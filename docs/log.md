@@ -978,6 +978,46 @@ video analysis against the audio waveform is still in progress,
 off-line, and will also serve as the real check on whether this holds
 up under precise measurement rather than just looking right by eye.
 
+**`ALIGNMENT_FUDGE_S` measured, 2026-10-07**: Chip brought back the
+frame-by-frame (30fps) analysis of the second video. Before trusting his
+eyeballed frame timestamps, verified the file's own tone-on/off timing
+precisely (threshold-crossing the RMS at 2ms resolution, not the ~10ms
+windows used for the earlier "is there noise before the first tone"
+check): each rep turns on at +106ms and off at +608ms relative to the
+clip start, not the nominal 0ms/500ms Chip had assumed for his
+500ms-from-onset closing anchor — reassuringly, that anchor (+606ms)
+turned out only ~2ms off the true +608ms offset, so his frame counts
+were trustworthy ground truth, not an artifact of a wrong reference
+point.
+
+His data: opening, beak closed at frame 0 (sound onset), 5-10% open at
+frame 1 (+33ms), ~50% at frame 2 (+67ms), 100% at frame 3 (+100ms).
+Closing (measured from the +500ms-from-onset anchor, ~2ms before the
+true offset): 100% open at that anchor, ~50% closed one frame later
+(+33ms), fully closed by two frames later (+67ms).
+
+Math check against the design: with `ALIGNMENT_FUDGE_S` still at 0 and
+a 20ms attack time constant, a response starting exactly at the true
+sound onset would already predict ~80% open by frame 1 — not the 5-10%
+observed. That gap is itself the measurement: the beak doesn't start
+moving when the sound does, it starts moving about one frame (~30ms)
+late, on both edges (the closing edge hadn't started at all by the true
+tone-off instant either). Once that delay is backed out, the opening
+ramp's shape (barely started at +33ms, ~100% by +100ms) is a reasonable
+match for the existing 20ms attack constant, so that wasn't changed.
+Updated `ALIGNMENT_FUDGE_S` from `0.0` to `0.03` in `serial_link.py`.
+
+Secondary, lower-confidence finding from the same data: the closing
+edge looked faster than the 100ms release time constant would predict
+(visually complete in ~2 frames/~65ms, where 100ms would need several
+hundred ms to look fully settled). Not applied — Chip himself flagged
+the closing edge as harder to read from the waveform than the opening
+edge when he first reported this, and release's actual job (preventing
+a stutter between syllables in continuous speech) is better tested by
+listening to real conversation once beak-sync is wired into the live
+loop (step 7) than by further analysis of one on/off test tone. Left as
+an open question in `specification.md` section 4.8 rather than acted on.
+
 ### Debounce-vs-throttle bug (first live test sent nothing at all)
 
 **Found and fixed 2026-10-06**, same first live watch session, before

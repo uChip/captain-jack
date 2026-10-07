@@ -285,6 +285,17 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     so a future voice change is a batch re-run, not a lost-text search.
     Not populated yet — Chip is still finalizing the joke list and
     hasn't started picking quotes.
+26. `ALIGNMENT_FUDGE_S` measured, 2026-10-07: Chip's frame-matched video
+    (30fps, against the file's own precisely-measured tone-on/off
+    timing) showed the beak consistently starting to move about one
+    frame (~30ms) *after* the sound it was responding to, on both
+    opening and closing edges, across all 8 cycles. Updated
+    `ALIGNMENT_FUDGE_S` from `0.0` to `0.03` in `serial_link.py`
+    accordingly; the 20ms attack time constant looks right as-is. Left
+    open, lower confidence: the closing edge looked faster than the
+    100ms release time constant predicts — not changed yet, better
+    confirmed against real conversational speech (step 7) than further
+    analysis of one test tone. See `docs/specification.md` section 4.8.
 
 ## Work list — split by hardware dependency
 
@@ -337,18 +348,19 @@ worked in parallel if priorities change.
    needs Seeed's real reference application, not reverse-engineering.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — the current focus. Steps 1-6 are done: the thin
-   end-to-end voice loop works (`coordinator.py`), and beak-sync exists
-   and has had its first live watch (see "Done so far" item 24) — all 8
-   cycles now look synced by eye after two experiments for a
-   first-cycle-late-start bug (not root-caused, not yet measurement-
-   confirmed), and the precise `ALIGNMENT_FUDGE_S` offset is pending
-   Chip's off-line video analysis.
+   end-to-end voice loop works (`coordinator.py`), and beak-sync exists,
+   has had its first live watch, and `ALIGNMENT_FUDGE_S` is now measured
+   (see "Done so far" items 24/26) — all 8 cycles look synced by eye and
+   by frame-matched video measurement. One secondary, lower-confidence
+   open question remains: the release time constant may be faster than
+   100ms in practice (see section 4.8), better confirmed against real
+   conversational speech than further test-tone analysis.
    Before moving to step 7 (motion/idle thread, section 4.10, the state
-   machine, and real wake-word models): get that offset and the envelope
-   floor/ceiling/attack/release defaults (section 4.8) tuned, confirm
-   whether the first-cycle fix worked, then wire the Serial writer +
-   beak-sync into the live coordinator loop. Open refinements from the
-   live conversation runs: replies still often 25-45 words against a
+   machine, and real wake-word models): wire the Serial writer +
+   beak-sync into the live coordinator loop, and keep an ear on the
+   release-constant question once real speech is flowing through it.
+   Open refinements from the live conversation runs: replies still
+   often 25-45 words against a
    20-word target; stream Haiku's reply into TTS to cut the 2.6-3.8s
    delay; pass low-confidence transcripts to
    Haiku marked unclear (see spec 4.2).

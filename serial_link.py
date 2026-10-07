@@ -75,11 +75,15 @@ WARMUP_CMD = "t100"
 # already available from Playback's stream clock: serial transmission
 # (a few bytes at 115200 baud) plus Arduino parsing and servo mechanical
 # response (beak has no easing - Open Issues issue 8 - so this is just
-# raw PWM response time). Expected to be near zero by physics; tune by
-# watching/listening against AlignmentTone.wav (see docs/tests.md's
-# "Beak-sync" entry - playback.py's --beak flag is the procedure, no
-# separate calibration script) before trusting it.
-ALIGNMENT_FUDGE_S = 0.0
+# raw PWM response time).
+#
+# Measured 2026-10-06 from a frame-by-frame (30fps) video of
+# AlignmentTone.wav against the file's own precisely-measured tone-on/
+# off timing: the beak visibly started moving about one frame (~30ms)
+# after the sound it was responding to, on both the opening and closing
+# edge. Was assumed near-zero by physics; wasn't. See docs/specification.md
+# section 4.8 and docs/log.md's 4.8 history for the full measurement.
+ALIGNMENT_FUDGE_S = 0.03
 
 # How many pending beak values the delay line holds before dropping the
 # oldest. Measured device latency is ~100-120ms (~5-6 blocks at 20ms
