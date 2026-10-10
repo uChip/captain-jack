@@ -1162,8 +1162,13 @@ Asleep's named gestures are now wired to a real `sl-*` id in
 `wavFiles/manifest.yaml`, except the mumble, which is to be a recorded
 clip — TTS spelled "Mmph" out letter by letter). The `idle_timeout`
 lines use the manifest's `to_self` delivery (slower, quieter, blended
-with a calmer voice) so they read as said to himself; playback on
-entering Asleep isn't wired into `coordinator.py` yet:
+with a calmer voice) so they read as said to himself. **Implemented
+2026-10-10**: `coordinator.py`'s `start_nap()` passes how Asleep was
+entered to `motion.py`'s `fall_asleep()`, which plays the settle
+gesture plus one random line from the matching pool, skipping listed
+files that don't exist yet (so the mumble is never picked until it's
+recorded). Like Off Watch's idle clips, this runs in Motion, so only
+with `--port`/`--dry-run`:
 - **`idle_timeout`** — unprompted, Jack narrating to himself, nobody to
   address: "Eight bells... my watch is done." / "Furl the sails, Cap'n's
   turnin' in." / "Even an old parrot's got to perch and rest sometime."

@@ -183,7 +183,7 @@ class Coordinator:
         if self.mode == "on_watch":
             self.end_session("no prompt for 2 minutes")
         elif self.mode == "off_watch":
-            self.start_nap("no wake phrase for 15 minutes")
+            self.start_nap("no wake phrase for 15 minutes", "idle_timeout")
 
     def _handle_event(self, kind, data):
         """The run() loop's event dispatch, factored out so tests can
@@ -191,7 +191,7 @@ class Coordinator:
         if kind == "wake" and self.mode in ("off_watch", "asleep"):
             self.start_session()
         elif kind == "sleep_phrase" and self.mode == "off_watch":
-            self.start_nap("Goodnight, Jack")
+            self.start_nap("Goodnight, Jack", "goodnight_phrase")
         elif kind == "utterance" and self.mode == "on_watch":
             self.handle_utterance(data)
         elif kind == "reply_started" and self._heard_at is not None:
@@ -234,10 +234,13 @@ class Coordinator:
         self.deadline = time.monotonic() + OFF_WATCH_TIMEOUT_S
         self.out(f"[Off Watch - {why}. Press Enter to wake Jack.]")
 
-    def start_nap(self, why):
+    def start_nap(self, why, context=None):
+        """context picks the settle-in line (spec 4.10): "goodnight_phrase",
+        "idle_timeout", or None for MODE: NAP - Haiku's reply already said
+        goodnight. Played by Motion, so only with --port/--dry-run."""
         self.mode = "asleep"
         if self.motion:
-            self.motion.set_mode("asleep")
+            self.motion.fall_asleep(context)
         self.deadline = None   # Asleep has no further timeout - only the wake phrase ends it
         self.out(f"[Asleep - {why}. Press Enter to wake Jack.]")
 

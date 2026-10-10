@@ -5,7 +5,10 @@ Implements the Motion & idle thread from docs/specification.md section
 from gesture-catalog.yaml (spec 4.12) - the ambient gesture repeats
 forever, excursions interrupt it at random intervals (Off Watch) or by
 chance each breath (Asleep), and Off Watch also schedules idle clips
-from the Wav Library (spec 4.10) into Playback. Sends primitive p/r/y/t/s
+from the Wav Library (spec 4.10) into Playback. Entering Asleep via
+fall_asleep() first plays the settle-to-sleep gesture, with a line from
+the Asleep wav pool matching how sleep was entered (spec 4.10's "On
+entering Asleep"). Sends primitive p/r/y/t/s
 and b commands through serial_link.py's SerialWriter.send_head() - never
 a named gesture, per Open Issues issue 7.
 
@@ -49,6 +52,7 @@ AXIS_RANGE = {"p": (0, 50), "r": (0, 50), "y": (0, 130)}
 BEAK_RANGE = (0, 60)
 
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
+SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
 
 
 def load_catalog() -> dict:
@@ -130,9 +134,23 @@ class Motion:
         self._next_excursion = 0.0
         self._last_excursion_id = None
         self._last_wav = None
+        self._settle_pending = False   # set by fall_asleep(), consumed by _step_asleep()
+        self._settle_context = None
 
     def set_mode(self, mode):
+        self._settle_pending = False   # a later transition cancels an unplayed settle
         self.mode = mode
+
+    def fall_asleep(self, context=None):
+        """Enter Asleep, settling in first (spec 4.10, "On entering
+        Asleep"). context names how sleep was entered, picking the wav
+        pool: "goodnight_phrase" (the "Goodnight, Jack" phrase),
+        "idle_timeout" (Off Watch's 15-minute timeout), or None for
+        Haiku's MODE: NAP - no wav then, since Jack's own live reply
+        already said goodnight moments earlier."""
+        self.set_mode("asleep")
+        self._settle_context = context
+        self._settle_pending = True
 
     def start(self):
         self._thread = threading.Thread(target=self._run, name="motion", daemon=True)
@@ -171,6 +189,23 @@ class Motion:
         if gesture_id:
             self.play_gesture(find_gesture_anywhere(self.catalog, gesture_id))
 
+    def settle_into_sleep(self, context):
+        """The settle-to-sleep gesture, with one random existing wav
+        from the Asleep pool for this context playing alongside it. A
+        listed file that doesn't exist yet (e.g. SleepyMumble.wav, still
+        to be recorded) is skipped rather than settling in silence."""
+        pool = [w for w in self.catalog.get("wavs", {}).get("asleep") or []
+                if context is not None and w.get("context") == context
+                and (WAV_DIR / w["file"]).exists()]
+        gesture_id = SETTLE_TO_SLEEP_ID
+        if pool and self.player is not None:
+            choices = [w for w in pool if w["file"] != self._last_wav] or pool
+            pick = random.choice(choices)
+            self._last_wav = pick["file"]
+            self.player.play_file(WAV_DIR / pick["file"])
+            gesture_id = pick.get("gesture", SETTLE_TO_SLEEP_ID)
+        self.play_gesture(find_gesture_anywhere(self.catalog, gesture_id))
+
     # --- per-mode steps, one ambient cycle at a time so set_mode() is
     # noticed promptly between gestures ---
 
@@ -199,6 +234,11 @@ class Motion:
 
     def _step_asleep(self):
         lib = "asleep"
+        if self._settle_pending:
+            self._settle_pending = False
+            self.settle_into_sleep(self._settle_context)
+            if self.mode != lib:
+                return
         ambient_id = self.catalog["ambient"][lib]
         ambient = find_gesture(self.catalog, lib, ambient_id)
         skip = {ambient_id, "sl-waking-up", "sl-settle-to-sleep"}

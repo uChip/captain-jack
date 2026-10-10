@@ -170,6 +170,45 @@ def check_state_machine():
     return errors
 
 
+class FakeMotion:
+    """Records what the Coordinator asks Motion to do."""
+
+    def __init__(self):
+        self.calls = []
+
+    def set_mode(self, mode):
+        self.calls.append(("set_mode", mode))
+
+    def fall_asleep(self, context=None):
+        self.calls.append(("fall_asleep", context))
+
+
+def check_asleep_entry_context():
+    """Each way into Asleep tells Motion which settle-in line to play
+    (spec 4.10): the sleep phrase -> goodnight_phrase, Off Watch's
+    timeout -> idle_timeout, MODE: NAP -> none."""
+    errors = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Sleepy now!\nMODE: NAP\nMEMORY: NONE"),
+                                     out=lambda *a: None)
+    coord.motion = FakeMotion()
+
+    coord.end_session("test")
+    coord._handle_event("sleep_phrase", None)
+    coord._handle_event("wake", None)
+    coord.end_session("test")
+    coord._handle_timeout()
+    coord._handle_event("wake", None)
+    coord.handle_utterance(load_clip())
+    coord._handle_event("reply_done", None)
+
+    got = [c for c in coord.motion.calls if c[0] == "fall_asleep"]
+    want = [("fall_asleep", "goodnight_phrase"), ("fall_asleep", "idle_timeout"), ("fall_asleep", None)]
+    if got != want:
+        errors.append(f"expected Motion entry contexts {want}, got {got}")
+    return errors
+
+
 def check_mid_reply_sentence_gap():
     """A multi-sentence reply shouldn't reopen the mic between its own
     sentences - only once the whole reply is done - or a stray sound in
@@ -224,7 +263,8 @@ def check_live():
 
 
 if __name__ == "__main__":
-    errors = check_offline() + check_state_machine() + check_mid_reply_sentence_gap()
+    errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
+              + check_mid_reply_sentence_gap())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -233,6 +273,7 @@ if __name__ == "__main__":
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise, "
-          "the Sleep-Mode State Machine transitions correctly, and the mic stays deaf across a "
+          "the Sleep-Mode State Machine transitions correctly (telling Motion how Asleep was "
+          "entered), and the mic stays deaf across a "
           "multi-sentence reply's own sentence gaps"
           + (", live Haiku replied" if live else ""))

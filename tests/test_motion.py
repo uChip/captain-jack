@@ -3,13 +3,15 @@
 Automatic, no hardware: checks resolve_move's clamping/beak handling,
 find_gesture_anywhere's cross-library search, and that a single Off
 Watch step plays the ambient gesture, fires a due excursion, and
-schedules an idle wav - all against a small synthetic catalog (the real
+schedules an idle wav, and that entering Asleep settles in with the wav
+pool matching how sleep was entered - all against a small synthetic catalog (the real
 gesture-catalog.yaml's wait_ms timings would make this slow and is
 exercised for real by motion.py's standalone mode against actual hardware).
 
 Run: venv/bin/python tests/test_motion.py
 """
 
+import copy
 import sys
 import tempfile
 from pathlib import Path
@@ -32,6 +34,7 @@ TEST_CATALOG = {
     "asleep": [
         {"id": "sl-amb", "name": "Asleep Ambient", "moves": [{"t": 10, "wait_ms": 1}]},
         {"id": "sl-paired", "name": "Paired", "moves": [{"beak": 0, "t": 10, "wait_ms": 1}]},
+        {"id": "sl-settle-to-sleep", "name": "Settle", "moves": [{"dr": 7, "t": 10, "wait_ms": 1}]},
     ],
     "wav_paired": [{"id": "wp-1", "name": "Wav-paired", "moves": [{"t": 10, "wait_ms": 1}]}],
     "wavs": {
@@ -131,6 +134,52 @@ def check_asleep_wav_pairing():
     return errors
 
 
+def check_fall_asleep():
+    """Spec 4.10's "On entering Asleep": the settle gesture always plays
+    first, with one wav from the pool matching how sleep was entered -
+    none for MODE: NAP (context None), and never a listed-but-missing file."""
+    errors = []
+    catalog = copy.deepcopy(TEST_CATALOG)
+    catalog["wavs"]["asleep"] = [
+        {"file": "goodnight_clip.wav", "gesture": "sl-settle-to-sleep", "context": "goodnight_phrase"},
+        {"file": "drift_clip.wav", "gesture": "sl-settle-to-sleep", "context": "idle_timeout"},
+        {"file": "not_recorded_yet.wav", "gesture": "sl-settle-to-sleep", "context": "idle_timeout"},
+    ]
+    settle = "r37"   # resting roll 30 + sl-settle-to-sleep's dr 7
+
+    for context, expected in (("goodnight_phrase", ["goodnight_clip.wav"]),
+                              ("idle_timeout", ["drift_clip.wav"]),
+                              (None, [])):
+        for _ in range(5):   # random pick - repeat so a missing file would show up
+            writer, player = FakeWriter(), FakePlayer()
+            m = motion.Motion(writer, player=player, catalog=catalog)
+            m.fall_asleep(context)
+            m._step_asleep()
+            if player.played != expected:
+                errors.append(f"context {context!r}: expected {expected}, got {player.played}")
+                break
+            if not writer.sent or settle not in writer.sent[0]:
+                errors.append(f"context {context!r}: settle gesture should play first, got {writer.sent}")
+                break
+            # ...and only once - the next step is ordinary Asleep breathing.
+            writer.sent.clear()
+            m._step_asleep()
+            if any(settle in c for c in writer.sent):
+                errors.append(f"context {context!r}: settle gesture repeated on the next step")
+                break
+
+    # A transition before Motion gets to it cancels the settle (woken right away).
+    writer, player = FakeWriter(), FakePlayer()
+    m = motion.Motion(writer, player=player, catalog=catalog)
+    m.fall_asleep("goodnight_phrase")
+    m.set_mode("on_watch")
+    m.set_mode("asleep")
+    m._step_asleep()
+    if player.played or any(settle in c for c in writer.sent):
+        errors.append("a later set_mode() should cancel an unplayed settle")
+    return errors
+
+
 def check_on_watch_uses_its_own_ambient():
     errors = []
     writer = FakeWriter()
@@ -147,14 +196,16 @@ if __name__ == "__main__":
         motion.WAV_DIR = Path(tmp)   # play_random_wav checks the file exists; none need to be real audio
         (motion.WAV_DIR / "test_clip.wav").touch()
         (motion.WAV_DIR / "paired_clip.wav").touch()
+        (motion.WAV_DIR / "goodnight_clip.wav").touch()
+        (motion.WAV_DIR / "drift_clip.wav").touch()
 
         errors = (check_resolve_move() + check_find_gesture_anywhere()
                   + check_off_watch_step() + check_asleep_wav_pairing()
-                  + check_on_watch_uses_its_own_ambient())
+                  + check_fall_asleep() + check_on_watch_uses_its_own_ambient())
 
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: resolve_move clamping, cross-library gesture lookup, and "
-          "ambient/excursion/wav scheduling correct")
+          "ambient/excursion/wav scheduling and Asleep settle-in correct")

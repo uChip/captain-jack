@@ -1290,8 +1290,25 @@ pitch falls away; (4) #3 plus a 2.5kHz lowpass for a muffled sound; (5)
 per entry by a new optional manifest field `delivery` — so the recipe
 lives in one place and any future muttered line reuses it. The 4
 remaining `idle_timeout` lines were re-rendered with it and confirmed
-by Chip on the bird. Not yet wired: `coordinator.py`'s `start_nap()`
-still doesn't play `sl-settle-to-sleep` or a context-picked line.
+by Chip on the bird.
+
+**Asleep entry wired, 2026-10-10**: `start_nap(why, context)` now tells
+Motion how Asleep was entered — `goodnight_phrase` (sleep-phrase
+stand-in), `idle_timeout` (Off Watch's 15-minute timeout), or `None`
+(Haiku's `MODE: NAP`) — via a new `Motion.fall_asleep(context)`. The
+settle itself runs on the Motion thread at the top of its next Asleep
+step, not in the Coordinator, so a gesture already in flight finishes
+first (same no-preemption rule as every other transition, issue 24);
+a `set_mode()` before Motion gets there cancels it, so being woken
+immediately doesn't play a stale settle. The wav is played through
+Motion too, matching how Off Watch idle clips work — which means a
+voice-only run (no `--port`/`--dry-run`) gets no settle line, same as it
+gets no idle clips. Listed files that don't exist are filtered out of
+the pick, rather than `play_random_wav()`'s skip-the-audio-but-still-
+gesture behavior, so the missing `SleepyMumble.wav` never produces a
+silent settle. Checked against the real catalog without hardware: each
+context picks from its own pool, ~2.5s settle. `sl-waking-up` on wake
+from Asleep (spec 4.10's loop) is still not played — a separate gap.
 
 ### 4.11 Sleep-Mode State Machine
 

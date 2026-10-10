@@ -100,7 +100,9 @@ when it was last confirmed passing.
   (baseline-relative deltas → absolute servo command, with clamping and
   beak handling), `find_gesture_anywhere()` (cross-library gesture
   lookup for wav-paired gestures), and the Off Watch/Asleep/On Watch
-  per-mode step logic (ambient, due excursions, idle wav scheduling) —
+  per-mode step logic (ambient, due excursions, idle wav scheduling),
+  and `fall_asleep()`'s Asleep entry (spec 4.10: settle gesture first,
+  with a wav from the pool matching how sleep was entered) —
   a faithful port of `exercise_hardware.py`'s already hardware-validated
   gesture logic into a real long-lived thread with `set_mode()`.
 - **Script**: [`../tests/test_motion.py`](../tests/test_motion.py)
@@ -108,7 +110,8 @@ when it was last confirmed passing.
   hardware — a small synthetic catalog, not the real
   `gesture-catalog.yaml`, to avoid its real `wait_ms` timings).
 - **Expected**: prints `PASS: resolve_move clamping, cross-library
-  gesture lookup, and ambient/excursion/wav scheduling correct` and
+  gesture lookup, and ambient/excursion/wav scheduling and Asleep
+  settle-in correct` and
   exits 0. Checks delta clamping against each axis's range, that beak is
   absolute (not baseline-relative) and leads the command, that omitting
   beak emits no `b<N>` token, that `find_gesture_anywhere()` finds a
@@ -116,8 +119,12 @@ when it was last confirmed passing.
   raises `KeyError` for an unknown id), and that a single Off Watch step
   plays the ambient gesture, fires a due excursion, and schedules the
   one off_watch wav (with Asleep's wav-paired-gesture beak move firing
-  alongside its clip, and On Watch using its own ambient).
-- **Last confirmed passing**: 2026-10-07.
+  alongside its clip, and On Watch using its own ambient). For Asleep
+  entry: the settle gesture plays first and only once; `goodnight_phrase`
+  and `idle_timeout` each pick only from their own pool; `None` (MODE:
+  NAP) plays no wav; a listed-but-missing file is never picked; and a
+  mode change before Motion reaches the settle cancels it.
+- **Last confirmed passing**: 2026-10-10.
 - **First live watch, 2026-10-07** (`motion.py --mode off_watch
   --dry-run --seconds 15` against the real bird, Chip watching): clean
   output, no crash, correct asymmetric breathing swing from
@@ -125,9 +132,10 @@ when it was last confirmed passing.
   Chip confirmed the bird moved correctly.
 - **Not covered**: DoA-based yaw tracking (`read_doa_azimuth()` is still
   a stub), On Watch excursions (not implemented — conversation/emotion-
-  triggered, per spec 4.12), and `Motion` wired into the live
-  `coordinator.py` loop (not done yet — this test and the dry-run above
-  only exercise `motion.py` standalone).
+  triggered, per spec 4.12), `sl-waking-up` on wake from Asleep (not
+  implemented yet), and `Motion` inside the live `coordinator.py` loop
+  (wired 2026-10-07 and checked live by hand, see log.md 4.16 — this
+  test only exercises `motion.py` on its own).
 
 ## Idle and Ambient Audio Player
 
@@ -196,7 +204,8 @@ when it was last confirmed passing.
   session start/end, noise rejection — and the
   [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)'s
   transitions (`MODE: END_SESSION`/`NAP`, wake from Asleep, the
-  sleep-phrase stand-in's Off-Watch-only gating, both timeouts), driven
+  sleep-phrase stand-in's Off-Watch-only gating, both timeouts, and
+  which Asleep-entry context each path hands Motion), driven
   directly through `_handle_event()`/`_handle_timeout()` without
   starting real audio threads. Also covers a real race found in a live
   test: a multi-sentence reply must keep the mic deaf across its own
@@ -211,11 +220,12 @@ when it was last confirmed passing.
   Haiku call (needs `ANTHROPIC_API_KEY`; a fraction of a cent).
 - **Expected**: prints `PASS: coordinator transcribes, calls Haiku, saves
   memory to scratch only, rejects noise, the Sleep-Mode State Machine
-  transitions correctly, and the mic stays deaf across a multi-sentence
+  transitions correctly (telling Motion how Asleep was entered), and the
+  mic stays deaf across a multi-sentence
   reply's own sentence gaps` (plus `, live Haiku replied`) and exits 0.
   Everything runs on a scratch copy of `memory/`; the test fails if the
   real `memory.md` changes.
-- **Last confirmed passing**: 2026-10-07.
+- **Last confirmed passing**: 2026-10-10.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real
