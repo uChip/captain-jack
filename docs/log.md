@@ -1252,6 +1252,21 @@ passes. Format verified programmatically; actual pronunciation/quality
 of the new content needs Chip listening for real, not something Claude
 can judge directly.
 
+**Recategorized 2026-10-10**: Chip pointed out that Claude's original
+lines had been tagged `joke` though most are reflective rather than
+funny, and `quote` doesn't fit a remix either. Added a third category,
+`saying` (Jack speaking in his own voice: original, or a real quote
+recast as his own), defined in the manifest header alongside sharpened
+`joke`/`quote` definitions. Dividing line between `quote` and `saying`
+is how the clip text presents itself: `"X said, '...'"` is a quote
+(including translations); a line Jack speaks as his own is a saying,
+with the inspiring source kept in `attribution`. Moved 26 entries to
+`saying`: all 24 of Claude's, plus Chip's `JoyShared` (Jack-voiced
+Tiedge paraphrase) and `TheUnexaminedLifeSquawk` (Jack-voiced, no "said"
+framing) — Chip okayed changing his own entries too, pending his later
+review. Groucho Marx's two jokes stay `joke`. No re-render needed;
+nothing reads `category` yet.
+
 ### 4.11 Sleep-Mode State Machine
 
 **`MODE:` meta-tag, 2026-10-07**: implementing the Off Watch/On
