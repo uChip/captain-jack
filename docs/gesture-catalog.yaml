@@ -38,7 +38,7 @@
 #    move at all, because "recover to baseline" already *is* their
 #    described motion.
 #
-# 4. Deltas are the ORIGINAL, uncapped magnitudes from gesture-library.md
+# 4. Deltas are the ORIGINAL, uncapped magnitudes from archive/gesture-library-2026-10-10.md
 #    (e.g. Curious Tilt's roll is +25 again, not clamped to +20). The
 #    engine clamps baseline+delta at send time, so whether a gesture
 #    reaches its full expression depends on where baseline actually is
@@ -64,7 +64,7 @@
 # - Servo baseline constants (arduino/ServoControl/ServoControl.ino):
 #     pitch: resting=35, range=0-50   roll: resting=30, range=0-50
 #     yaw:   resting=70, range=0-130  beak: range=0-60 (0=open, 60=closed)
-# - Sign convention (still gesture-library.md never defined one):
+# - Sign convention (still archive/gesture-library-2026-10-10.md never defined one):
 #     pitch: + = up, - = down. roll: + = tipped right, - = tipped left.
 #     yaw: + = turned left, - = turned right.
 # - Vowel Drift still can't be static data — its duration is real TTS
@@ -172,7 +172,7 @@ on_watch:
       - {dp: 4, dr: 2, t: 1500, wait_ms: 1530}
       - {dp: -4, dr: -2, t: 1500, wait_ms: 1530}
 
-  # --- Speech-Driven (docs/gesture-library.md "Speech-Driven Gestures") ---
+  # --- Speech-Driven (docs/archive/gesture-library-2026-10-10.md "Speech-Driven Gestures") ---
 
   - id: sd-beat-pulse
     name: "Beat Pulse — yaw pulse + micro-roll"
@@ -205,7 +205,7 @@ on_watch:
       - {dp: -10, dr: -8, t: 200, wait_ms: 230}
       - {dp: 0, dr: 0, t: 150, wait_ms: 180}
 
-  # --- Emotional (docs/gesture-library.md "Emotional Gestures") ---
+  # --- Emotional (docs/archive/gesture-library-2026-10-10.md "Emotional Gestures") ---
 
   - id: em-curious-tilt
     name: "Curious Tilt — roll + pitch + slight yaw"
@@ -258,7 +258,7 @@ on_watch:
       - {dp: 15, t: 150, wait_ms: 400}
       - {dp: 0, t: 150, wait_ms: 180}
 
-  # --- Conversational (docs/gesture-library.md "Conversational Gestures") ---
+  # --- Conversational (docs/archive/gesture-library-2026-10-10.md "Conversational Gestures") ---
 
   - id: cv-listening-lean
     name: "Listening Lean — pitch forward + roll"
@@ -286,7 +286,7 @@ on_watch:
       - {dy: 15, dr: -10, t: 130, wait_ms: 160}
       - {dy: 0, dr: 0, t: 130, wait_ms: 160}
 
-  # --- Expressive (docs/gesture-library.md "Expressive Gestures") ---
+  # --- Expressive (docs/archive/gesture-library-2026-10-10.md "Expressive Gestures") ---
 
   - id: ex-showmanship-bob
     name: "Showmanship Bob — exaggerated pitch bob + roll"
@@ -344,7 +344,7 @@ off_watch:
       - {dp: 13, t: 1600, wait_ms: 1630}
       - {dp: -28, t: 1600, wait_ms: 1630}
 
-  # --- Idle excursions (docs/gesture-library.md "Idle Gestures") ---
+  # --- Idle excursions (docs/archive/gesture-library-2026-10-10.md "Idle Gestures") ---
   # Engine rule (2026-09-20): never pick the same excursion id twice in a
   # row — cheap anti-repetition given how small this pool still is.
 

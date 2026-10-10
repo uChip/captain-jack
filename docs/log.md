@@ -827,6 +827,21 @@ or design changes, physical construction itself is done.
   "blocked on the XVF3800" to "blocked on finding Seeed's tool/docs"; see
   "reSpeaker XVF3800 arrival and DoA investigation" above.
 
+### Superseded source docs archived (2026-10-10)
+
+Moved four planning docs to `docs/archive/` with a `-2026-10-10` suffix
+(the folder already held undated 2026-09-21 snapshots of `CLAUDE.md`,
+`specification.md`, and `parrot-project-brief.md`, so dating avoids
+collisions), to declutter `docs/` down to the working set:
+`gesture-library.md` (fully translated into `gesture-catalog.yaml`),
+`Arduino-command-structure.md` (superseded by spec 4.13 and
+`ServoControl.ino`; its open questions all resolved or tracked as Open
+Issues), `jarvis-handoff-notes.md` (Jarvis is a separate project), and
+`captain-jack-goals-objectives-user-scenarios.md` (fully absorbed into
+spec sections 1-2 — spot-checked its distinctive items). Live links in
+the spec, brief, catalog, and `ServoControl.ino` were repointed; older
+mentions in this log were left as written.
+
 ## Design History (Specification Sections 1-4)
 
 Design changes, rejected alternatives, and rationale embedded in

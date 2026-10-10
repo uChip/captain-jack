@@ -78,7 +78,7 @@ wanting to *understand and predict* ongoing/recurring costs, not stick to a hard
 
 Jarvis (the primary desktop assistant) is now a separate project on
 separate hardware — see the "two birds" decision below. Its implementation
-details have moved to `docs/jarvis-handoff-notes.md` rather than living in
+details have moved to `docs/archive/jarvis-handoff-notes-2026-10-10.md` rather than living in
 this brief; the cost/billing considerations that still cross-cut both
 projects (same Anthropic account) stay in "Decisions already made" below.
 
@@ -124,7 +124,7 @@ keeping its own copy.
 - **Two physically separate birds** (one per persona), not one dual-persona
   bird — decided 2026-09-11. Jarvis is accordingly a separate project on
   separate hardware; its implementation details have moved to
-  `docs/jarvis-handoff-notes.md`, out of this brief.
+  `docs/archive/jarvis-handoff-notes-2026-10-10.md`, out of this brief.
 - **Speaker ID for Captain Jack**: deferred, not rejected. Considered while
   designing his memory model (per-person preferences like dad-joke tolerance
   surfaced the question). Hardware supports it — a Pi-side voice-embedding

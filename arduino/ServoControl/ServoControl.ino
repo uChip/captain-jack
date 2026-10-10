@@ -96,7 +96,7 @@ const int PITCH_OFFSET = 70;    // Servo assembly can result in small difference
 const int ROLL_OFFSET = 55;     // Servo assembly can result in small differences in alignment. Adjust to limit travel
 const int YAW_OFFSET = 30;      // Servo assembly can result in small differences in alignment. Adjust to limit travel
 
-// Slowest gesture in docs/gesture-library.md is a 3-5s sweep; 9999ms gives headroom
+// Slowest gesture in docs/archive/gesture-library-2026-10-10.md is a 3-5s sweep; 9999ms gives headroom
 // for future gestures while treating anything past it as a garbled command, not a real move.
 const long DURATION_MAX = 9999;
 

@@ -3,7 +3,7 @@ Brainstormed with Gemini
 
 > **Mapped 2026-09-20** into the actual Gesture/Move data structure (see
 > `specification.md` section 4.12) as
-> [gesture-catalog.yaml](gesture-catalog.yaml) — concrete servo values,
+> [gesture-catalog.yaml](../gesture-catalog.yaml) — concrete servo values,
 > clamped to real hardware headroom, with assumptions/gaps documented
 > inline. This file remains the free-text source; the YAML is the
 > structured, hardware-aware translation of it.

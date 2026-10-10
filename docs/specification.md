@@ -2,11 +2,12 @@
 
 Compiled 2026-09-13 from the project's planning documents and working
 conversations to date, per the mandate in
-[captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
+[captain-jack-goals-objectives-user-scenarios.md](archive/captain-jack-goals-objectives-user-scenarios-2026-10-10.md)
 that project scope live in an explicit, maintained specification rather than
 evolve informally. **This file is now the canonical description of what
-Captain Jack is meant to be** — the source documents it draws from stay in
-`docs/` as detailed working notes and are linked throughout, but where they
+Captain Jack is meant to be** — the source documents it draws from are
+linked throughout (those fully absorbed into this spec or a working data
+file have moved to `docs/archive/`, date-suffixed), but where they
 disagree with each other, that disagreement is called out below rather than
 silently resolved in one direction.
 
@@ -23,7 +24,7 @@ and this specification drift apart.
 
 History: none yet.
 
-Source: [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md).
+Source: [captain-jack-goals-objectives-user-scenarios.md](archive/captain-jack-goals-objectives-user-scenarios-2026-10-10.md).
 
 **Goal**: a learning/personal hobby project — use current AI technology to
 build an audio AI chat-client appliance with animatronic motion, in the form
@@ -74,7 +75,7 @@ issue 15.
 
 ## 2. Use Cases and Scenarios
 
-Source: [captain-jack-goals-objectives-user-scenarios.md](captain-jack-goals-objectives-user-scenarios.md)
+Source: [captain-jack-goals-objectives-user-scenarios.md](archive/captain-jack-goals-objectives-user-scenarios-2026-10-10.md)
 unless otherwise noted.
 
 ### 2.1 Companionable Conversation
@@ -391,7 +392,7 @@ still — accepted behavior (see
 **Intended function**: parses incoming serial commands from the Pi and
 drives the four servos accordingly — head pitch/roll/yaw and beak position
 — as timed, eased motion (per
-[Arduino-command-structure.md](Arduino-command-structure.md)) via an
+[Arduino-command-structure.md](archive/Arduino-command-structure-2026-10-10.md)) via an
 Arduino easing library layered over the standard servo library. Gesture
 sequences are composed on the Pi and sent down as a series of these same
 primitive commands — the Arduino has no concept of a "gesture" as such;
@@ -1307,11 +1308,11 @@ Asleep gesture subset content itself (Open Issues issue 5).
 **Description**: a library of named motion primitives (speech-driven,
 emotional, idle, conversational, and "expressive" categories) — each a
 short timed sequence of pitch/roll/yaw/beak targets — drafted in
-[gesture-library.md](gesture-library.md).
+[gesture-library.md](archive/gesture-library-2026-10-10.md).
 
 Gestures are stored and composed on the **Pi**, not the Arduino, to keep
 the Arduino as thin as possible (see [Open Issues](#5-open-issues) issue
-7) — the catalog lives in `gesture-library.md`/its eventual code form,
+7) — the catalog lives in [gesture-catalog.yaml](gesture-catalog.yaml),
 entirely Pi-side. The Arduino never sees a gesture as a named unit, only
 the same primitive timed servo commands it always takes. A consequence:
 since the Arduino has no queue and acts on each command immediately as it
@@ -1331,7 +1332,7 @@ the [Idle/Ambient Audio Player](#410-idle-and-ambient-audio-player) (offline),
 or [DoA](#49-direction-of-arrival-doa-reader); emits a decomposed sequence
 of `p`/`r`/`y`/`t`/`s` and `b` commands over the
 [serial link](#413-pi-to-arduino-serial-link), per
-[Arduino-command-structure.md](Arduino-command-structure.md) — never a
+[Arduino-command-structure.md](archive/Arduino-command-structure-2026-10-10.md) — never a
 single opaque `GESTURE <id>`.
 
 **Data structures**:
@@ -1394,7 +1395,7 @@ Applied uniformly to all three mode libraries:
 - The engine composes the real wire string only at send time:
   `P = clamp(baseline.pitch + dp, 0, 50)`, and likewise for roll/yaw —
   meaning a gesture's authored delta is the *original* magnitude from
-  gesture-library.md, and how much of it actually lands depends on
+  the archived gesture-library.md, and how much of it actually lands depends on
   where baseline is right now, not a value pre-clamped against an
   assumed-resting baseline.
 - Most excursions still end with an explicit delta-(0,0,0) Move for
@@ -1444,7 +1445,7 @@ Known gaps, left for a later pass (not blocking this one):
   real TTS phoneme timing, not knowable at authoring time. Still marked
   `NEEDS-RUNTIME-PARAM`.
 
-Every entry in [gesture-library.md](gesture-library.md) is translated
+Every entry in [gesture-library.md](archive/gesture-library-2026-10-10.md) is translated
 into this structure — see [gesture-catalog.yaml](gesture-catalog.yaml).
 
 ### 4.13 Pi to Arduino Serial Link
@@ -1946,7 +1947,7 @@ and is tagged **[RESOLVED]** in place.
   8-bit multiplier; only 3 servos need easing math per update (pitch/
   roll/yaw — beak has none, per issue 8); a cubic-easing evaluation per
   axis kept to integer math (already the plan, per
-  [Arduino-command-structure.md](Arduino-command-structure.md)) is on the
+  [Arduino-command-structure.md](archive/Arduino-command-structure-2026-10-10.md)) is on the
   order of tens of cycles — call it 100-300 cycles for all three, roughly
   10-20 microseconds. Even 10x pessimistic, that's under 1% of the 20ms
   (20,000 microsecond) budget; PWM generation itself runs on a hardware
