@@ -1267,6 +1267,32 @@ framing) — Chip okayed changing his own entries too, pending his later
 review. Groucho Marx's two jokes stay `joke`. No re-render needed;
 nothing reads `category` yet.
 
+**Asleep lines rendered 2026-10-10**: `gesture-catalog.yaml`'s
+`wavs.asleep` pool had named 8 files since 2026-09-20 with none
+existing; their text was only in spec 4.10's prose. Nothing was
+blocking them — they just predated the manifest/generator path. Added
+them to the manifest as `saying` and rendered them. Chip's listening
+verdict: the 3 `goodnight_phrase` replies are fine (same too-long
+comma pauses as every clip, deliberately not tackled now); the
+`idle_timeout` lines sounded addressed to an audience rather than
+muttered to himself; and `SleepyMumble.wav` ("Mmph... 'nother day
+done...") came out spelled letter by letter, M-M-P-H — dropped from
+the manifest, to be a recorded clip instead.
+
+Kokoro has no tone/emotion parameter, so "softer, said to self" was
+approximated with the levers it has. Five variants of "Eight bells"
+auditioned on the bird: (1) as rendered; (2) 0.85 speed, -6dB; (3) #2
+with the text lowercased and ending in "..." instead of "." so the
+pitch falls away; (4) #3 plus a 2.5kHz lowpass for a muffled sound; (5)
+#3 with the voice style vector blended 75% `am_santa` / 25%
+`am_michael`. Chip picked #5 by ear. Implemented as a named delivery,
+`to_self`, in `generate_idle_clips.py`'s `DELIVERIES` table, selected
+per entry by a new optional manifest field `delivery` — so the recipe
+lives in one place and any future muttered line reuses it. The 4
+remaining `idle_timeout` lines were re-rendered with it and confirmed
+by Chip on the bird. Not yet wired: `coordinator.py`'s `start_nap()`
+still doesn't play `sl-settle-to-sleep` or a context-picked line.
+
 ### 4.11 Sleep-Mode State Machine
 
 **`MODE:` meta-tag, 2026-10-07**: implementing the Off Watch/On

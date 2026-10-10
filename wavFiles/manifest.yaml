@@ -34,6 +34,10 @@
 #                a line Claude wrote in Jack's voice, inspired by a real
 #                quote but not a straight rendering of it; "Claude as
 #                Captain Jack" alone marks a wholly original line.
+#   delivery:    optional - a named alternative to Jack's normal voice,
+#                defined in generate_idle_clips.py's DELIVERIES (e.g.
+#                to_self: slower, quieter, blended with a calmer voice,
+#                for lines muttered to himself). Omit for normal speech.
 #   engine:      the TTS engine/voice this was last rendered with, e.g.
 #                "kokoro-pi/am_santa" - lets a future regeneration pass
 #                know which clips already match the current voice and
@@ -925,3 +929,62 @@ clips:
     attribution: Claude as Captain Jack
     engine: kokoro-pi/am_santa
     rendered: 2026-10-07
+
+  # --- Asleep: sl-settle-to-sleep's paired lines (gesture-catalog.yaml
+  # wavs.asleep; text from docs/specification.md 4.10, brainstormed
+  # 2026-09-20). Not in the off_watch pool - played once on entering
+  # Asleep, picked by `context` there. Wiring that playback is still
+  # open (coordinator.py's start_nap() doesn't do it yet). The
+  # idle_timeout pool's SleepyMumble.wav isn't here: TTS spelled "Mmph"
+  # out letter by letter, so it's to be a recorded clip instead (out of
+  # this manifest's scope).
+
+  # context: idle_timeout
+  - file: EightBellsWatchDone.wav
+    text: "eight bells... my watch is done..."
+    category: saying
+    attribution: Claude as Captain Jack
+    delivery: to_self
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+  - file: FurlTheSails.wav
+    text: "furl the sails... cap'n's turnin' in..."
+    category: saying
+    attribution: Claude as Captain Jack
+    delivery: to_self
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+  - file: OldParrotPerch.wav
+    text: "even an old parrot's got to perch and rest sometime..."
+    category: saying
+    attribution: Claude as Captain Jack
+    delivery: to_self
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+  - file: DroppinAnchor.wav
+    text: "droppin' anchor for the night, mateys..."
+    category: saying
+    attribution: Claude as Captain Jack
+    delivery: to_self
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+
+  # context: goodnight_phrase
+  - file: GoodnightMatey.wav
+    text: "Goodnight, Matey."
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+  - file: NightMateySleepTight.wav
+    text: "'Night, Matey — sleep tight."
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10
+  - file: SweetDreamsScallywag.wav
+    text: "Sweet dreams, ye scallywag."
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-10-10

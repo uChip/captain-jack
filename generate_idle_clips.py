@@ -29,6 +29,18 @@ import yaml
 WAV_DIR = Path(__file__).parent / "wavFiles"
 MANIFEST = WAV_DIR / "manifest.yaml"
 
+# Named alternatives to Jack's normal speaking voice, selected per entry by
+# the manifest's optional `delivery` field. Kokoro has no tone/emotion
+# control, so a delivery is built from the levers it does have: speed, a
+# blend of voice style vectors, and output gain.
+#   to_self: muttered to himself rather than to an audience (the Asleep
+#     idle_timeout lines). Chip picked this by ear 2026-10-10 from five
+#     variants on the bird; the manifest text for these entries is also
+#     written lowercase with a trailing "..." so the pitch falls away.
+DELIVERIES = {
+    "to_self": {"voices": {"am_santa": 0.75, "am_michael": 0.25}, "speed": 0.85, "gain_db": -6.0},
+}
+
 
 def load_manifest() -> list[dict]:
     with open(MANIFEST) as f:
@@ -39,10 +51,30 @@ def load_manifest() -> list[dict]:
         for field in ("file", "text"):
             if not entry.get(field):
                 raise ValueError(f"entry missing required field {field!r}: {entry}")
+        if entry.get("delivery") and entry["delivery"] not in DELIVERIES:
+            raise ValueError(f"unknown delivery {entry['delivery']!r} in {entry['file']}")
         if entry["file"] in seen:
             raise ValueError(f"duplicate file in manifest: {entry['file']}")
         seen.add(entry["file"])
     return clips
+
+
+def synthesize(engine, entry):
+    """Renders one entry in Jack's normal voice, or its named delivery."""
+    delivery = DELIVERIES.get(entry.get("delivery"))
+    if delivery is None:
+        return engine.synthesize(entry["text"])
+
+    import numpy as np
+    import tts as tts_module
+
+    k = engine.kokoro
+    style = sum(w * k.get_voice_style(v) for v, w in delivery["voices"].items())
+    samples, rate = k.create(entry["text"], voice=style, speed=delivery["speed"], lang="en-us")
+    if rate != tts_module.KOKORO_RATE:
+        raise ValueError(f"kokoro returned {rate}Hz, expected {tts_module.KOKORO_RATE}Hz")
+    audio = tts_module.resample_24k_to_16k(np.asarray(samples, dtype=np.float32))
+    return tts_module.to_int16(audio * 10 ** (delivery["gain_db"] / 20))
 
 
 def write_wav(path: Path, samples) -> float:
@@ -82,7 +114,7 @@ def main():
     engine = tts_module.TTS(on_audio=None)
     start = time.monotonic()
     for i, c in enumerate(clips, 1):
-        samples = engine.synthesize(c["text"])
+        samples = synthesize(engine, c)
         dur = write_wav(WAV_DIR / c["file"], samples)
         print(f"  [{i}/{len(clips)}] {c['file']} ({dur:.1f}s)")
     elapsed = time.monotonic() - start

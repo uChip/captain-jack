@@ -1157,8 +1157,13 @@ small twitch, a sharp pitch jerk, a beak flap, then resettle. All of
 Asleep's named gestures are now wired to a real `sl-*` id in
 [gesture-catalog.yaml](gesture-catalog.yaml).
 
-`sl-settle-to-sleep`'s two wav pools (lines not yet recorded — see
-`wavs.asleep` in [gesture-catalog.yaml](gesture-catalog.yaml)):
+`sl-settle-to-sleep`'s two wav pools (see `wavs.asleep` in
+[gesture-catalog.yaml](gesture-catalog.yaml); rendered 2026-10-10 via
+`wavFiles/manifest.yaml`, except the mumble, which is to be a recorded
+clip — TTS spelled "Mmph" out letter by letter). The `idle_timeout`
+lines use the manifest's `to_self` delivery (slower, quieter, blended
+with a calmer voice) so they read as said to himself; playback on
+entering Asleep isn't wired into `coordinator.py` yet:
 - **`idle_timeout`** — unprompted, Jack narrating to himself, nobody to
   address: "Eight bells... my watch is done." / "Furl the sails, Cap'n's
   turnin' in." / "Even an old parrot's got to perch and rest sometime."

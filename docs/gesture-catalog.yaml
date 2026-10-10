@@ -635,8 +635,9 @@ wavs:
     - {file: "YourOwnActions.wav"}
     - {file: "YoureRight.wav"}
   asleep:
-    # Brainstormed 2026-09-20, lines not yet recorded — none of these
-    # files exist in wavFiles/ yet. All pair with sl-settle-to-sleep,
+    # Brainstormed 2026-09-20; text and rendering tracked in
+    # wavFiles/manifest.yaml. All rendered 2026-10-10 except
+    # SleepyMumble.wav (to be recorded). All pair with sl-settle-to-sleep,
     # split by `context` (see specification.md 4.12) into two pools per
     # how Asleep was entered — see specification.md 4.10's "On entering
     # Asleep" pseudocode. Not played at all on the On-Watch nap-intent
@@ -648,7 +649,7 @@ wavs:
     - {file: "FurlTheSails.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
     - {file: "OldParrotPerch.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
     - {file: "DroppinAnchor.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
-    - {file: "SleepyMumble.wav", gesture: sl-settle-to-sleep, context: idle_timeout}
+    - {file: "SleepyMumble.wav", gesture: sl-settle-to-sleep, context: idle_timeout}   # to be recorded, not TTS - see manifest.yaml
 
     # context: goodnight_phrase — direct reciprocal reply to whoever
     # just said "Goodnight, Jack." Generic "Matey" — no speaker ID.
