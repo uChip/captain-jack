@@ -756,13 +756,13 @@ clips:
   - file: WhyComesTemptation.wav
     text: "Father Blackie said, 'Why else does temptation come, save that man may meet it, master it and so be pedestalled in glory.'"
     category: quote
-    attribution: Father Blackie (Andrew Greeley) paraphrasing Robert Browning
+    attribution: Andrew Greeley as Father Blackie paraphrasing Robert Browning
     engine: kokoro-pi/am_santa
     rendered: 2026-10-07
   - file: IfYouDontLikeYourself.wav
     text: "Lazarus Long said, 'If you don't like yourself, you can't like other people.'"
     category: quote
-    attribution: Lazarus Long / Robert A. Heinlein
+    attribution: Robert A. Heinlein as Lazarus Long
     engine: kokoro-pi/am_santa
     rendered: 2026-10-07
 
