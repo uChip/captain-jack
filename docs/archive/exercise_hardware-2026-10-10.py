@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """
+ARCHIVED 2026-10-10 - won't run from this folder as-is (see the note at
+CATALOG_PATH below). Use motion.py's standalone mode instead.
+
 Hardware exercise harness for the servos.
 
 Drives arduino/ServoControl/ServoControl.ino through Off Watch's and
@@ -46,6 +49,10 @@ from pathlib import Path
 
 import yaml
 
+# ARCHIVED 2026-10-10: this script won't run from docs/archive/ - the path
+# below resolves to docs/archive/docs/gesture-catalog.yaml, which doesn't
+# exist. Superseded by motion.py's standalone mode
+# (motion.py --mode off_watch [--dry-run]); see CLAUDE.md "Done so far" item 7.
 CATALOG_PATH = Path(__file__).parent / "docs" / "gesture-catalog.yaml"
 DEFAULT_PORT = "/dev/ttyUSB0"
 BAUD = 115200

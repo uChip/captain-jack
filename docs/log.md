@@ -842,6 +842,17 @@ spec sections 1-2 — spot-checked its distinctive items). Live links in
 the spec, brief, catalog, and `ServoControl.ino` were repointed; older
 mentions in this log were left as written.
 
+Same day, also archived `exercise_hardware.py` (repo root) as
+`docs/archive/exercise_hardware-2026-10-10.py`: `motion.py` is a faithful
+port of its logic and its standalone `--mode/--dry-run` mode covers the
+harness role. Nothing imported it. Present-tense references in
+`motion.py`, `serial_link.py`, `tests/test_motion.py`, and `CLAUDE.md`
+item 7 were updated; "ported from `exercise_hardware.py`" mentions in
+the spec and tests.md stay, since they're still true. The archived copy
+won't run as-is from its new location (its `CATALOG_PATH` resolves
+relative to its own directory); left that way, with only a comment added
+at the top and at `CATALOG_PATH` saying so.
+
 ## Design History (Specification Sections 1-4)
 
 Design changes, rejected alternatives, and rationale embedded in

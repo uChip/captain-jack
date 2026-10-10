@@ -15,9 +15,10 @@ rather than redesigning it: that logic is what id-idle-breathing and
 friends were tuned against (Open Issues issue 25), so behavior here
 should look the same, just driven by mode changes instead of a blind
 random timer, and over the real serial_link.py writer instead of a
-blocking one. exercise_hardware.py remains the standalone hardware
-harness for development; this is the version wired into the real
-Coordinator.
+blocking one. exercise_hardware.py has since been archived (2026-10-10,
+docs/archive/exercise_hardware-2026-10-10.py); this module's own
+standalone mode (below) replaces it as the hardware harness, and is the
+same code the real Coordinator runs.
 
 The Coordinator calls set_mode() on every transition; Motion picks up
 the new mode at the top of its next loop iteration (gestures already in

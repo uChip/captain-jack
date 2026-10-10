@@ -5,7 +5,7 @@ find_gesture_anywhere's cross-library search, and that a single Off
 Watch step plays the ambient gesture, fires a due excursion, and
 schedules an idle wav - all against a small synthetic catalog (the real
 gesture-catalog.yaml's wait_ms timings would make this slow and is
-exercised for real by exercise_hardware.py against actual hardware).
+exercised for real by motion.py's standalone mode against actual hardware).
 
 Run: venv/bin/python tests/test_motion.py
 """

@@ -47,7 +47,7 @@ BAUD = 115200
 # Opening the port toggles DTR, which resets the Arduino into
 # ServoControl.ino's ~2.5s DEBUG startup self-test (beak open/close a few
 # times) before it's ready for real commands. See ServoControl.ino,
-# exercise_hardware.py.
+# docs/archive/exercise_hardware-2026-10-10.py.
 #
 # Widened from 3.5s to 5.0s, 2026-10-06: live testing found the first
 # beak-sync cycle after boot consistently starts late (confirmed

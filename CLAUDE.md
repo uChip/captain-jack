@@ -159,12 +159,15 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
    mounted to the statue. Idle/ambient `.wav` clips are in `wavFiles/`
    (19 as of 2026-09-25, all converted to 16kHz/16-bit), including
    `AlignmentTone.wav` for later beak-sync timing calibration.
-7. `exercise_hardware.py` — a standalone hardware test harness (not part
-   of the real orchestration/state machine) driving `gesture-catalog.yaml`'s
-   Off Watch/Asleep ambient/excursion behavior. `--dry-run` runs the same
-   logic without a serial port. `read_doa_azimuth()` is a stub (always
-   `None`) — wiring in a real DoA reading later is additive, not a
-   rewrite.
+7. `exercise_hardware.py` — the original standalone hardware test
+   harness for `gesture-catalog.yaml`'s Off Watch/Asleep
+   ambient/excursion behavior, which item 8's tuning was done against.
+   Superseded by `motion.py` (item 28), a port of the same logic whose
+   own standalone mode (`motion.py --mode off_watch [--dry-run]`) now
+   fills the harness role; archived 2026-10-10 to
+   `docs/archive/exercise_hardware-2026-10-10.py`. `read_doa_azimuth()`
+   carried over into `motion.py` as a stub (always `None`) — wiring in a
+   real DoA reading later is additive, not a rewrite.
 8. The "discrete steps" visible on small/slow gestures (e.g.
    `id-idle-breathing`) were root-caused to servo PWM resolution, not an
    easing bug — see `docs/specification.md` Open Issues issue 25.
