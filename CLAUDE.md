@@ -446,10 +446,9 @@ worked in parallel if priorities change.
    - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
      the wake/sleep-phrase fixed-phrase match tolerance against real use
      (spec 4.11 flags all of these as initial numbers).
-   - Build the Pi-side wake-word spotter module (item 9, below) and
-     retire the keyboard stand-ins — both models are now trained and
-     validated (see "Done so far" item 32); this is what's left of
-     item 9.
+   - Build the Pi-side wake-word spotter module (item 9, below) — both
+     models are now trained and validated (see "Done so far" item 32);
+     this is what's left of item 9.
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: replies still
@@ -459,7 +458,14 @@ worked in parallel if priorities change.
 9. Build the Pi-side wake-word spotter module: load both validated
    `.onnx` files (`wake_phrase.onnx`, `sleep_phrase.onnx` — see "Done so
    far" item 32) via onnxruntime into the Capture/Listener pipeline,
-   replacing the Enter/`sleep` keyboard stand-ins. Pure Pi-side Python,
+   running alongside the Enter/`sleep` keyboard stand-ins rather than
+   replacing them — **decided 2026-10-11**: kept permanently as a manual
+   override (bypassing recall/threshold variance when testing, and a
+   backstop if the spotter ever misbehaves against real background
+   noise). Keep the keyboard read non-blocking/optional (e.g. only when
+   stdin is a TTY) so it's a no-op under headless/unattended operation,
+   and route it into the exact same internal wake/sleep event the
+   spotter posts rather than a parallel code path. Pure Pi-side Python,
    no GPU needed. Also unblocks real-audio calibration of both phrases'
    operating thresholds (spec section 4.1's methodology), which can't
    happen until the spotter exists to run them through.
