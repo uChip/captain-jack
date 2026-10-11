@@ -9,13 +9,15 @@ Replies are spoken sentence by sentence (and printed).
 
 Three modes: Off Watch (idle, waiting for the wake phrase), On Watch
 (conversing), Asleep (napping, woken only by the wake phrase). The real
-wake-word spotter is still pending (needs trained openWakeWord models,
-GPU-blocked - see CLAUDE.md); until then pressing Enter stands in for
-"Ahoy, Captain Jack" (-> On Watch from Off Watch or Asleep) and typing
-"sleep" then Enter stands in for "Goodnight, Jack" (Off Watch -> Asleep
-only - the local spotter never needs to listen for it while already On
-Watch or Asleep, per spec 4.11). A beep through the bird marks the start
-of listening. Transitions:
+wake-word spotter (wakeword.py's WakeSpotter, build step 7 complete
+2026-10-11) runs continuously alongside the keyboard stand-ins, not
+replacing them (decided 2026-10-11 - a permanent manual override/test
+aid, see CLAUDE.md): pressing Enter stands in for "Ahoy, Captain Jack"
+(-> On Watch from Off Watch or Asleep) and typing "sleep" then Enter
+stands in for "Goodnight, Jack" (Off Watch -> Asleep only - the spotter
+never needs to listen for it while already On Watch or Asleep, per spec
+4.11). Both paths post the exact same internal event. A beep through
+the bird marks the start of listening. Transitions:
   - On Watch -> Off Watch or Asleep: Haiku's own MODE: meta-tag
     (END_SESSION/NAP, see orchestrate.py), applied once the reply
     finishes playing - or the 2-minute no-prompt timeout (-> Off Watch).
@@ -57,6 +59,7 @@ from orchestrate import MEMORY_DIR, household_names, take_turn
 from playback import RATE, Playback
 from stt import STT, names_prompt
 from tts import TTS, split_sentences
+from wakeword import WakeSpotter
 
 ON_WATCH_TIMEOUT_S = 120       # spec 4.11: 2 minutes with no prompt -> Off Watch
 OFF_WATCH_TIMEOUT_S = 15 * 60  # spec 4.11: 15 minutes with no wake phrase -> Asleep
@@ -98,8 +101,9 @@ class Coordinator:
         self._heard_at = None        # when the utterance being answered was handed over
 
         self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)))
+        self.spotter = WakeSpotter(on_wake=self.wake, on_sleep=self.sleep_phrase)
         self.player = Playback(on_event=self._on_playback)
-        self.capture = Capture(on_frame=self.listener.feed)
+        self.capture = Capture(on_frame=self._on_frame)
         self.tts = TTS(on_audio=self.player.play, **({"voice": voice} if voice else {}))
 
         # Motion & the Serial writer are only stood up when asked to (tests and
@@ -114,10 +118,22 @@ class Coordinator:
 
     # --- event sources (other threads) ---
 
+    def _on_frame(self, samples, adc_time):
+        """Capture's on_frame callback: fans each frame out to both the
+        Listener (On Watch utterances) and the WakeSpotter (wake/sleep
+        phrase, Off Watch/Asleep) - they're independent consumers of the
+        same mic stream."""
+        self.listener.feed(samples, adc_time)
+        self.spotter.feed(samples, adc_time)
+
     def _on_playback(self, kind, tag, dac_time):
         # Turn-taking: deaf while anything plays, until just after it ends.
+        # The spotter is gated the same way as the Listener, same reason -
+        # Jack's own voice (replies, idle clips, settle-in lines) must
+        # never trigger himself.
         if kind == "started":
             self.listener.ignore_until(float("inf"))
+            self.spotter.ignore_until(float("inf"))
             if tag == self._first_tag:
                 self.events.put(("reply_started", time.monotonic()))
         else:
@@ -129,26 +145,31 @@ class Coordinator:
             # sentence gets a chance to fire reply_done.
             if tag == self._last_tag or tag == BEEP_TAG:
                 self.listener.ignore_until(dac_time + HOLDOFF_S)
+                self.spotter.ignore_until(dac_time + HOLDOFF_S)
             if tag == self._last_tag:
                 self.events.put(("reply_done", None))
             elif tag == BEEP_TAG:
                 self.events.put(("beep_done", None))
 
     def wake(self):
-        """Wake-phrase stand-in ("Ahoy, Captain Jack"): same event the
-        real spotter will post, from Off Watch or Asleep."""
+        """Wake-phrase event ("Ahoy, Captain Jack"), from Off Watch or
+        Asleep - called by both the Enter keyboard stand-in and
+        WakeSpotter.on_wake, kept permanently side by side (decided
+        2026-10-11, see CLAUDE.md)."""
         self.events.put(("wake", None))
 
     def sleep_phrase(self):
-        """Sleep-phrase stand-in ("Goodnight, Jack"): same event the real
-        spotter will post, from Off Watch only (spec 4.11 - there's no
-        fixed phrase into Asleep from On Watch; that's the MODE: tag)."""
+        """Sleep-phrase event ("Goodnight, Jack"), from Off Watch only
+        (spec 4.11 - there's no fixed phrase into Asleep from On Watch;
+        that's the MODE: tag) - called by both the `sleep` keyboard
+        stand-in and WakeSpotter.on_sleep."""
         self.events.put(("sleep_phrase", None))
 
     # --- Coordinator (main thread) ---
 
     def run(self):
         self.listener.start()
+        self.spotter.start()
         self.capture.start()
         if self.serial_writer:
             self.serial_writer.start()
@@ -177,6 +198,7 @@ class Coordinator:
                 self.serial_writer.stop()   # before player.stop() - it polls player.now()
             self.player.stop()
             self.listener.stop()
+            self.spotter.stop()
 
     def _handle_timeout(self):
         """No event arrived before the current mode's deadline."""

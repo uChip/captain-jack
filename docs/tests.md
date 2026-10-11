@@ -229,7 +229,12 @@ when it was last confirmed passing.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real
-  bird, see log.md 4.16).
+  bird, see log.md 4.16); the real `WakeSpotter` wired in via
+  `_on_frame`/`_on_playback` (2026-10-11) with actual Capture frames and
+  actual playback-driven `ignore_until` timing - this test drives events
+  directly, never through that fan-out. Needs a live `--port` watch
+  against the real bird before the wake-word spotter itself is
+  considered done, not just the mechanism test in `test_wakeword.py`.
 
 ### Listener VAD + STT
 
@@ -387,10 +392,18 @@ when it was last confirmed passing.
   it's deterministic), and that the real shipped models load and return
   near-zero scores with no detections on digital silence.
 - **Last confirmed passing**: 2026-10-11.
-- **Not covered**: real detection accuracy/recall/false-positive-rate
-  against actual speech — that's real-audio calibration (spec 4.1's
-  methodology, numbers still deferred) and live-watch testing against
-  the real bird (`venv/bin/python wakeword.py`), not this script's job.
-  Also not covered yet: wiring into `coordinator.py` itself (fan-out
-  from `Capture`, `ignore_until` driven from `_on_playback`, start/stop
-  in `run()`) — pending a live standalone watch first.
+- **Live-watched standalone**, 2026-10-11 (`venv/bin/python
+  wakeword.py`, real bird, low-level background family noise in another
+  room): both phrases detected correctly when spoken, several other
+  non-wake phrases spoken in between correctly ignored, no false
+  positives, no missed detections. Not this script's job to cover -
+  real detection accuracy isn't a mechanism check, and exact
+  threshold/patience/cooldown numbers are still spec 4.1's deferred
+  real-audio calibration, just informally promising so far.
+- **Not covered**: wired into `coordinator.py` itself now (fan-out from
+  `Capture`, `ignore_until` driven from `_on_playback`, start/stop in
+  `run()`, 2026-10-11) but not yet live-watched *as wired in* - the
+  standalone watch above exercised `wakeword.py` on its own, not the
+  full state machine. Needs a live `--port` run before build step 7's
+  wake-word piece is considered fully done (see `test_coordinator.py`'s
+  entry above).
