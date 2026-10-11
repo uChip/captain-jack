@@ -398,17 +398,121 @@ both unavailable to check after the disconnect. Paused here for the
 day - picking back up with a fresh Colab session, same approach
 (fallback runtime to 2025.07, Python 3.11.13).
 
-**Still outstanding**: confirm `wake_phrase.onnx` is actually usable
-(the notebook's own validation output, if any, hasn't been checked yet;
-failing that, a local onnxruntime smoke test against known positive/
-negative clips once the file's been reviewed is the fallback plan) - a
-model produced by 30 improvised patches is not self-evidently trustworthy
-just because it exported a file. Also still needed: a trained
-`sleep_phrase.onnx`, and - separately, once both models exist - the
-actual Pi-side wake-word spotter module (loading both `.onnx` files via
-onnxruntime inside the Capture/Listener pipeline, replacing the Enter/
-`sleep` keyboard stand-ins) is not built yet; training the models is
-necessary but not sufficient for item 9.
+**The disconnect saga, 2026-10-09/10**: resuming the next day on a fresh
+session (still 2025.07/Python 3.11.13), disconnects kept recurring,
+consistently in cell 7 (downloading the 17GB ACAV100M negative-feature
+set) or cell 8 (downloading/converting FMA-small's ~8GB of background
+noise for augmentation) - regardless of Colab tier. Moved from free to
+Pay-As-You-Go with no change. Chip raised using his own desktop's RTX
+2060 (adequate - one documented case trained openWakeWord with no GPU
+at all) via WakeLab or WSL2 as an escape hatch, but both still require
+rebuilding the same dependency surface (openWakeWord's own checkout,
+piper-sample-generator, Piper voices, precomputed negative/validation
+`.npy` files) on a platform Chip isn't set up to administer himself -
+set aside in favor of fixing cells 7/8 in place first.
+
+Root-caused and fixed two real problems, then systematically eliminated
+everything else as a cause of the disconnects themselves:
+- **FMA's host was simply unreliable** - an 8GB zip on a university
+  (UNIL/SWITCH) cloud server, not a CDN. Replaced FMA entirely with
+  **ESC-50** (environmental sounds, a ~600MB zip hosted on GitHub) for
+  the same background-noise-augmentation role - far smaller and far more
+  reliably hosted. Rewrote cell 8 around it, with per-file resume logic
+  (skip filenames already converted) carried over from the original.
+- **ACAV100M's 17GB download was single-stream and slow enough that any
+  disconnect lost a lot of ground.** Rewrote cell 7 to fetch it via
+  `aria2c` (16 parallel connections, resumable) instead of a single
+  `requests` stream - dramatically faster, buying enough time margin
+  that cells 7 and 8 (and then 9 and 10) finally completed in one run.
+- Ruled out, in order, as explanations for the disconnects themselves:
+  disk-space exhaustion (confirmed 59GB free via `df -h /content`), GPU
+  preemption (disconnected on a CPU-only runtime too), tab/idle
+  inactivity (disconnected even with the tab focused and the mouse kept
+  moving), and a hung ffmpeg subprocess (disconnected mid-conversion at
+  a steady, un-stalled rate, and a subprocess timeout fix didn't help).
+  Compute-unit exhaustion was also ruled out (98+ units remained each
+  time). Leading theory, never confirmed (Colab gave no specific reason
+  beyond "hosted runtime disconnected," and no logs were ever
+  accessible after the fact): a fixed total session-duration cap, with
+  disconnects landing wherever elapsed time happened to run out that
+  run - consistent with later disconnects recurring at cell 10, cell 11,
+  and cell 12 on different attempts, not just cells 7/8.
+- One copy/paste `SyntaxError` turned out to be SSH/clipboard
+  corruption from copying more than one terminal screen at once, not a
+  real code bug - fixed by pasting through an intermediate plain-text
+  file with a larger terminal window.
+
+**Checkpointing to Google Drive to survive disconnects, 2026-10-10**:
+since a full disconnect wipes `/content` but a fixed-duration cap can't
+be worked around, the next best thing is making each expensive step's
+*output* durable so it never has to be redone. Chip created a Google
+account and Drive folder solely for this (explicitly scoped to avoid
+the "once it's on, it's hard to turn off" problem he's had with
+iCloud/OneDrive on his other devices - a Colab-only browser mount
+doesn't install anything on his phone or desktop). First attempt wrote
+training clips directly to the Drive-mounted path during generation and
+appeared to fail silently (files reported as generated, but none
+visible on Drive) - initially diagnosed as Google Drive's FUSE mount
+being too slow/unreliable for thousands of small file writes (a real,
+commonly-reported limitation), but reading openWakeWord's own
+`train.py` source (around the lines the notebook's own comments
+referenced) found the actual cause: `generate_clips` always writes to
+a path it constructs itself (`output_dir/model_name/<category>`) and
+completely ignores the `positive_clips_train_dir`-style keys in
+`my_model.yaml` that the wrapper cell's resume-check (and the
+Drive-redirect attempt) were reading/writing - two different
+conventions for "where do the clips live" that happened to coincide by
+default and silently diverged once either was edited. The clips had
+actually been generating correctly all along, just not where anything
+was checking.
+
+Settled design: generate locally (fast, already reliable) and
+checkpoint the *real* output directory to Drive as a single zip
+archive after the fact - one large write Drive handles fine, instead of
+thousands of small ones it doesn't. Applied this pattern twice: to
+cell 8's `fma_wav` output, and to the real clip directories (first
+fixing the yaml keys to actually match `output_dir/model_name/...`,
+then zipping that). A restore cell runs right after the Drive mount and
+before each expensive step, extracting the matching checkpoint if one
+exists; both cell 8 and cell 11's own pre-existing per-file/per-category
+resume logic then transparently skips what's already there. The same
+checkpoint-clips cell gets re-run again after cell 12 (the 16kHz
+resample step) to capture the resampled version, so that step never has
+to be redone either. Cells got labeled in the notebook (Restore
+fma_wav / Checkpoint fma_wav / Restore clips / Checkpoint clips) so this
+reconstructs cleanly for the sleep-phrase run.
+
+**`wake_phrase.onnx` trained and validated, 2026-10-10**: with the GPU
+runtime (L4) and all of the above in place, cells 1-15 completed in one
+run. Training (cell 14, 24,000 steps across three stages) finished in
+~2.3 minutes against the notebook's own 30-40 minute estimate - alarming
+at first glance, but the printed per-checkpoint metrics (recall and
+accuracy climbing, false-positive rate dropping as negative-class
+weight ramped up, 26 checkpoints saved) show genuine convergence; the
+mismatch is because the actual model is tiny (a 2-layer MLP, batch size
+~128) and L4 is fast, not because training was skipped. Final
+checkpoint-selection logic (require simultaneous 90th-percentile
+accuracy/recall and 10th-percentile false-positive-rate across the 26
+saved checkpoints) qualified zero candidates - expected behavior for a
+strict three-way intersection over a small sample, with a documented
+fallback to the single checkpoint with the lowest false-positive rate.
+Exported `wake_phrase.onnx` (791KB); an onnxruntime sanity check
+immediately after export reproduced the selected checkpoint's own
+recall (0.748), confirming the file matches what was actually selected.
+Final stats: accuracy ≈0.873, recall ≈0.748, false-positives ≈0.05/hour.
+(The export cell's very last printed FP/hour line - 0.50 - is a
+cosmetic bug reading the last training step's snapshot rather than the
+exported checkpoint's own stats; the real number is 0.05.) Copied off
+Colab via browser download, committed, and pulled onto the Pi,
+replacing the earlier 30-patch, never-validated `wake_phrase.onnx`.
+
+**Still outstanding**: `sleep_phrase.onnx` still needs training - the
+same notebook, now with the Drive-checkpoint infrastructure already in
+place, should go considerably smoother. And, separately, once both
+models exist: the actual Pi-side wake-word spotter module (loading both
+`.onnx` files via onnxruntime inside the Capture/Listener pipeline,
+replacing the Enter/`sleep` keyboard stand-ins) is not built yet -
+training the models is necessary but not sufficient for item 9.
 
 ### 4.2 Speech to Text (STT)
 
