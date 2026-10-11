@@ -1510,8 +1510,8 @@ to fail without the fix and pass with it.
 
 **Not yet done**: tuning either timeout against real use (both are
 still spec 4.11's initial, unvalidated numbers); the wake/sleep-phrase
-spotter's own real-audio threshold calibration (spec 4.1 - separate
-from this section, see CLAUDE.md work-list item 9).
+spotter's own real-audio threshold calibration (spec 4.1's methodology
+- separate from this section).
 
 ### 4.12 Gesture Engine and Catalog
 
@@ -2012,6 +2012,24 @@ the same live session, unrelated to this bug: see `MEMORY: NONE`
 leaking into speech, this section's sibling fix in
 [4.11](#411-sleep-mode-state-machine)'s history above.
 
-Not yet done: a live `--port` re-watch confirming the real wake phrase
-now works reliably through the full coordinator (the fix is verified
-by the regression test, not yet by ear against the real bird).
+**Confirmed live, 2026-10-11, same day**: added a debug hook
+(`WakeSpotter`'s `on_score`, wired to `Coordinator._on_spotter_score`)
+printing any score above a low floor (0.1) while not On Watch - cheap
+visibility into near-misses vs. true silence, and exactly the kind of
+data spec 4.1's threshold calibration will eventually want. First
+re-watch after the mic-reopening fix reported 0/3 from Asleep still -
+but closer reading showed those attempts were against a session that
+had never actually reached Asleep in the first place: unrelated STT
+repetition-hallucination failures (a known, separate, worse-than-usual
+issue that session - see [4.2](#42-speech-to-text-stt)) kept blocking
+the verbal path out of On Watch, and typing `sleep` from On Watch is
+correctly a no-op by design (the stand-in is Off-Watch-only, spec
+4.11) - so Jack was stuck On Watch the whole time, not failing to wake
+from a genuine Asleep. Retested properly (waited out the 2-minute On
+Watch timeout to Off Watch, typed `sleep` to reach Asleep with no STT
+involved) and both phrases fired correctly and repeatedly by voice from
+there: wake from Off Watch (0.81), sleep phrase from Off Watch (0.93,
+0.92), wake from Asleep (1.00, 0.96) - cycling through the whole state
+machine multiple times cleanly. Closes out the wake-word spotter's live
+validation; the keyboard stand-ins remain available permanently
+alongside it (2026-10-11 decision, see CLAUDE.md).

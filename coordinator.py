@@ -128,10 +128,13 @@ class Coordinator:
         self.spotter.feed(samples, adc_time)
 
     def _on_spotter_score(self, scores):
-        """WakeSpotter's debug hook (runs on its own thread) - temporary
-        visibility while diagnosing the 2026-10-11 Asleep wake-detection
-        reports. Only while wake detection actually matters (Off Watch/
-        Asleep), so real conversation doesn't get spammed with it."""
+        """WakeSpotter's debug hook (runs on its own thread): prints any
+        near-miss or real detection's score live. Earned its keep
+        2026-10-11 diagnosing a since-resolved Asleep wake-detection
+        report; kept on since the same numbers are exactly what spec
+        4.1's still-deferred real-audio threshold calibration needs.
+        Only while wake detection actually matters (Off Watch/Asleep),
+        so real conversation doesn't get spammed with it."""
         if self.mode != "on_watch":
             self.out(f"  [spotter] wake={scores[WAKE_NAME]:.2f}  sleep={scores[SLEEP_NAME]:.2f}")
 

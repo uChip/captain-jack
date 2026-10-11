@@ -386,6 +386,27 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     `.onnx` files are in the repo root. See `docs/log.md`'s 4.1 history
     for the full saga, including a real path-mismatch bug found in
     openWakeWord's own `train.py` along the way.
+33. The real wake-word spotter built and live-validated, 2026-10-11:
+    `wakeword.py`'s `WakeSpotter` runs openWakeWord's bundled onnx
+    feature pipeline over Capture's frames, feeding the two trained
+    models, and is wired into `coordinator.py` alongside (not replacing)
+    the Enter/`sleep` keyboard stand-ins. Found and fixed a real bug
+    along the way: Motion's own idle/excursion/settle-in clips share
+    `Playback` with TTS replies but weren't recognized by the mic's
+    reopening logic, leaving the mic permanently deaf after the first
+    one played in Off Watch/Asleep - invisible until the spotter gave
+    Off Watch/Asleep something worth listening with. Live-watched
+    cycling through the full state machine repeatedly: wake from Off
+    Watch and from Asleep, and the sleep phrase from Off Watch, all
+    fired correctly and repeatedly by voice. Closes build step 7's
+    wake-word piece and CLAUDE.md's former work-list item 9. See
+    `docs/log.md`'s 4.11/4.16 history for the full diagnosis, including
+    a false alarm along the way (STT failures, not a real bug, made one
+    session look stuck). Still open: real-audio threshold/patience/
+    cooldown calibration (spec 4.1's methodology, numbers deferred) and
+    the STT repetition-hallucination rejects that same session showed
+    firing more often than usual against real household background
+    noise (see work list below).
 
 ## Work list — split by hardware dependency
 
@@ -443,36 +464,25 @@ worked in parallel if priorities change.
    runs together against the real bird, gated behind `--port`/
    `--dry-run` so the no-hardware test suite stays unaffected. What's
    left, roughly in order:
-   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
-     the wake/sleep-phrase fixed-phrase match tolerance against real use
-     (spec 4.11 flags all of these as initial numbers).
-   - Build the Pi-side wake-word spotter module (item 9, below) — both
-     models are now trained and validated (see "Done so far" item 32);
-     this is what's left of item 9.
+   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch), the
+     wake/sleep-phrase fixed-phrase match tolerance, and the spotter's
+     own threshold/patience/cooldown numbers against real use (spec
+     4.1/4.11 flag all of these as initial numbers; `coordinator.py`
+     now prints a live `[spotter] wake=.. sleep=..` readout whenever not
+     On Watch to support this).
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: replies still
      often 25-45 words against a 20-word target; stream Haiku's reply
      into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
-     to Haiku marked unclear (see spec 4.2).
-9. Build the Pi-side wake-word spotter module: load both validated
-   `.onnx` files (`wake_phrase.onnx`, `sleep_phrase.onnx` — see "Done so
-   far" item 32) via onnxruntime into the Capture/Listener pipeline,
-   running alongside the Enter/`sleep` keyboard stand-ins rather than
-   replacing them — **decided 2026-10-11**: kept permanently as a manual
-   override (bypassing recall/threshold variance when testing, and a
-   backstop if the spotter ever misbehaves against real background
-   noise). Keep the keyboard read non-blocking/optional (e.g. only when
-   stdin is a TTY) so it's a no-op under headless/unattended operation,
-   and route it into the exact same internal wake/sleep event the
-   spotter posts rather than a parallel code path. Pure Pi-side Python,
-   no GPU needed. Also unblocks real-audio calibration of both phrases'
-   operating thresholds (spec section 4.1's methodology), which can't
-   happen until the spotter exists to run them through.
-10. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
-    now in place (see `docs/specification.md` section 4.7 and Open Issues
-    issue 16), judged primarily on voice quality with real-time
-    throughput as a secondary check.
-11. AEC validation against the bird's own speaker — now in its final
+     to Haiku marked unclear (see spec 4.2). STT repetition-hallucination
+     rejects are frequent against real household background noise
+     (2026-10-11 live session) - the existing rejection safety net
+     catches them, but worth a closer look given how often it's firing.
+9. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
+   now in place (see `docs/specification.md` section 4.7 and Open Issues
+   issue 16), judged primarily on voice quality with real-time
+   throughput as a secondary check.
+10. AEC validation against the bird's own speaker — now in its final
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.

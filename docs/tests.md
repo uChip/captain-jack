@@ -240,11 +240,15 @@ when it was last confirmed passing.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real
-  bird, see log.md 4.16). The real `WakeSpotter` wired in via
-  `_on_frame`/`_on_playback` still needs its own live `--port` watch
-  against the real bird (the 0/10 attempt that found the bug above was
-  *before* this fix) before the wake-word spotter itself is considered
-  done, not just the mechanism test in `test_wakeword.py`.
+  bird, see log.md 4.16).
+- **Live-watched as wired in, 2026-10-11**: the real `WakeSpotter`
+  (`_on_frame`/`_on_playback`, not just `test_wakeword.py`'s mechanism
+  checks) against the real bird - wake from Off Watch, sleep phrase
+  from Off Watch, and wake from Asleep all fired correctly and
+  repeatedly by voice, cycling through the full state machine several
+  times. See log.md 4.16 for the full story, including a false alarm
+  (0/3 from "Asleep" that turned out to be a session stuck On Watch by
+  unrelated STT failures, not a real Asleep-wake bug).
 
 ### Listener VAD + STT
 
@@ -410,10 +414,9 @@ when it was last confirmed passing.
   real detection accuracy isn't a mechanism check, and exact
   threshold/patience/cooldown numbers are still spec 4.1's deferred
   real-audio calibration, just informally promising so far.
-- **Not covered**: wired into `coordinator.py` itself now (fan-out from
-  `Capture`, `ignore_until` driven from `_on_playback`, start/stop in
-  `run()`, 2026-10-11) but not yet live-watched *as wired in* - the
-  standalone watch above exercised `wakeword.py` on its own, not the
-  full state machine. Needs a live `--port` run before build step 7's
-  wake-word piece is considered fully done (see `test_coordinator.py`'s
-  entry above).
+- **Not covered**: real numeric threshold/patience/cooldown calibration
+  against a proper real-audio corpus (spec 4.1's methodology, still
+  deferred) - wired into `coordinator.py` and live-watched there too
+  now, see `test_coordinator.py`'s entry above and log.md's 4.16
+  history for the full story (closes out build step 7's wake-word
+  piece).
