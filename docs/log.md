@@ -506,13 +506,33 @@ exported checkpoint's own stats; the real number is 0.05.) Copied off
 Colab via browser download, committed, and pulled onto the Pi,
 replacing the earlier 30-patch, never-validated `wake_phrase.onnx`.
 
-**Still outstanding**: `sleep_phrase.onnx` still needs training - the
-same notebook, now with the Drive-checkpoint infrastructure already in
-place, should go considerably smoother. And, separately, once both
-models exist: the actual Pi-side wake-word spotter module (loading both
-`.onnx` files via onnxruntime inside the Capture/Listener pipeline,
-replacing the Enter/`sleep` keyboard stand-ins) is not built yet -
-training the models is necessary but not sufficient for item 9.
+**`sleep_phrase.onnx` trained and validated, 2026-10-11**: the
+Drive-checkpoint infrastructure paid off immediately - a disconnect
+after cell 11 cost nothing, since the rerun restored from the checkpoint
+and finished. Same convergence pattern as the wake phrase (23
+checkpoints saved, best val_fp_per_hour 0.00), same zero-checkpoints-
+qualified-fallback-to-single-best path, and the onnxruntime sanity
+check again reproduced the selected checkpoint's own recall (0.594)
+exactly. Final stats: accuracy ≈0.794, recall ≈0.594,
+false-positives ≈0.10/hour (the export cell's last FP/hour print -
+0.70 - is the same cosmetic last-step-snapshot bug noted above; the
+real number is 0.10). Recall is noticeably lower here than the wake
+phrase's 0.748, but that's an acceptable asymmetry given the
+methodology already decided above: the sleep phrase stays at the
+vanilla 0.5 threshold (an unwanted "go quiet" is a softer failure than
+an unwanted wake), and there's headroom to lower that operating
+threshold later during real-audio calibration - trading some of the
+spare false-positive margin for better recall - without retraining.
+Copied off Colab, committed, and pulled onto the Pi.
+
+**Still outstanding**: both custom models are now trained and
+validated, but training them is necessary, not sufficient, for item 9 -
+the actual Pi-side wake-word spotter module (loading both `.onnx` files
+via onnxruntime inside the Capture/Listener pipeline, replacing the
+Enter/`sleep` keyboard stand-ins) is not built yet. That also unblocks
+real-audio calibration of both phrases' operating thresholds (section
+4.1's methodology above), which can't happen until the spotter exists
+to run them through.
 
 ### 4.2 Speech to Text (STT)
 

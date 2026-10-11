@@ -372,6 +372,20 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     does not seem too early"; `BEAK_RELEASE_S` (0.10) stands unchanged.
     See `docs/specification.md` section 4.8 and `docs/log.md`'s 4.8
     history.
+32. Both custom openWakeWord models trained and validated, 2026-10-10/11:
+    `wake_phrase.onnx` (accuracy ≈0.873, recall ≈0.748, false-positives
+    ≈0.05/hour) and `sleep_phrase.onnx` (accuracy ≈0.794, recall ≈0.594,
+    false-positives ≈0.10/hour), both via the community Colab notebook
+    (`alfiedennen/openwakeword-colab-2026`). Getting here took a
+    multi-day fight with recurring Colab disconnects (root cause never
+    confirmed — likely a fixed session-duration cap), fixed well enough
+    to work via a faster parallel download for the 17GB negative-feature
+    set, swapping the unreliable FMA background-noise source for ESC-50,
+    and checkpointing each expensive step's output to Google Drive as a
+    zip so a disconnect never costs more than the step in flight. Both
+    `.onnx` files are in the repo root. See `docs/log.md`'s 4.1 history
+    for the full saga, including a real path-mismatch bug found in
+    openWakeWord's own `train.py` along the way.
 
 ## Work list — split by hardware dependency
 
@@ -432,18 +446,23 @@ worked in parallel if priorities change.
    - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
      the wake/sleep-phrase fixed-phrase match tolerance against real use
      (spec 4.11 flags all of these as initial numbers).
-   - Train the real wake-word models (item 9, below) and retire the
-     keyboard stand-ins.
+   - Build the Pi-side wake-word spotter module (item 9, below) and
+     retire the keyboard stand-ins — both models are now trained and
+     validated (see "Done so far" item 32); this is what's left of
+     item 9.
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: replies still
      often 25-45 words against a 20-word target; stream Haiku's reply
      into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
      to Haiku marked unclear (see spec 4.2).
-9. Train the two custom openWakeWord models ("Ahoy, Captain Jack",
-   "Goodnight, Jack") — needs a GPU (e.g. openWakeWord's Colab training
-   notebook), not the Pi. Not a blocker: build step 4 uses a keyboard
-   stand-in.
+9. Build the Pi-side wake-word spotter module: load both validated
+   `.onnx` files (`wake_phrase.onnx`, `sleep_phrase.onnx` — see "Done so
+   far" item 32) via onnxruntime into the Capture/Listener pipeline,
+   replacing the Enter/`sleep` keyboard stand-ins. Pure Pi-side Python,
+   no GPU needed. Also unblocks real-audio calibration of both phrases'
+   operating thresholds (spec section 4.1's methodology), which can't
+   happen until the spotter exists to run them through.
 10. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
     now in place (see `docs/specification.md` section 4.7 and Open Issues
     issue 16), judged primarily on voice quality with real-time
