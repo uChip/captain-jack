@@ -59,7 +59,7 @@ from orchestrate import MEMORY_DIR, household_names, take_turn
 from playback import RATE, Playback
 from stt import STT, names_prompt
 from tts import TTS, split_sentences
-from wakeword import WakeSpotter
+from wakeword import SLEEP_NAME, WAKE_NAME, WakeSpotter
 
 ON_WATCH_TIMEOUT_S = 120       # spec 4.11: 2 minutes with no prompt -> Off Watch
 OFF_WATCH_TIMEOUT_S = 15 * 60  # spec 4.11: 15 minutes with no wake phrase -> Asleep
@@ -101,7 +101,8 @@ class Coordinator:
         self._heard_at = None        # when the utterance being answered was handed over
 
         self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)))
-        self.spotter = WakeSpotter(on_wake=self.wake, on_sleep=self.sleep_phrase)
+        self.spotter = WakeSpotter(on_wake=self.wake, on_sleep=self.sleep_phrase,
+                                    on_score=self._on_spotter_score)
         self.player = Playback(on_event=self._on_playback)
         self.capture = Capture(on_frame=self._on_frame)
         self.tts = TTS(on_audio=self.player.play, **({"voice": voice} if voice else {}))
@@ -125,6 +126,14 @@ class Coordinator:
         same mic stream."""
         self.listener.feed(samples, adc_time)
         self.spotter.feed(samples, adc_time)
+
+    def _on_spotter_score(self, scores):
+        """WakeSpotter's debug hook (runs on its own thread) - temporary
+        visibility while diagnosing the 2026-10-11 Asleep wake-detection
+        reports. Only while wake detection actually matters (Off Watch/
+        Asleep), so real conversation doesn't get spammed with it."""
+        if self.mode != "on_watch":
+            self.out(f"  [spotter] wake={scores[WAKE_NAME]:.2f}  sleep={scores[SLEEP_NAME]:.2f}")
 
     def _on_playback(self, kind, tag, dac_time):
         # Turn-taking: deaf while anything plays, until just after it ends.

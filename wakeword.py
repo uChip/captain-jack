@@ -54,6 +54,12 @@ PATIENCE_FRAMES = 3
 # while its own score stays elevated. Starting point, not measured.
 COOLDOWN_S = 2.0
 
+# Debug visibility floor (see on_score=): report any score above this,
+# well below WAKE_THRESHOLD/SLEEP_THRESHOLD, so a near-miss (scored but
+# didn't cross threshold) is visible instead of indistinguishable from
+# "never heard anything at all."
+REPORT_FLOOR = 0.1
+
 
 class WakeSpotter:
     """Consumes Capture frames; calls on_wake()/on_sleep() on detection.
@@ -63,9 +69,10 @@ class WakeSpotter:
     inference on its own thread, same pattern as Listener.
     """
 
-    def __init__(self, on_wake, on_sleep, model=None):
+    def __init__(self, on_wake, on_sleep, model=None, on_score=None):
         self.on_wake = on_wake
         self.on_sleep = on_sleep
+        self.on_score = on_score   # optional debug hook: on_score(scores) above REPORT_FLOOR
         self.model = model or Model(wakeword_model_paths=[str(WAKE_MODEL), str(SLEEP_MODEL)])
         self._frames = queue.Queue()
         self._ignore_until = 0.0
@@ -116,6 +123,8 @@ class WakeSpotter:
             threshold={WAKE_NAME: WAKE_THRESHOLD, SLEEP_NAME: SLEEP_THRESHOLD},
         )
         self.last_scores = scores   # set before firing, so on_wake/on_sleep see the real trigger value
+        if self.on_score and (scores[WAKE_NAME] > REPORT_FLOOR or scores[SLEEP_NAME] > REPORT_FLOOR):
+            self.on_score(scores)
         if (scores[WAKE_NAME] >= WAKE_THRESHOLD
                 and adc_time - self._last_fired[WAKE_NAME] >= COOLDOWN_S):
             self._last_fired[WAKE_NAME] = adc_time
