@@ -115,6 +115,7 @@ class WakeSpotter:
             patience={WAKE_NAME: PATIENCE_FRAMES, SLEEP_NAME: PATIENCE_FRAMES},
             threshold={WAKE_NAME: WAKE_THRESHOLD, SLEEP_NAME: SLEEP_THRESHOLD},
         )
+        self.last_scores = scores   # set before firing, so on_wake/on_sleep see the real trigger value
         if (scores[WAKE_NAME] >= WAKE_THRESHOLD
                 and adc_time - self._last_fired[WAKE_NAME] >= COOLDOWN_S):
             self._last_fired[WAKE_NAME] = adc_time
@@ -123,7 +124,6 @@ class WakeSpotter:
                 and adc_time - self._last_fired[SLEEP_NAME] >= COOLDOWN_S):
             self._last_fired[SLEEP_NAME] = adc_time
             self.on_sleep()
-        self.last_scores = scores
         return scores
 
 
