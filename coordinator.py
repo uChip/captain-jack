@@ -209,6 +209,8 @@ class Coordinator:
             self.player.stop()
             self.listener.stop()
             self.spotter.stop()
+            if self.capture.overflows:
+                self.out(f"WARNING: {self.capture.overflows} input overflow(s) - audio was lost")
 
     def _handle_timeout(self):
         """No event arrived before the current mode's deadline."""
