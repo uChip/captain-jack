@@ -79,10 +79,37 @@ def check_take_turn_wires_mode():
     return errors
 
 
+def check_reversed_tag_order():
+    """A real live-test catch (2026-10-11, see docs/log.md's 4.16
+    history): Haiku doesn't always keep to the documented MODE:-then-
+    MEMORY:-last order. When reversed, MEMORY: NONE leaked straight
+    into speech (and got spoken aloud by TTS) because split_memory_line
+    only ever looks at the literal last line."""
+    errors = []
+
+    client = FakeClient("Fair winds and following seas, Matey!\nMEMORY: NONE\nMODE: END_SESSION")
+    turn = take_turn(client, [], "That's enough for now, Jack")
+    if turn.mode != "END_SESSION":
+        errors.append(f"reversed order: expected Turn.mode == 'END_SESSION', got {turn.mode!r}")
+    if "MODE:" in turn.spoken or "MEMORY:" in turn.spoken:
+        errors.append(f"reversed order: both tag lines should still be stripped, got {turn.spoken!r}")
+
+    client = FakeClient("Sleepy now, goodnight.\nMEMORY: NONE\nMODE: NAP")
+    turn = take_turn(client, [], "Goodnight Jack")
+    if turn.mode != "NAP":
+        errors.append(f"reversed order: expected Turn.mode == 'NAP', got {turn.mode!r}")
+    if "MODE:" in turn.spoken or "MEMORY:" in turn.spoken:
+        errors.append(f"reversed order: both tag lines should still be stripped, got {turn.spoken!r}")
+
+    return errors
+
+
 if __name__ == "__main__":
-    errors = check_split_mode_line() + check_take_turn_wires_mode()
+    errors = (check_split_mode_line() + check_take_turn_wires_mode()
+              + check_reversed_tag_order())
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
-    print("PASS: MODE: tag splits correctly and take_turn() wires it into Turn.mode")
+    print("PASS: MODE: tag splits correctly (in either relative order with MEMORY:) "
+          "and take_turn() wires it into Turn.mode")

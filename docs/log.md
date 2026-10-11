@@ -1484,11 +1484,34 @@ mode. Confirmed end to end in dry-run (no Arduino attached): Capture,
 Listener, Playback, the dry-run Serial writer, Motion, and TTS all start
 and stop cleanly together.
 
-**Not yet done**: a real live voice conversation exercising a `MODE:`
-transition by ear (only the fake-client path is tested); the real wake-
-word spotter (GPU-blocked, still the keyboard stand-ins); tuning either
-timeout against real use (both are still spec 4.11's initial,
-unvalidated numbers).
+**Reversed tag order found live, 2026-10-11**: wiring the real
+`WakeSpotter` into `coordinator.py` ([4.16](#416-runtime-integration-end-to-end-turn)
+history) prompted a fresh live `--port` watch, which caught a real bug
+unrelated to the wake-word work itself: two replies had `MEMORY: NONE`
+spoken aloud by TTS instead of being silently stripped. Root cause:
+`split_memory_line()` only ever looks at the literal last line of the
+reply for `MEMORY:`, but Haiku doesn't always keep to the documented
+`MODE:`-then-`MEMORY:`-last order - these two replies had `MEMORY:`
+*before* `MODE:`, so the true last line was `MODE:`, not `MEMORY:`, and
+the memory-line search came up empty while `split_mode_line()` (run
+second, on the untouched full text) still found and correctly stripped
+`MODE:` off the end - leaving `MEMORY: NONE` stranded in the spoken
+text. `MODE:`'s own transition still fired correctly throughout (Haiku
+reliably signaled `END_SESSION`/`NAP` in-conversation during this same
+test), so this was purely a stripping bug, not a signal-detection one.
+Fixed with a new `split_tags()` that tries `split_mode_line()` first -
+if `MODE:` turns out to already be the true last line, `MEMORY:` (if
+present) is now exposed as the new last line for `split_memory_line()`
+to find correctly regardless of which order Haiku used; falls back to
+the original order unchanged otherwise. `take_turn()` now calls
+`split_tags()` instead of the two functions directly;
+`tests/test_mode_tag.py` gained `check_reversed_tag_order()`, confirmed
+to fail without the fix and pass with it.
+
+**Not yet done**: tuning either timeout against real use (both are
+still spec 4.11's initial, unvalidated numbers); the wake/sleep-phrase
+spotter's own real-audio threshold calibration (spec 4.1 - separate
+from this section, see CLAUDE.md work-list item 9).
 
 ### 4.12 Gesture Engine and Catalog
 

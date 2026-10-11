@@ -104,6 +104,29 @@ def split_mode_line(text: str) -> tuple[str, str | None]:
     return "\n".join(lines[:-1]).rstrip(), match.group(1).upper()
 
 
+def split_tags(reply: str) -> tuple[str, str | None, str | None]:
+    """Split both trailing meta-tag lines off a reply, regardless of
+    which order Haiku actually put them in.
+
+    Documented/intended order is MODE: right before the true-last
+    MEMORY: line (see MODE_LINE_RE above), but Haiku doesn't always keep
+    to it - a live test (2026-10-11, see docs/log.md's 4.16 history)
+    caught MEMORY: NONE leaking into speech because it came before
+    MODE:, so split_memory_line (which only ever looks at the literal
+    last line) never found it. Tries MODE: first: if it turns out to be
+    the true last line, MEMORY: (if present) is now exposed as the new
+    last line for split_memory_line to find correctly either way;
+    otherwise falls back to the documented order unchanged.
+    """
+    spoken, mode = split_mode_line(reply)
+    if mode is None:
+        spoken, raw_memory = split_memory_line(reply)
+        spoken, mode = split_mode_line(spoken)
+    else:
+        spoken, raw_memory = split_memory_line(spoken)
+    return spoken, raw_memory, mode
+
+
 def parse_memory_proposal(raw: str):
     """Validate a proposed MEMORY line against the tag allowlist.
 
@@ -252,8 +275,7 @@ def take_turn(
         raise
     history.append({"role": "assistant", "content": reply})
 
-    spoken, raw_memory = split_memory_line(reply)
-    spoken, mode = split_mode_line(spoken)
+    spoken, raw_memory, mode = split_tags(reply)
     if mode == "NONE":
         mode = None
     saved = None

@@ -45,25 +45,30 @@ when it was last confirmed passing.
 - **Covers**: [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)
   — the `MODE:` meta-tag `orchestrate.py` reads from Haiku's own reply
   (mirroring the `MEMORY:` line's mechanism) to signal `END_SESSION` or
-  `NAP`, parsed by `split_mode_line()` and threaded through `take_turn()`
+  `NAP`, parsed by `split_mode_line()`/`split_memory_line()` and combined
+  order-independently by `split_tags()`, threaded through `take_turn()`
   into `Turn.mode`.
 - **Script**: [`../tests/test_mode_tag.py`](../tests/test_mode_tag.py)
 - **Run**: `venv/bin/python tests/test_mode_tag.py` (automatic, no
   hardware, no real API — a fake Haiku client).
-- **Expected**: prints `PASS: MODE: tag splits correctly and take_turn()
-  wires it into Turn.mode` and exits 0. Checks `split_mode_line()`
-  splits `END_SESSION`/`NAP`/`NONE` correctly, normalizes case, and fails
-  closed to `None` on a missing or malformed line (e.g. an older reply
-  with no `MODE:` line at all); checks `take_turn()` strips both the
-  `MODE:` and `MEMORY:` lines from the spoken reply and surfaces
-  `END_SESSION` correctly in `Turn.mode`, with explicit `MODE: NONE` and
-  a missing `MODE:` line both surfacing as `Turn.mode is None`.
-- **Last confirmed passing**: 2026-10-07.
-- **Not covered**: the live Haiku API path (whether Haiku actually emits
-  `MODE:` correctly in conversation), `identity.md`'s instructions
-  (added this session) actually producing good end-of-session behavior,
-  and `coordinator.py` acting on `Turn.mode` — none of that is wired up
-  yet.
+- **Expected**: prints `PASS: MODE: tag splits correctly (in either
+  relative order with MEMORY:) and take_turn() wires it into Turn.mode`
+  and exits 0. Checks `split_mode_line()` splits `END_SESSION`/`NAP`/
+  `NONE` correctly, normalizes case, and fails closed to `None` on a
+  missing or malformed line (e.g. an older reply with no `MODE:` line at
+  all); checks `take_turn()` strips both the `MODE:` and `MEMORY:` lines
+  from the spoken reply and surfaces `END_SESSION` correctly in
+  `Turn.mode`, with explicit `MODE: NONE` and a missing `MODE:` line both
+  surfacing as `Turn.mode is None`; and (added 2026-10-11, after a live
+  test caught `MEMORY: NONE` leaking into speech) that both tags still
+  get stripped and `Turn.mode` still comes through correctly when Haiku
+  puts `MEMORY:` before `MODE:` instead of the documented order.
+- **Last confirmed passing**: 2026-10-11.
+- **Not covered**: the live Haiku API path's full range of tag-ordering/
+  formatting variance beyond the one reversed-order case caught so far
+  (e.g. a fence wrapping both tags together, not just `MEMORY:` alone -
+  theoretical, not yet observed), and `coordinator.py` acting on
+  `Turn.mode` (that part is covered by `test_coordinator.py` instead).
 
 ## Gesture Engine and Catalog
 
