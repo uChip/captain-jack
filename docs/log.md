@@ -1970,3 +1970,48 @@ exactly the kind of gap spec 4.1/4.2 already flag as pending
 real-audio calibration (the VAD/STT thresholds are initial numbers,
 not tuned against real speech cadence yet) - logged here as a concrete
 data point for that future tuning, not actioned now.
+
+**Mic permanently deafened by Motion's own clips, found live wiring in
+the real `WakeSpotter`, 2026-10-11**: with `wakeword.py`'s `WakeSpotter`
+already live-watched standalone and working correctly (both phrases
+detected, no false positives, even with household background noise),
+it was wired into `coordinator.py` - frames fan out to both `Listener`
+and `WakeSpotter` from a new `_on_frame`, and `_on_playback` gates the
+spotter's `ignore_until` the same way as the Listener's. The first live
+`--port` watch after wiring it in: neither wake-phrase attempt worked
+by voice (both times recovered via the Enter stand-in); a deliberate
+follow-up batch of 10 more attempts scored 0/10 - not the ~75% recall
+training measured, so not just bad luck. Root cause: `_on_playback`'s
+mic-reopening check only recognized a reply's true last TTS sentence
+(`_last_tag`) or the listening beep (`BEEP_TAG`) as things that should
+reopen the mic when they finish - but Motion's own idle/excursion/
+settle-in wav clips play through this same `Playback` instance too,
+tagged with their own filename, which matched neither. The very first
+such clip to finish playing in Off Watch or Asleep left the mic (and
+now the spotter) at `ignore_until(inf)` permanently for the rest of
+that mode - a latent bug since Motion was wired in (2026-10-07) that
+had no visible effect until today, because nothing was actually
+listening during Off Watch/Asleep before (only the keyboard stand-in,
+which doesn't touch the mic). It also fully explains the earlier
+"Goodnight, Jack" session's two failed voice-wake attempts in
+retrospect: each followed a clip finishing, and each recovered by
+falling back to Enter, then working fine once On Watch (since the
+first real reply's last sentence finishing happened to reset
+`ignore_until` correctly).
+
+Fixed by generalizing the reopen check from "is this the reply's true
+last sentence, or the beep" to "is this tag anything other than a
+mid-reply sentence" - `if not isinstance(tag, tuple) or tag ==
+self._last_tag`, since every reply-sentence tag is a `(reply, i)`
+tuple and everything else (a wav filename, `BEEP_TAG`) is a
+self-contained single item that should reopen the mic the moment it
+finishes. `tests/test_coordinator.py` gained
+`check_nonreply_clip_reopens_mic()`, confirmed to fail without the fix
+(reproducing the exact bug) and pass with it. Also found and fixed in
+the same live session, unrelated to this bug: see `MEMORY: NONE`
+leaking into speech, this section's sibling fix in
+[4.11](#411-sleep-mode-state-machine)'s history above.
+
+Not yet done: a live `--port` re-watch confirming the real wake phrase
+now works reliably through the full coordinator (the fix is verified
+by the regression test, not yet by ear against the real bird).

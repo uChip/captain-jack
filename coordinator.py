@@ -137,13 +137,23 @@ class Coordinator:
             if tag == self._first_tag:
                 self.events.put(("reply_started", time.monotonic()))
         else:
-            # Only reopen the mic once the *whole* reply is done, not after
-            # each sentence - otherwise a stray sound in the gap between two
+            # Reopen the mic once a *whole* self-contained thing is done
+            # playing - any single-tag item (a wav filename, BEEP_TAG) is
+            # one on its own, but a reply's sentences share a (reply, i)
+            # tuple tag and only its true last one counts, not after each
+            # sentence - otherwise a stray sound in the gap between two
             # sentences becomes a real "utterance" event while the reply is
             # still mid-flight, and handling it clobbers _first_tag/_last_tag
             # (see docs/log.md's 4.16 history) before the reply's own last
-            # sentence gets a chance to fire reply_done.
-            if tag == self._last_tag or tag == BEEP_TAG:
+            # sentence gets a chance to fire reply_done. Found live,
+            # 2026-10-11: Motion's own idle/excursion/settle-in wav clips
+            # play through this same Playback instance tagged with their
+            # filename, which matched neither the old `_last_tag`-or-
+            # `BEEP_TAG` check nor anything else - so the mic (and, once
+            # wired in, the WakeSpotter) went deaf after the first such
+            # clip in Off Watch/Asleep and never reopened for the rest of
+            # that mode. See docs/log.md's 4.11/4.16 history.
+            if not isinstance(tag, tuple) or tag == self._last_tag:
                 self.listener.ignore_until(dac_time + HOLDOFF_S)
                 self.spotter.ignore_until(dac_time + HOLDOFF_S)
             if tag == self._last_tag:

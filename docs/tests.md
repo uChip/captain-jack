@@ -212,12 +212,17 @@ when it was last confirmed passing.
   sleep-phrase stand-in's Off-Watch-only gating, both timeouts, and
   which Asleep-entry context each path hands Motion), driven
   directly through `_handle_event()`/`_handle_timeout()` without
-  starting real audio threads. Also covers a real race found in a live
-  test: a multi-sentence reply must keep the mic deaf across its own
-  internal sentence gaps, not just after the whole reply ends, or a
-  stray sound there can clobber the in-flight reply's tag tracking and
-  silently drop a pending `MODE:` tag (see log.md 4.16, "Goodnight,
-  Jack" live test, 2026-10-07).
+  starting real audio threads. Also covers two real races found live:
+  a multi-sentence reply must keep the mic deaf across its own internal
+  sentence gaps, not just after the whole reply ends, or a stray sound
+  there can clobber the in-flight reply's tag tracking and silently
+  drop a pending `MODE:` tag (log.md 4.16, "Goodnight, Jack" live test,
+  2026-10-07); and a standalone clip (Motion's idle/excursion/settle-in
+  wavs, tagged with their own filename, not a reply-sentence tuple) must
+  reopen the mic/spotter as soon as *it* finishes too, or the mic (and,
+  once wired in, the real `WakeSpotter`) goes permanently deaf after the
+  first one plays in Off Watch/Asleep (log.md 4.11/4.16, found wiring in
+  `WakeSpotter`, 2026-10-11).
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no
@@ -225,21 +230,21 @@ when it was last confirmed passing.
   Haiku call (needs `ANTHROPIC_API_KEY`; a fraction of a cent).
 - **Expected**: prints `PASS: coordinator transcribes, calls Haiku, saves
   memory to scratch only, rejects noise, the Sleep-Mode State Machine
-  transitions correctly (telling Motion how Asleep was entered), and the
-  mic stays deaf across a multi-sentence
-  reply's own sentence gaps` (plus `, live Haiku replied`) and exits 0.
-  Everything runs on a scratch copy of `memory/`; the test fails if the
-  real `memory.md` changes.
-- **Last confirmed passing**: 2026-10-10.
+  transitions correctly (telling Motion how Asleep was entered), the mic
+  stays deaf across a multi-sentence reply's own sentence gaps but
+  reopens after, and a standalone clip (Motion's idle/excursion/
+  settle-in wavs) reopens the mic and spotter too` (plus `, live Haiku
+  replied`) and exits 0. Everything runs on a scratch copy of `memory/`;
+  the test fails if the real `memory.md` changes.
+- **Last confirmed passing**: 2026-10-11.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real
-  bird, see log.md 4.16); the real `WakeSpotter` wired in via
-  `_on_frame`/`_on_playback` (2026-10-11) with actual Capture frames and
-  actual playback-driven `ignore_until` timing - this test drives events
-  directly, never through that fan-out. Needs a live `--port` watch
-  against the real bird before the wake-word spotter itself is
-  considered done, not just the mechanism test in `test_wakeword.py`.
+  bird, see log.md 4.16). The real `WakeSpotter` wired in via
+  `_on_frame`/`_on_playback` still needs its own live `--port` watch
+  against the real bird (the 0/10 attempt that found the bug above was
+  *before* this fix) before the wake-word spotter itself is considered
+  done, not just the mechanism test in `test_wakeword.py`.
 
 ### Listener VAD + STT
 

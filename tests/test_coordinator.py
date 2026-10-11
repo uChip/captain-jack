@@ -249,6 +249,33 @@ def check_mid_reply_sentence_gap():
     return errors
 
 
+def check_nonreply_clip_reopens_mic():
+    """A standalone clip (Motion's own idle/excursion/settle-in wavs,
+    tagged with their filename, not a (reply, i) tuple) must reopen the
+    mic/spotter as soon as IT finishes, same as the reply case above -
+    found live, 2026-10-11: the old check only recognized a reply's true
+    last sentence or BEEP_TAG, so the mic went permanently deaf after
+    the first such clip played in Off Watch/Asleep and the real
+    WakeSpotter never heard the wake phrase again for the rest of that
+    mode (see docs/log.md's 4.11/4.16 history)."""
+    errors = []
+    client = FakeClient("shouldn't be called")
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
+                                     out=lambda *a: None)
+
+    coord._on_playback("started", "SomeIdleClip.wav", 0.0)
+    if coord.spotter._ignore_until != float("inf"):
+        errors.append("spotter should go deaf once the clip starts playing")
+    coord._on_playback("finished", "SomeIdleClip.wav", 1.0)
+    if coord.listener._ignore_until == float("inf"):
+        errors.append("mic never reopened after a non-reply clip finished (listener)")
+    if coord.spotter._ignore_until == float("inf"):
+        errors.append("spotter never reopened after a non-reply clip finished - "
+                       "the real bug this test was written for")
+
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -264,7 +291,7 @@ def check_live():
 
 if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
-              + check_mid_reply_sentence_gap())
+              + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -274,6 +301,7 @@ if __name__ == "__main__":
         sys.exit(1)
     print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise, "
           "the Sleep-Mode State Machine transitions correctly (telling Motion how Asleep was "
-          "entered), and the mic stays deaf across a "
-          "multi-sentence reply's own sentence gaps"
+          "entered), the mic stays deaf across a "
+          "multi-sentence reply's own sentence gaps but reopens after, and a standalone "
+          "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too"
           + (", live Haiku replied" if live else ""))
