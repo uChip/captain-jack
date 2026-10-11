@@ -363,3 +363,34 @@ when it was last confirmed passing.
   Record the new ceiling here after any Issue 26 fix.
 - **Not covered**: AEC, and anything automated — there's no mic-side
   check that the sound actually came out.
+
+## Wake Word Spotter
+
+### Spotter mechanism (`WakeSpotter`)
+
+- **Covers**: [4.1 Wake Word Spotter](specification.md#41-wake-word-spotter)
+  — `wakeword.py`'s `WakeSpotter`, the real-time counterpart of
+  `coordinator.py`'s Enter/`sleep` keyboard stand-ins: runs openWakeWord's
+  bundled onnx feature pipeline over Capture's 80ms frames, feeding the
+  two trained custom classifiers (`wake_phrase.onnx`, `sleep_phrase.onnx`
+  — see `docs/log.md`'s 4.1 history for how they were trained).
+- **Script**: [`../tests/test_wakeword.py`](../tests/test_wakeword.py)
+- **Run**: `venv/bin/python tests/test_wakeword.py` (automatic, no
+  hardware — a fake model stands in for the mechanism checks; the real
+  `.onnx` files are loaded once for the silence check, CPU only).
+- **Expected**: prints `PASS: WakeSpotter gates on ignore_until,
+  debounces via cooldown, and the real models load and stay quiet on
+  silence` and exits 0. Checks `ignore_until` drops a frame without even
+  calling the model (turn-taking, same semantics as `Listener`'s),
+  `COOLDOWN_S` lets a sustained high score fire once and then again only
+  after the cooldown elapses (with a fake model forcing the score, so
+  it's deterministic), and that the real shipped models load and return
+  near-zero scores with no detections on digital silence.
+- **Last confirmed passing**: 2026-10-11.
+- **Not covered**: real detection accuracy/recall/false-positive-rate
+  against actual speech — that's real-audio calibration (spec 4.1's
+  methodology, numbers still deferred) and live-watch testing against
+  the real bird (`venv/bin/python wakeword.py`), not this script's job.
+  Also not covered yet: wiring into `coordinator.py` itself (fan-out
+  from `Capture`, `ignore_until` driven from `_on_playback`, start/stop
+  in `run()`) — pending a live standalone watch first.
