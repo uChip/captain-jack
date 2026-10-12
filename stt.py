@@ -60,19 +60,25 @@ TOKENS_MIN = 10
 # Reject a transcript that repeats itself - Whisper's signature both for
 # retry loops ("Where is the anchor?" x5) and for filling gibberish with
 # an echoed guess ("Are you a wick, Jack? Are you a wick,"). Each rule is
-# (phrase length in words, times it appears): a 2+-word phrase 3 times,
-# or a 3+-word phrase twice. Starting points from the 2026-09-25 live
-# runs (see docs/log.md, 4.16): caught both gibberish echoes, no real
-# speech.
-REPEAT_RULES = [(2, 3), (3, 2)]
+# (phrase length in words, times it appears, max gap in words between
+# repeats to still count as the same run - see below): a 2+-word phrase
+# 3 times, or a 3+-word phrase twice, starting points from the
+# 2026-09-25 live runs (see docs/log.md, 4.16); or (added 2026-10-12,
+# live, from household noise hallucinated as "No? No? No? No? No?") a
+# single word 4+ times - kept tighter (0 gap - truly back-to-back, no
+# words between) than the longer-phrase rules below, since common words
+# ("the", "a") legitimately recur every few words in ordinary long
+# sentences and would otherwise false-positive (confirmed against a
+# sentence using "the" four times).
+REPEAT_RULES = [(1, 4, 0), (2, 3, 3), (3, 2, 3)]
 
 # A loop's repeats are back-to-back (whisper.cpp echoing its own last
 # words); found live 2026-10-12 that checking for the same phrase
 # *anywhere* in the text false-positives on long, legitimate utterances
 # that happen to reuse a short phrase once far apart (the Preamble's "the
 # United States" at the start and the end). Only count a repeat toward
-# the rule if it starts within this many words of the previous one -
-# i.e. actually adjacent, not merely present twice.
+# a 2+-word rule if it starts within this many words of the previous one
+# - i.e. actually adjacent, not merely present twice.
 MAX_REPEAT_GAP_WORDS = 3
 
 # Reject when whisper's average token probability is below this. Real
@@ -104,7 +110,7 @@ def audio_ctx_for(n_samples: int) -> int:
 
 def is_repetition_loop(text: str) -> bool:
     words = WORD_RE.findall(text.lower())
-    for min_words, times in REPEAT_RULES:
+    for min_words, times, max_gap in REPEAT_RULES:
         for n in range(min_words, len(words) // times + 1):
             last_start = {}
             run = {}
@@ -114,7 +120,7 @@ def is_repetition_loop(text: str) -> bool:
                 # Adjacent (or near-adjacent) repeat: continue the run;
                 # otherwise it's just the same phrase recurring far away
                 # in otherwise-normal speech - start over at 1.
-                run[phrase] = run.get(phrase, 0) + 1 if prev is not None and i - prev <= n + MAX_REPEAT_GAP_WORDS else 1
+                run[phrase] = run.get(phrase, 0) + 1 if prev is not None and i - prev <= n + max_gap else 1
                 last_start[phrase] = i
                 if run[phrase] >= times:
                     return True

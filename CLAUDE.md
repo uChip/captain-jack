@@ -446,6 +446,20 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     exception was left unchanged and confirmed still doing its job: a
     requested mystery story ran well over a hundred words and that was
     the right call, not a bug. See `docs/log.md`'s 4.4 history.
+36. A fourth STT repeat-loop gap found and fixed, 2026-10-12, from the
+    same session that confirmed item 35: ambient household noise (someone
+    else talking nearby, not Chip) got hallucinated into "No? No? No? No?
+    No?" - a single word repeated rapidly, too short (5 words) for either
+    of `is_repetition_loop()`'s existing rules to ever fire (both need
+    6+ words). Added a third rule catching 4+ back-to-back repeats of a
+    single word, kept to zero gap (unlike the looser few-word tolerance
+    on the 2/3-word rules) so it doesn't false-positive on common words
+    ("the", "a") recurring naturally in long sentences. The other
+    hallucination in that same stretch ("Can you tell her to say?") is
+    the already-known, accepted gap - a plausible-sounding sentence from
+    non-Jack-directed speech, not a repetition-rule miss, and not
+    something speaker-ID-less STT can tell apart from real speech (see
+    spec 4.2's "Not covered"). See `docs/log.md`'s 4.2 history.
 
 ## Work list — split by hardware dependency
 

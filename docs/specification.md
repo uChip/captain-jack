@@ -632,9 +632,16 @@ itself is rejected: a 2+-word phrase three times, or a 3+-word phrase
 twice, but (fixed 2026-10-12, see log.md) only when the repeats are
 adjacent (within a few words of each other) — true loops repeat
 back-to-back, but a long, legitimate utterance can innocently reuse a
-short phrase once, far apart, and shouldn't be rejected for it. That
-catches both retry loops and Whisper's habit of filling gibberish with
-an echoed guess ("Are you a wick, Jack? Are you a wick,").
+short phrase once, far apart, and shouldn't be rejected for it. A third
+rule (added 2026-10-12) catches a single word repeated 4+ times
+back-to-back with no gap at all — the 2/3-word rules can't fire on fewer
+than 6 words, so a short hallucinated "No? No? No? No? No?" (5 words)
+slipped past both; the zero-gap requirement (stricter than the other two
+rules' few-word tolerance) keeps it from catching ordinary long
+sentences where a common word like "the" legitimately recurs every few
+words. That catches retry loops, Whisper's habit of filling gibberish
+with an echoed guess ("Are you a wick, Jack? Are you a wick,"), and
+rapid single-word hallucination storms.
 
 **A fresh Model per utterance — fixed 2026-10-12**: `STT` builds a new
 `pywhispercpp.model.Model` for every `transcribe()` call rather than

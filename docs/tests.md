@@ -170,37 +170,42 @@ when it was last confirmed passing.
   of retry loops, gibberish echoes, and very low confidence —
   `stt.rejection_reason()` — plus (added 2026-10-12) that `STT` builds a
   fresh whisper.cpp Model per `transcribe()` call rather than reusing one
-  for the process's life, and that a repeat-loop hallucination triggered
+  for the process's life, that a repeat-loop hallucination triggered
   by the household-names `initial_prompt` is recovered by one no-prompt
-  retry rather than surfacing as a reject (both real bugs found live —
-  see log.md's 4.2 history).
+  retry rather than surfacing as a reject, and that a single word
+  repeated rapidly (too short an utterance for the 2/3-word rules to
+  ever fire) is still caught (all real bugs found live — see log.md's
+  4.2 history).
 - **Script**: [`../tests/test_stt.py`](../tests/test_stt.py)
 - **Run**: `venv/bin/python tests/test_stt.py` (automatic, no hardware;
   `check_fresh_model_per_transcribe` and `check_prompt_repetition_retried`
   load the real tiny.en model, the latter against a committed real
   recording, `tests/data/thank_you_jack_ch1.wav`).
-- **Expected**: prints `PASS: 10 real transcripts accepted, 7
+- **Expected**: prints `PASS: 11 real transcripts accepted, 8
   loops/gibberish rejected, STT builds a fresh Model per transcribe()
   call, and a prompt-triggered repeat-loop is recovered by retrying
   without the prompt` and exits 0. Inputs are real transcripts and
   probabilities from the 2026-09-25 and 2026-10-12 live runs: Chip's
   clear speech (including a long utterance that legitimately reuses a
-  short phrase once, far apart) must pass; the "Where is the anchor?"
-  x5 loop, two echoed gibberish guesses, "P" (0.02), and a genuine
-  back-to-back repeat ("That's all for now, Jack." x2) must be rejected;
-  three `transcribe()` calls through one `STT` must construct three real
-  `Model` instances, not one; and the real recording (clean with no
-  prompt, a repeat-loop with the household-names prompt active) must
-  come back accepted.
+  short phrase once, far apart, and one using "the" four times) must
+  pass; the "Where is the anchor?" x5 loop, two echoed gibberish guesses,
+  "P" (0.02), a genuine back-to-back repeat ("That's all for now,
+  Jack." x2), and a hallucinated single-word storm ("No? No? No? No?
+  No?") must be rejected; three `transcribe()` calls through one `STT`
+  must construct three real `Model` instances, not one; and the real
+  recording (clean with no prompt, a repeat-loop with the household-names
+  prompt active) must come back accepted.
 - **Last confirmed passing**: 2026-10-12 (confirmed via `git stash` that
   the adjacency-aware repetition check, the fresh-Model-per-call fix,
-  and the no-prompt retry are each independently necessary — the
-  Preamble case, the Model-count check, and the real recording each fail
-  without their respective fix).
+  the no-prompt retry, and the single-word rule are each independently
+  necessary — the Preamble case, the Model-count check, the real
+  recording, and the "No?" case each fail without their respective fix).
 - **Not covered**: gibberish that comes out as a single plausible,
-  confident sentence ("is good word") — no local rule catches that yet;
-  `no_speech_thold`/`logprob_thold`/`entropy_thold` calibration against
-  real household audio (spec 4.2's still-deferred numbers).
+  confident sentence ("is good word") — no local rule catches that yet
+  (this is what hallucinated "Can you tell her to say?" out of ambient
+  noise, 2026-10-12 - a known, accepted gap, not a repetition-rule
+  miss); `no_speech_thold`/`logprob_thold`/`entropy_thold` calibration
+  against real household audio (spec 4.2's still-deferred numbers).
 
 ### STT model comparison (manual, diagnostic)
 

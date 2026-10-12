@@ -49,6 +49,9 @@ ACCEPT = [   # (transcript, whisper's average token probability)
      "justice, ensure domestic tranquility, and provide for the common defense, promote the "
      "general welfare, and secure the blessings of liberty to ourselves and our posterity, do "
      "ordain and establish this constitution for the United States.", 0.74),
+    # 2026-10-12, real session: "the" recurring every few words in an
+    # otherwise ordinary sentence - must not trip the new single-word rule.
+    ("Please go to the store and get the milk for the dog and the cat near the house.", 0.65),
 ]
 REJECT = [
     ("what is the anchor? Where is the anchor? Where is the anchor? Where is the anchor? "
@@ -61,6 +64,12 @@ REJECT = [
     # 2026-10-12, real session: Chip repeating himself back-to-back in one
     # utterance - adjacent, so still correctly a "repetition" reject.
     ("That's all for now, Jack. That's all for now, Jack.", 0.72, "repetition"),
+    # 2026-10-12, real session: ambient household noise (someone else
+    # talking nearby, per Chip) hallucinated into a single word repeated
+    # rapidly - the old rules couldn't fire on only 5 words at all
+    # (needed 6+ for a 2-word phrase x3, or len(words)//times to reach
+    # min_words either way) - a real gap, not just this fix's own test.
+    ("No? No? No? No? No?", 0.68, "repetition"),
 ]
 
 

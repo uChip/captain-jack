@@ -683,6 +683,30 @@ today?") - well within the error rate the project has always expected
 from tiny.en, not a new issue. All three fixes from this day considered
 closed.
 
+**A fourth bug, same day, from a live test of the raised reply-length
+target (4.4, below)**: a run with no one else around still hallucinated
+two utterances Chip never spoke ("Can you tell her to say?" and "No? No?
+No? No? No?") - he confirmed it was ambient noise, not digital silence
+(someone else nearby talking/walking by, per his own account a couple of
+exchanges later: "Oh, that was just somebody else talking, walking
+by."). This is the known, already-documented gap (gibberish/other-room
+speech that comes out as a plausible, confident sentence - no rule
+catches that, and no-speaker-ID is itself an already-made design
+decision, not revisited here). But the second hallucination, "No? No?
+No? No? No?", exposed a real, separate gap in `is_repetition_loop()`:
+its two rules (a 2-word phrase 3 times, or a 3-word phrase twice) can
+only ever fire when the text has at least `min_words * times` words - 6
+for either rule - so a 5-word single-word-repeated utterance like this
+one couldn't trigger *either* rule, no matter how blatant the repeat.
+Added a third rule: a single word repeated 4+ times, but kept to zero
+gap (truly back-to-back, no words between) rather than the 2/3-word
+rules' looser few-word tolerance - common words ("the", "a") legitimately
+recur every few words in ordinary long sentences, and a looser gap on
+a 1-word rule would false-positive on those (confirmed against a test
+sentence using "the" four times). Added both the repro and the
+ordinary-sentence check to `tests/test_stt.py`; confirmed via `git
+stash` that the repro fails without the fix.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household
