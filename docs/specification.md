@@ -718,7 +718,7 @@ is called by the Coordinator thread (see
 
 ### 4.4 Persona and Identity Prompt
 
-History: [log.md#issue-2](log.md#issue-2).
+History: [log.md#issue-2](log.md#issue-2), [log.md#44-persona-and-identity-prompt](log.md#44-persona-and-identity-prompt).
 
 **Status: Implemented, including the full persona design** —
 `memory/identity.md`'s `## Persona` section, encoding the backstory,

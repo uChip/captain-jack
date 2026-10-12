@@ -2142,3 +2142,20 @@ there: wake from Off Watch (0.81), sleep phrase from Off Watch (0.93,
 machine multiple times cleanly. Closes out the wake-word spotter's live
 validation; the keyboard stand-ins remain available permanently
 alongside it (2026-10-11 decision, see CLAUDE.md).
+
+### 4.4 Persona and Identity Prompt
+
+**Reply-length target raised, 2026-10-12**: live conversation runs
+(both of 2026-10-12's STT confirmation sessions) consistently ran
+25-45 words per reply against `identity.md`'s "about twenty words"
+target - Chip's read, after getting used to Jack's cadence, was that
+they don't actually feel overly long, but could stand to come down a
+little. Measured the ordinary-conversation replies from one full
+session: mean 31 words, range 19-36. Raised the target from twenty to
+thirty words - close enough to current behavior to be realistic, with
+still some room to trim the longest replies. The existing "unless
+someone asks for a story, a recipe, or more detail" exception (already
+in `identity.md`, unchanged) was confirmed live the same day: a reply
+to "do you have a short mystery story for me?" ran well over a hundred
+words and Chip didn't want it shortened - the exception, not the
+baseline, is what should govern a reply like that.

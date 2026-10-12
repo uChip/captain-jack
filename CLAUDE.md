@@ -436,6 +436,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     tiny.en (item 9) as the right call - on par with base.en's accuracy
     at 2-2.5x the speed. See `docs/log.md`'s 4.2 history for the full
     diagnosis.
+35. Reply-length target raised, 2026-10-12: `identity.md`'s "Speaking
+    aloud" target moved from about twenty words to about thirty, based on
+    measuring real live replies (mean 31 words, range 19-36, across a
+    full ordinary conversation) - Chip's read was that replies don't feel
+    overly long once you're used to Jack's cadence, but could still come
+    down a little, so the new target sits close to current behavior with
+    some room to trim. The existing "unless someone asks for a story..."
+    exception was left unchanged and confirmed still doing its job: a
+    requested mystery story ran well over a hundred words and that was
+    the right call, not a bug. See `docs/log.md`'s 4.4 history.
 
 ## Work list — split by hardware dependency
 
@@ -501,13 +511,15 @@ worked in parallel if priorities change.
      On Watch to support this).
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
-   - Open refinements from the live conversation runs: replies still
-     often 25-45 words against a 20-word target; stream Haiku's reply
-     into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
-     to Haiku marked unclear (see spec 4.2). The frequent STT
-     repeats/garbling flagged after the 2026-10-11 live session turned
-     out to be three real bugs, not noise - all root-caused and fixed
-     2026-10-12, see "Done so far" item 34.
+   - Open refinements from the live conversation runs: `identity.md`'s
+     reply-length target raised from twenty to thirty words, 2026-10-12
+     (measured real replies averaging 31 words; see "Done so far" item 35)
+     - still worth streaming Haiku's reply into TTS to cut the 2.6-3.8s
+     delay, and passing low-confidence transcripts to Haiku marked
+     unclear (see spec 4.2). The frequent STT repeats/garbling flagged
+     after the 2026-10-11 live session turned out to be three real bugs,
+     not noise - all root-caused and fixed 2026-10-12, see "Done so far"
+     item 34.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
