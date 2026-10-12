@@ -640,6 +640,38 @@ multi-threaded (`N_THREADS=4`) floating-point reduction-order jitter,
 not the across-utterance drift above, and far too small-scale to explain
 the original complaint. Left alone.
 
+**A third bug, same day, found from a second live session in a quiet
+room**: with the two fixes above live, a fresh recorded session
+(`coordinator.py --scratch-memory --save`, quiet house, no background
+noise) still rejected two of eight utterances as "repetition" - Chip
+reported he hadn't actually repeated himself (one was "Thank you, Jack.
+That's all for now." - two sentences, correctly split into two separate
+utterances by VAD's own end-silence gap, not a repeat at all). Checked
+the saved `.wav`: `STT("tiny.en").transcribe()` on the exact bytes, no
+prompt, gave the clean, correct "Thank you, Jack."; with the real
+household-names `initial_prompt` (`names_prompt()`, passed to every call
+for the session by `coordinator.py`), the identical audio deterministically
+decoded as "Thank you Jack, thank you Jack, thank you Jack, thank" - a
+genuine whisper.cpp repeat-loop hallucination, not a repeated statement.
+Narrowed further: it isn't about the prompt's *wording* - a completely
+unrelated prompt ("The weather today is sunny...") or even a single word
+("Hello.") reproduced the same loop on the same audio just as reliably;
+only an empty/`None` prompt avoided it. So *any* non-empty
+`initial_prompt` can push whisper.cpp into a repeat-loop on some short
+utterances, even though the same prompt measurably raises confidence on
+most ordinary speech (confirmed on the other 6 of 8 utterances in this
+session: every one scored higher with the prompt than without it). Since
+dropping the prompt outright would lose that spelling/confidence benefit
+for the common case, `STT.transcribe()` now retries once without the
+prompt specifically when (and only when) the first attempt rejects as
+"repetition" - a second fresh Model, same ~0.08-0.1s cost, only paid on
+an already-rejected utterance. Confirmed recovering the real repro
+(`tests/data/thank_you_jack_ch1.wav`, Chip's own saved "Thank you,
+Jack." - committed as a fixture, same precedent as
+`quick_brown_fox_ch1.wav`): `check_prompt_repetition_retried()` in
+`tests/test_stt.py`, confirmed via `git stash` to fail (surfaces the
+reject) without the fix and pass with it.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

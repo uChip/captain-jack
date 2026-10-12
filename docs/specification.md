@@ -647,6 +647,19 @@ different attempts within one long-running session. A fresh Model costs
 about 0.08-0.1s to construct (either model size, Pi 5), trivial against
 decode time. See log.md's 4.2 history for the full diagnosis.
 
+**The household-names prompt can itself trigger a repeat-loop — found
+and fixed 2026-10-12**: the names-spelling hint passed as whisper.cpp's
+`initial_prompt` (below) measurably raises confidence on ordinary
+speech, but on some short utterances pushes the decoder into a genuine
+repeat-loop hallucination instead — reproduced live, deterministically,
+and confirmed it's any non-empty prompt (not specific wording) that
+triggers it, on audio that decodes perfectly cleanly with no prompt at
+all. Rather than drop the prompt (losing its benefit on the common
+case), `STT.transcribe()` retries once without it specifically when the
+first attempt is rejected as a repetition loop — another fresh Model,
+same trivial cost, paid only on an already-rejected utterance. See
+log.md's 4.2 history.
+
 **Gibberish — decided 2026-09-25**: Whisper turns mumbles into plausible
 words, and its average token probability doesn't separate them from
 speech (gibberish scored 0.55 and 0.69; clear speech 0.60–0.80 with the

@@ -4,16 +4,21 @@ Automatic, no hardware: checks stt.rejection_reason() against real
 transcripts from the 2026-09-25 live runs - Chip's clear speech must
 pass; Whisper's retry loop and its echoed guesses at gibberish must be
 rejected. (The confidence values are the ones Whisper actually reported.)
-Also loads the real tiny.en model to confirm a regression found live
+Also loads the real tiny.en model to confirm two regressions found live
 2026-10-12: STT must build a fresh whisper.cpp Model per transcribe()
 call, not reuse one for the process's whole life - a reused Model's
 decode drifted (sometimes wrongly) depending on what it had already
-transcribed. See docs/log.md, 4.2.
+transcribed; and a real repeat-loop hallucination triggered by the
+household-names initial_prompt (tests/data/thank_you_jack_ch1.wav, a
+real short recording of Chip saying "Thank you, Jack.") must be
+recovered by one no-prompt retry rather than surfacing as a reject. See
+docs/log.md, 4.2.
 
 Run: venv/bin/python tests/test_stt.py
 """
 
 import sys
+import wave
 from pathlib import Path
 
 import numpy as np
@@ -21,6 +26,9 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import stt as sttmod  # noqa: E402
 from stt import STT, rejection_reason  # noqa: E402
+
+THANK_YOU_JACK = Path(__file__).parent / "data" / "thank_you_jack_ch1.wav"
+PROMPT = "Captain Jack the parrot, talking with Chip, Kath and Liz."
 
 NAN = float("nan")
 
@@ -95,14 +103,29 @@ def check_fresh_model_per_transcribe():
     return []
 
 
+def check_prompt_repetition_retried():
+    """A real recording that's clean with no prompt but a repeat-loop
+    hallucination with the (any) household-names prompt active - STT
+    must retry without the prompt and recover it, not reject it."""
+    with wave.open(str(THANK_YOU_JACK)) as w:
+        samples = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+    t = STT("tiny.en", PROMPT).transcribe(samples)
+    if not t.accepted or "thank you" not in t.text.lower():
+        return [f"expected the prompt-triggered repeat-loop to be recovered, got "
+                f"{'REJECT ' + t.reject if not t.accepted else t.text!r}"]
+    return []
+
+
 def main():
-    errors = check_rejection_reason() + check_fresh_model_per_transcribe()
+    errors = (check_rejection_reason() + check_fresh_model_per_transcribe()
+              + check_prompt_repetition_retried())
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print(f"PASS: {len(ACCEPT)} real transcripts accepted, {len(REJECT)} loops/gibberish rejected, "
-          f"and STT builds a fresh Model per transcribe() call")
+          f"STT builds a fresh Model per transcribe() call, and a prompt-triggered repeat-loop is "
+          f"recovered by retrying without the prompt")
 
 
 if __name__ == "__main__":

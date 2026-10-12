@@ -147,7 +147,7 @@ class STT:
         self.prompt = prompt
         self.model_path = str(MODELS_DIR / f"ggml-{model}.bin")
 
-    def _new_model(self) -> Model:
+    def _new_model(self, prompt) -> Model:
         # A fresh Model per utterance, not one kept for the process's whole
         # life - found live 2026-10-12 that whisper.cpp's decode drifts
         # across calls on a reused Model (no_context=True only disables the
@@ -168,14 +168,14 @@ class STT:
             logprob_thold=LOGPROB_THOLD,
             entropy_thold=ENTROPY_THOLD,
             temperature_inc=TEMPERATURE_INC,
-            **({"initial_prompt": self.prompt} if self.prompt else {}),   # binding rejects None
+            **({"initial_prompt": prompt} if prompt else {}),   # binding rejects None
         )
 
-    def transcribe(self, samples: np.ndarray) -> Transcript:
+    def _decode(self, samples: np.ndarray, prompt) -> Transcript:
         audio = samples.astype(np.float32) / 32768
         start = time.monotonic()
         audio_s = len(samples) / RATE
-        segments = self._new_model().transcribe(
+        segments = self._new_model(prompt).transcribe(
             audio, audio_ctx=audio_ctx_for(len(samples)), extract_probability=True,
             max_tokens=max(TOKENS_MIN, math.ceil(audio_s * TOKENS_PER_SECOND)))
         stt_s = time.monotonic() - start
@@ -186,6 +186,24 @@ class STT:
         text = " ".join(ANNOTATION_RE.sub(" ", raw).split())
         reject = rejection_reason(text, prob)
         return Transcript("" if reject else text, not reject, raw, audio_s, stt_s, prob, reject)
+
+    def transcribe(self, samples: np.ndarray) -> Transcript:
+        t = self._decode(samples, self.prompt)
+        if t.reject != "repetition" or not self.prompt:
+            return t
+        # Found live 2026-10-12: the household-names initial_prompt (any
+        # non-empty initial_prompt, in fact - not specific to its wording)
+        # measurably raises confidence on ordinary speech, but on some
+        # short utterances pushes whisper.cpp into exactly the kind of
+        # repeat-loop hallucination the prompt was never meant to cause
+        # ("Thank you, Jack." -> "Thank you Jack, thank you Jack, thank you
+        # Jack, thank" - same audio, clean without the prompt). One cheap
+        # retry without it (a fresh Model either way, ~0.08-0.1s) recovers
+        # these rather than making the household repeat themselves for a
+        # prompt-only artifact. See docs/log.md, 4.2.
+        retry = self._decode(samples, None)
+        retry.stt_s += t.stt_s
+        return retry if retry.reject != "repetition" else t
 
 
 def load_wav(path) -> np.ndarray:

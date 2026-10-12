@@ -407,24 +407,35 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
 34. STT's "frequently repeated and garbled" reports root-caused and
     fixed, 2026-10-12: built `compare_stt.py` (reads a `coordinator.py
     --save DIR` recording and runs named Whisper models side by side) and
-    used it against a real recorded session to find two real bugs, not an
-    accuracy/noise problem as first suspected. First: `STT` reused one
-    whisper.cpp Model for the whole process life; a reused Model's decode
-    drifts across calls (`no_context=True` only disables *text* context,
-    not whatever else carries between decodes) - the same phrase came
-    back as different, sometimes wrong, text from one attempt to the
-    next on identical audio. Fixed by building a fresh Model per
-    `transcribe()` call (~0.08-0.1s, trivial against decode time).
-    Second: `is_repetition_loop()`'s "same short phrase twice" rule had
-    no distance limit, false-rejecting a long, legitimate utterance that
+    used it against two real recorded sessions (one noisy, one quiet) to
+    find three real bugs, not an accuracy/noise problem as first
+    suspected. First: `STT` reused one whisper.cpp Model for the whole
+    process life; a reused Model's decode drifts across calls
+    (`no_context=True` only disables *text* context, not whatever else
+    carries between decodes) - the same phrase came back as different,
+    sometimes wrong, text from one attempt to the next on identical
+    audio. Fixed by building a fresh Model per `transcribe()` call
+    (~0.08-0.1s, trivial against decode time). Second:
+    `is_repetition_loop()`'s "same short phrase twice" rule had no
+    distance limit, false-rejecting a long, legitimate utterance that
     innocently reused a phrase once, far apart (a Gettysburg/Preamble
     quote test) - fixed by requiring the repeats be adjacent, the way
-    every actual hallucination loop is. Both fixes verified live against
-    the same recorded session and via `git stash` regression tests
-    (`tests/test_stt.py`). With both fixed, re-ran the tiny-vs-base
-    comparison on real noisy-room audio and confirmed tiny.en (item 9) as
-    the right call - on par with base.en's accuracy at 2-2.5x the speed.
-    See `docs/log.md`'s 4.2 history for the full diagnosis.
+    every actual hallucination loop is. Third, found from a second
+    session in a quiet room (no background noise to blame): the
+    household-names spelling-hint prompt (`names_prompt()`) itself can
+    push whisper.cpp into a genuine repeat-loop hallucination on some
+    short utterances - confirmed it's any non-empty prompt, not its
+    wording, and that the same prompt measurably helps confidence on
+    ordinary speech otherwise, so `STT.transcribe()` now retries once
+    without the prompt specifically when the first attempt rejects as a
+    repetition loop. All three fixes verified live against real recorded
+    audio and via `git stash` regression tests (`tests/test_stt.py`,
+    including a new committed fixture,
+    `tests/data/thank_you_jack_ch1.wav`). With all three fixed, re-ran
+    the tiny-vs-base comparison on real noisy-room audio and confirmed
+    tiny.en (item 9) as the right call - on par with base.en's accuracy
+    at 2-2.5x the speed. See `docs/log.md`'s 4.2 history for the full
+    diagnosis.
 
 ## Work list — split by hardware dependency
 
