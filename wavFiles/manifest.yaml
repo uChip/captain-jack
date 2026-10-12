@@ -929,6 +929,18 @@ clips:
     attribution: Claude as Captain Jack
     engine: kokoro-pi/am_santa
     rendered: 2026-10-07
+  - file: TooSoonOld.wav
+    text: "We get too soon old, and too late smart."
+    category: saying
+    attribution: German Traditional
+    engine: 
+    rendered: 
+  - file: WorthyOfHerLove.wav
+    text: "Be the man worthy of her love."
+    category: saying
+    attribution: Douglas Feyereisen
+    engine: 
+    rendered: 
 
   # --- Asleep: sl-settle-to-sleep's paired lines (gesture-catalog.yaml
   # wavs.asleep; text from docs/specification.md 4.10, brainstormed
