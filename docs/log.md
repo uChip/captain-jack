@@ -574,6 +574,72 @@ being broken rather than "didn't hear that." Decided the reject path
 needs an explicit, in-character prompt rather than silence — the same
 kind of canned-response pattern already used for idle/Asleep clips.
 
+**A reused whisper.cpp Model drifts across calls, found and fixed
+2026-10-12**: the 2026-10-11 live sessions' "text output is frequently
+repeated and often garbled" complaint (same phrase coming out as totally
+different, wrong text on different attempts) turned out not to be real
+accuracy/noise at all. `coordinator.py` built one `STT` (and so one
+underlying `pywhispercpp.model.Model`) at startup and reused it for every
+utterance in the session, same as `listener.py`'s standalone mode and
+this session's own first draft of `compare_stt.py`. `no_context=True`
+only disables *text* context carryover between calls - it says nothing
+about the Model's internal decode buffers. Proven with a real recorded
+session (`coordinator.py --scratch-memory --save stt_samples/session1`,
+seven utterances, a mix of short test phrases and two long quoted
+passages): transcribing each saved `.wav` through one persistent `STT`,
+in order, reproduced real flip-flops seen live - the same short phrase
+("That's all for now, Jack.") came back with a different name each
+re-run of the whole sequence, and one utterance's probability (0.26 vs.
+0.30, straddling `PROB_FLOOR`) swung it between accepted and rejected
+from one run to the next on identical audio. Re-running the exact same
+`.wav` files through a *fresh* `STT("tiny.en")` per utterance gave fully
+deterministic, consistently-correct results every time, confirming the
+reused Model (not the audio or the model size) was the cause. A fresh
+Model costs about 0.08-0.1s to construct (both tiny.en and base.en, Pi
+5) - trivial against decode time (0.35-2.5s on this session's clips) - so
+`stt.py`'s `STT.transcribe()` now builds one per call instead of once in
+`__init__`. `compare_stt.py` (new - a small diagnostic tool, not part of
+the automatic suite, reads a `--save` directory and runs named models
+side by side for a human to judge against what was actually said) had
+the same bug in its first draft and was fixed the same way. Regression
+test (`tests/test_stt.py`'s `check_fresh_model_per_transcribe`) counts
+real `Model()` constructions against `transcribe()` calls through one
+`STT` instance; confirmed via `git stash` to fail (1 Model built for 3
+calls) without the fix and pass with it.
+
+Same recorded session also surfaced a second, independent bug: the
+24.8s Preamble-quoting utterance (correctly transcribed, just one word
+off - "do ordain" came out "Dour dein") was rejected as "repetition"
+anyway. `is_repetition_loop()`'s rule (a 3+-word phrase appearing twice)
+checked *anywhere* in the text, with no limit on distance - true
+hallucination loops (every existing example, both the 2026-09-25 retry
+loop and gibberish-echo cases, and this session's own
+"That's all for now, Jack. That's all for now, Jack.") repeat back-to-
+back, but a long, legitimate utterance can innocently reuse a short
+phrase once, far apart ("the United States" at the Preamble's start and
+its end). Fixed by only counting a repeat if it starts within
+`n + MAX_REPEAT_GAP_WORDS` (3) words of the phrase's previous occurrence
+- true loops still trigger (their repeats are adjacent), but a single
+distant reuse no longer does. Added the Preamble text as a new `ACCEPT`
+case and the live "That's all for now, Jack." x2 case as a new `REJECT`
+case in `tests/test_stt.py`; confirmed via the same stash round-trip
+that the Preamble case fails (false "repetition" reject) without the fix
+and passes with it.
+
+Net result, same recorded session re-run with both fixes: tiny.en and
+base.en now agree almost everywhere and both are fully reproducible run
+to run - the open "tiny vs. base" question (above, and
+[CLAUDE.md](../CLAUDE.md) "Done so far" item 18) is answered by this
+real, noisy-room data: tiny.en's accuracy is on par with base.en here
+while running 2-2.5x faster, so tiny.en stays the default. One
+remaining, much smaller-scale wrinkle: even a single fresh Model's
+decode isn't bit-for-bit identical process-to-process on the same audio
+(an article swapped, "The" vs. "It", in `tests/test_listener.py`'s own
+fixture clip across separate runs) - almost certainly ordinary
+multi-threaded (`N_THREADS=4`) floating-point reduction-order jitter,
+not the across-utterance drift above, and far too small-scale to explain
+the original complaint. Left alone.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

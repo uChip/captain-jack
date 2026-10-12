@@ -168,18 +168,52 @@ when it was last confirmed passing.
 
 - **Covers**: [STT](specification.md#42-speech-to-text-stt)'s rejection
   of retry loops, gibberish echoes, and very low confidence —
-  `stt.rejection_reason()`.
+  `stt.rejection_reason()` — plus (added 2026-10-12) that `STT` builds a
+  fresh whisper.cpp Model per `transcribe()` call rather than reusing one
+  for the process's life (a real bug found live — see log.md's 4.2
+  history).
 - **Script**: [`../tests/test_stt.py`](../tests/test_stt.py)
-- **Run**: `venv/bin/python tests/test_stt.py` (automatic, no hardware,
-  no model).
-- **Expected**: prints `PASS: 9 real transcripts accepted, 6
-  loops/gibberish rejected` and exits 0. Inputs are real transcripts and
-  probabilities from the 2026-09-25 live runs: Chip's clear speech must
-  pass; the "Where is the anchor?" x5 loop, two echoed gibberish guesses
-  and "P" (0.02) must be rejected.
-- **Last confirmed passing**: 2026-09-25.
+- **Run**: `venv/bin/python tests/test_stt.py` (automatic, no hardware;
+  `check_fresh_model_per_transcribe` loads the real tiny.en model).
+- **Expected**: prints `PASS: 10 real transcripts accepted, 7
+  loops/gibberish rejected, and STT builds a fresh Model per
+  transcribe() call` and exits 0. Inputs are real transcripts and
+  probabilities from the 2026-09-25 and 2026-10-12 live runs: Chip's
+  clear speech (including a long utterance that legitimately reuses a
+  short phrase once, far apart) must pass; the "Where is the anchor?"
+  x5 loop, two echoed gibberish guesses, "P" (0.02), and a genuine
+  back-to-back repeat ("That's all for now, Jack." x2) must be rejected;
+  and three `transcribe()` calls through one `STT` must construct three
+  real `Model` instances, not one.
+- **Last confirmed passing**: 2026-10-12 (confirmed via `git stash` that
+  both the adjacency-aware repetition check and the fresh-Model-per-call
+  fix are each necessary — the Preamble case and the Model-count check
+  fail without them).
 - **Not covered**: gibberish that comes out as a single plausible,
-  confident sentence ("is good word") — no local rule catches that yet.
+  confident sentence ("is good word") — no local rule catches that yet;
+  `no_speech_thold`/`logprob_thold`/`entropy_thold` calibration against
+  real household audio (spec 4.2's still-deferred numbers).
+
+### STT model comparison (manual, diagnostic)
+
+- **Covers**: the tiny-vs-base choice
+  ([STT](specification.md#42-speech-to-text-stt)) — `compare_stt.py`, not
+  part of the automatic suite (no pass/fail verdict, needs a human who
+  knows what was actually said).
+- **Script**: [`../compare_stt.py`](../compare_stt.py)
+- **Run**: `venv/bin/python coordinator.py --scratch-memory --save
+  stt_samples/SESSION` to record real utterances (gitignored — real
+  household voices), then `venv/bin/python compare_stt.py
+  stt_samples/SESSION [--models tiny.en,base.en]`.
+- **Expected**: prints each utterance's audio length, then each named
+  model's confidence, time, and transcript/rejection side by side.
+- **Last confirmed passing**: 2026-10-12, live — a 7-utterance recorded
+  session (`stt_samples/session1`, not committed) showed tiny.en and
+  base.en agreeing almost everywhere once both the Model-reuse and
+  repetition-adjacency bugs above were fixed, tiny.en at 2-2.5x the
+  speed — settled the tiny-vs-base question for real, noisy-room audio.
+- **Not covered**: anything beyond manual eyeballing — this tool makes no
+  accept/reject decision of its own.
 
 ### TTS thread
 

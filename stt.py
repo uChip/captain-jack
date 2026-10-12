@@ -66,6 +66,15 @@ TOKENS_MIN = 10
 # speech.
 REPEAT_RULES = [(2, 3), (3, 2)]
 
+# A loop's repeats are back-to-back (whisper.cpp echoing its own last
+# words); found live 2026-10-12 that checking for the same phrase
+# *anywhere* in the text false-positives on long, legitimate utterances
+# that happen to reuse a short phrase once far apart (the Preamble's "the
+# United States" at the start and the end). Only count a repeat toward
+# the rule if it starts within this many words of the previous one -
+# i.e. actually adjacent, not merely present twice.
+MAX_REPEAT_GAP_WORDS = 3
+
 # Reject when whisper's average token probability is below this. Real
 # speech scored 0.52-0.76 in the live runs, but so did most gibberish
 # (0.55, 0.69), so this only catches the extreme cases ("P" at 0.02) -
@@ -97,11 +106,17 @@ def is_repetition_loop(text: str) -> bool:
     words = WORD_RE.findall(text.lower())
     for min_words, times in REPEAT_RULES:
         for n in range(min_words, len(words) // times + 1):
-            counts = {}
+            last_start = {}
+            run = {}
             for i in range(len(words) - n + 1):
                 phrase = tuple(words[i:i + n])
-                counts[phrase] = counts.get(phrase, 0) + 1
-                if counts[phrase] >= times:
+                prev = last_start.get(phrase)
+                # Adjacent (or near-adjacent) repeat: continue the run;
+                # otherwise it's just the same phrase recurring far away
+                # in otherwise-normal speech - start over at 1.
+                run[phrase] = run.get(phrase, 0) + 1 if prev is not None and i - prev <= n + MAX_REPEAT_GAP_WORDS else 1
+                last_start[phrase] = i
+                if run[phrase] >= times:
                     return True
     return False
 
@@ -130,8 +145,20 @@ class STT:
     def __init__(self, model=DEFAULT_MODEL, prompt=None):
         self.model_name = model
         self.prompt = prompt
-        self.model = Model(
-            str(MODELS_DIR / f"ggml-{model}.bin"),
+        self.model_path = str(MODELS_DIR / f"ggml-{model}.bin")
+
+    def _new_model(self) -> Model:
+        # A fresh Model per utterance, not one kept for the process's whole
+        # life - found live 2026-10-12 that whisper.cpp's decode drifts
+        # across calls on a reused Model (no_context=True only disables the
+        # *text* context carryover): identical audio transcribed correctly
+        # right after construction, then differently - sometimes wrongly -
+        # once the same Model had already decoded other utterances,
+        # including flipping across the confidence floor. A fresh Model
+        # only costs about 0.08-0.1s to load (both tiny.en and base.en),
+        # trivial against decode time. See docs/log.md, 4.2.
+        return Model(
+            self.model_path,
             redirect_whispercpp_logs_to=None,
             n_threads=N_THREADS,
             print_realtime=False, print_progress=False, print_timestamps=False,
@@ -141,14 +168,14 @@ class STT:
             logprob_thold=LOGPROB_THOLD,
             entropy_thold=ENTROPY_THOLD,
             temperature_inc=TEMPERATURE_INC,
-            **({"initial_prompt": prompt} if prompt else {}),   # binding rejects None
+            **({"initial_prompt": self.prompt} if self.prompt else {}),   # binding rejects None
         )
 
     def transcribe(self, samples: np.ndarray) -> Transcript:
         audio = samples.astype(np.float32) / 32768
         start = time.monotonic()
         audio_s = len(samples) / RATE
-        segments = self.model.transcribe(
+        segments = self._new_model().transcribe(
             audio, audio_ctx=audio_ctx_for(len(samples)), extract_probability=True,
             max_tokens=max(TOKENS_MIN, math.ceil(audio_s * TOKENS_PER_SECOND)))
         stt_s = time.monotonic() - start

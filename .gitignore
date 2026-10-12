@@ -219,3 +219,8 @@ __marimo__/
 
 # Downloaded model files (see CLAUDE.md "Running it")
 models/
+
+# Recorded household utterances (coordinator.py/listener.py --save) - real
+# voices, never committed; compare_stt.py reads them in place for tiny-vs-
+# base analysis.
+stt_samples/

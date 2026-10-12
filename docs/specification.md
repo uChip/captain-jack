@@ -548,16 +548,15 @@ History: [log.md#issue-16](log.md#issue-16), [log.md#42-speech-to-text-stt](log.
 
 **Status: Implemented** (2026-09-25) — `stt.py` (whisper.cpp via the
 `pywhispercpp` binding, English-only `.en` models) and `listener.py`
-(Silero VAD end-pointing). `tiny.en` is the provisional default: on a
-first live sample of five utterances it matched `base.en` on all but one
-word, at 2.5–3.5× the speed (about 0.15s per second of speech). Final
-tiny-vs-base call still waits on more voices and noisier conditions.
+(Silero VAD end-pointing). `tiny.en` is the default, now a settled choice
+(2026-10-12): a real noisy-room recorded session (see
+[log.md's 4.2 history](log.md#42-speech-to-text-stt)) showed tiny.en's
+accuracy on par with base.en at 2-2.5x the speed, confirming the
+provisional pick from the original quiet-room sample.
 
-**Description**: local speech-to-text via **`whisper.cpp`** (Whisper),
-now a firm choice — model size (tiny vs. base) still open, pending
-on-device experimentation against the real XVF3800 mic: tiny runs
-comfortably faster than real time on the Pi 5's CPU, base is only
-borderline real-time even at 4 threads, and small already misses
+**Description**: local speech-to-text via **`whisper.cpp`** (Whisper).
+tiny.en runs comfortably faster than real time on the Pi 5's CPU, base is
+only borderline real-time even at 4 threads, and small already misses
 real-time by roughly 2x, ruling it out outright. Utterances are segmented
 before reaching whisper.cpp by **Silero VAD** (a small, fast local model,
 run as a pre-pass rather than a whisper.cpp built-in) — real end-pointing
@@ -579,9 +578,10 @@ deferred. Mechanism is whisper.cpp-native, no custom code needed: its
 probability, reference default 0.6), `logprob_thold` (decode confidence,
 default -1.0), and `entropy_thold` (repetition/hallucination-loop
 detector, default 2.4) — OpenAI's own reference defaults, not invented
-for this project. Numbers aren't set yet because the model size (tiny
-vs. base, above) isn't chosen and there's no real household audio to
-calibrate against.
+for this project. Numbers aren't set yet — real household audio now
+exists (above), but hasn't been used to calibrate these three yet,
+distinct from `stt.py`'s own Python-side `PROB_FLOOR`/repetition rules
+below (which have had a first real-audio pass, 2026-10-12).
 
 This is a second, distinct layer from Silero VAD, not redundant with it:
 VAD decides *when to record at all*, cheaply, before whisper.cpp ever
@@ -629,9 +629,23 @@ temperature-fallback retries (each retry is a full decode; live, they
 turned a 2-second utterance into 20 seconds), and the transcript is
 capped at about 6 tokens per second of audio. A transcript that repeats
 itself is rejected: a 2+-word phrase three times, or a 3+-word phrase
-twice. That catches both retry loops and Whisper's habit of filling
-gibberish with an echoed guess ("Are you a wick, Jack? Are you a
-wick,").
+twice, but (fixed 2026-10-12, see log.md) only when the repeats are
+adjacent (within a few words of each other) — true loops repeat
+back-to-back, but a long, legitimate utterance can innocently reuse a
+short phrase once, far apart, and shouldn't be rejected for it. That
+catches both retry loops and Whisper's habit of filling gibberish with
+an echoed guess ("Are you a wick, Jack? Are you a wick,").
+
+**A fresh Model per utterance — fixed 2026-10-12**: `STT` builds a new
+`pywhispercpp.model.Model` for every `transcribe()` call rather than
+reusing one for the process's whole life. A reused Model's decode drifts
+across calls (`no_context=True` only disables *text* context carryover,
+not whatever else whisper.cpp's native buffers carry between decodes) —
+found live as the real cause of "frequently repeated and garbled" text:
+the same phrase came back as different, sometimes wrong, text on
+different attempts within one long-running session. A fresh Model costs
+about 0.08-0.1s to construct (either model size, Pi 5), trivial against
+decode time. See log.md's 4.2 history for the full diagnosis.
 
 **Gibberish — decided 2026-09-25**: Whisper turns mumbles into plausible
 words, and its average token probability doesn't separate them from

@@ -175,8 +175,8 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
    bird; other single-digit-degree/multi-second gestures haven't been yet.
 9. Audio-pipeline engine choices: wake word (openWakeWord, custom-phrase
    training), STT (Whisper via `whisper.cpp` + Silero VAD for utterance
-   end-pointing; tiny vs. base model size still open pending on-device
-   experimentation; no local-LLM cleanup stage), and speaker recognition
+   end-pointing; tiny vs. base model size settled 2026-10-12, see "Done
+   so far" item 34; no local-LLM cleanup stage), and speaker recognition
    (ECAPA-TDNN speaker embeddings for tier-1 voice ID) — all design
    decisions, not yet implemented. See `docs/specification.md` sections
    4.1/4.2/4.15 and Open Issues 1/16.
@@ -403,10 +403,28 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     `docs/log.md`'s 4.11/4.16 history for the full diagnosis, including
     a false alarm along the way (STT failures, not a real bug, made one
     session look stuck). Still open: real-audio threshold/patience/
-    cooldown calibration (spec 4.1's methodology, numbers deferred) and
-    the STT repetition-hallucination rejects that same session showed
-    firing more often than usual against real household background
-    noise (see work list below).
+    cooldown calibration (spec 4.1's methodology, numbers deferred).
+34. STT's "frequently repeated and garbled" reports root-caused and
+    fixed, 2026-10-12: built `compare_stt.py` (reads a `coordinator.py
+    --save DIR` recording and runs named Whisper models side by side) and
+    used it against a real recorded session to find two real bugs, not an
+    accuracy/noise problem as first suspected. First: `STT` reused one
+    whisper.cpp Model for the whole process life; a reused Model's decode
+    drifts across calls (`no_context=True` only disables *text* context,
+    not whatever else carries between decodes) - the same phrase came
+    back as different, sometimes wrong, text from one attempt to the
+    next on identical audio. Fixed by building a fresh Model per
+    `transcribe()` call (~0.08-0.1s, trivial against decode time).
+    Second: `is_repetition_loop()`'s "same short phrase twice" rule had
+    no distance limit, false-rejecting a long, legitimate utterance that
+    innocently reused a phrase once, far apart (a Gettysburg/Preamble
+    quote test) - fixed by requiring the repeats be adjacent, the way
+    every actual hallucination loop is. Both fixes verified live against
+    the same recorded session and via `git stash` regression tests
+    (`tests/test_stt.py`). With both fixed, re-ran the tiny-vs-base
+    comparison on real noisy-room audio and confirmed tiny.en (item 9) as
+    the right call - on par with base.en's accuracy at 2-2.5x the speed.
+    See `docs/log.md`'s 4.2 history for the full diagnosis.
 
 ## Work list — split by hardware dependency
 
@@ -475,10 +493,10 @@ worked in parallel if priorities change.
    - Open refinements from the live conversation runs: replies still
      often 25-45 words against a 20-word target; stream Haiku's reply
      into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
-     to Haiku marked unclear (see spec 4.2). STT repetition-hallucination
-     rejects are frequent against real household background noise
-     (2026-10-11 live session) - the existing rejection safety net
-     catches them, but worth a closer look given how often it's firing.
+     to Haiku marked unclear (see spec 4.2). The frequent STT
+     repeats/garbling flagged after the 2026-10-11 live session turned
+     out to be two real bugs, not noise - both root-caused and fixed
+     2026-10-12, see "Done so far" item 34.
 9. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
    now in place (see `docs/specification.md` section 4.7 and Open Issues
    issue 16), judged primarily on voice quality with real-time
