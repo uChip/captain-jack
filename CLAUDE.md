@@ -506,8 +506,13 @@ worked in parallel if priorities change.
      into TTS to cut the 2.6-3.8s delay; pass low-confidence transcripts
      to Haiku marked unclear (see spec 4.2). The frequent STT
      repeats/garbling flagged after the 2026-10-11 live session turned
-     out to be two real bugs, not noise - both root-caused and fixed
+     out to be three real bugs, not noise - all root-caused and fixed
      2026-10-12, see "Done so far" item 34.
+   - Re-run the STT regression (`compare_stt.py` + a `--save` session)
+     next time the house is genuinely noisy, not quiet like the
+     2026-10-12 confirmation runs - to check recognition doesn't degrade
+     significantly now that the three bugs above are fixed. Chip's own
+     follow-up, 2026-10-12.
 9. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
    now in place (see `docs/specification.md` section 4.7 and Open Issues
    issue 16), judged primarily on voice quality with real-time
