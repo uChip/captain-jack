@@ -672,6 +672,17 @@ Jack." - committed as a fixture, same precedent as
 `tests/test_stt.py`, confirmed via `git stash` to fail (surfaces the
 reject) without the fix and pass with it.
 
+**Confirmed live, 2026-10-12, same day**: a second recorded session
+(`stt_samples/session2`, quiet house, a real eight-turn conversation
+including Chip saying "Thank you Jack. That's all for now." as one
+utterance - exactly the phrase that triggered the prompt repeat-loop
+above) came back 8 for 8 accepted, zero rejections, with the
+household-names prompt active throughout. One minor, expected-tier
+substitution noted ("how's the perch today?" heard as "how's the parrot
+today?") - well within the error rate the project has always expected
+from tiny.en, not a new issue. All three fixes from this day considered
+closed.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household
