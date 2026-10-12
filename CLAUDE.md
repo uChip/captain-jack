@@ -460,6 +460,19 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     non-Jack-directed speech, not a repetition-rule miss, and not
     something speaker-ID-less STT can tell apart from real speech (see
     spec 4.2's "Not covered"). See `docs/log.md`'s 4.2 history.
+37. Wake threshold calibrated against real household audio, 2026-10-12:
+    a voice-only `coordinator.py --save` session (close/soft/distant
+    delivery, a second speaker, and a stretch of undirected background
+    talk) fired the wake phrase correctly all 5 times (0.82-1.00) and
+    never false-triggered on the background talk, so `wakeword.py`'s
+    `WAKE_THRESHOLD` moved from the 0.5 starting point to 0.65 - still
+    clear of the weakest real attempt, with more false-accept margin,
+    per item 9/section 4.1's "bias stricter" call. `SLEEP_THRESHOLD`/
+    `PATIENCE_FRAMES`/`COOLDOWN_S` untouched - no real sleep-phrase data
+    yet. Two STT "garbled" results from that same session turned out to
+    be the far-field/quiet-speech accuracy gap, not a wake-spotter or
+    repetition-rule issue - see item 36. See `docs/log.md`'s 4.1
+    history.
 
 ## Work list — split by hardware dependency
 
@@ -517,12 +530,16 @@ worked in parallel if priorities change.
    runs together against the real bird, gated behind `--port`/
    `--dry-run` so the no-hardware test suite stays unaffected. What's
    left, roughly in order:
-   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch), the
-     wake/sleep-phrase fixed-phrase match tolerance, and the spotter's
-     own threshold/patience/cooldown numbers against real use (spec
-     4.1/4.11 flag all of these as initial numbers; `coordinator.py`
-     now prints a live `[spotter] wake=.. sleep=..` readout whenever not
-     On Watch to support this).
+   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
+     the spotter's own threshold/patience/cooldown numbers against real
+     use (spec 4.1/4.11 flag all of these as initial numbers;
+     `coordinator.py` prints a live `[spotter] wake=.. sleep=..` readout
+     whenever not On Watch to support this). `WAKE_THRESHOLD` calibrated
+     2026-10-12 against real audio (see "Done so far" item 37) - still
+     open: real sleep-phrase data (`SLEEP_THRESHOLD`), and whether
+     `PATIENCE_FRAMES`/`COOLDOWN_S` need any change; the two timeouts are
+     Chip's feel call, not a data-calibration task, still pending his
+     answer.
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: `identity.md`'s

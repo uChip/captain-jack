@@ -452,18 +452,25 @@ when it was last confirmed passing.
   after the cooldown elapses (with a fake model forcing the score, so
   it's deterministic), and that the real shipped models load and return
   near-zero scores with no detections on digital silence.
-- **Last confirmed passing**: 2026-10-11.
+- **Last confirmed passing**: 2026-10-12.
 - **Live-watched standalone**, 2026-10-11 (`venv/bin/python
   wakeword.py`, real bird, low-level background family noise in another
   room): both phrases detected correctly when spoken, several other
   non-wake phrases spoken in between correctly ignored, no false
   positives, no missed detections. Not this script's job to cover -
   real detection accuracy isn't a mechanism check, and exact
-  threshold/patience/cooldown numbers are still spec 4.1's deferred
-  real-audio calibration, just informally promising so far.
-- **Not covered**: real numeric threshold/patience/cooldown calibration
-  against a proper real-audio corpus (spec 4.1's methodology, still
-  deferred) - wired into `coordinator.py` and live-watched there too
-  now, see `test_coordinator.py`'s entry above and log.md's 4.16
-  history for the full story (closes out build step 7's wake-word
-  piece).
+  threshold/patience/cooldown numbers were still spec 4.1's deferred
+  real-audio calibration at that point.
+- **Wake threshold calibrated, 2026-10-12** (`coordinator.py --save`,
+  voice only, no keyboard stand-ins): 5/5 wake attempts fired correctly
+  across close/soft/distant delivery and a second speaker, scoring
+  0.82-1.00; a stretch of undirected background talk never crossed 0.5.
+  `WAKE_THRESHOLD` raised 0.5 → 0.65 on that data (see docs/log.md's 4.1
+  history). `SLEEP_THRESHOLD`/`PATIENCE_FRAMES`/`COOLDOWN_S` still
+  untouched - no real sleep-phrase attempt yet.
+- **Not covered**: real sleep-phrase threshold calibration (no real
+  data yet - next live session), and `PATIENCE_FRAMES`/`COOLDOWN_S`
+  calibration (no data suggesting either needs to move). Wired into
+  `coordinator.py` and live-watched there too, see `test_coordinator.py`'s
+  entry above and log.md's 4.16 history for the full story (closes out
+  build step 7's wake-word piece).

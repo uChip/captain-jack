@@ -481,7 +481,9 @@ full turn start to finish — is in
 
 History: [log.md#issue-16](log.md#issue-16), [log.md#41-wake-word-spotter](log.md#41-wake-word-spotter).
 
-**Status: Engine chosen, not implemented.**
+**Status: Implemented** (`wakeword.py`, 2026-10-11) and live-validated
+cycling the full state machine by voice. Thresholds partially calibrated
+against real household audio (2026-10-12) — see below.
 
 **Description**: local, always-on keyword spotter running on the Pi,
 using **openWakeWord** — open-source, no account/network dependency at
@@ -532,6 +534,21 @@ What's decided instead:
   distance/noise) and real negative audio (TV, ambient conversation) to
   tune against happens as part of the wake-word testing already queued
   once the board can be exercised (see `CLAUDE.md`'s work list).
+
+**Wake threshold calibrated, 2026-10-12**: a live `coordinator.py --save`
+session covering close/soft/distant delivery and a second speaker (Kath,
+from the kitchen) fired the wake phrase correctly all 5 times, scored
+0.82–1.00 — comfortably clear of the 0.5 starting point even at the
+weakest (soft+distant) attempt. A stretch of ordinary background
+conversation, not directed at Jack, never crossed 0.5 either. On that
+data, raised `WAKE_THRESHOLD` to 0.65 — still well under the weakest real
+attempt, with more margin against false accepts, per the "bias stricter"
+call above. `SLEEP_THRESHOLD`/`PATIENCE_FRAMES`/`COOLDOWN_S` left
+unchanged — no real sleep-phrase data yet (next live session). Two
+"garbled" results in that same session turned out to be STT accuracy on
+quiet/distant speech, not wake-spotter misses — see
+[4.2](#42-speech-to-text-stt), a separate concern. See
+[log.md's 4.1 history](log.md#41-wake-word-spotter).
 
 **Interfaces**: listens to the XVF3800's audio stream (already usable —
 see [3.2](#32-seeed-respeaker-xvf3800)); on detecting the wake phrase,

@@ -548,6 +548,34 @@ real-audio calibration of both phrases' operating thresholds (section
 4.1's methodology above), which can't happen until the spotter exists
 to run them through.
 
+**Wake threshold calibrated, 2026-10-12**: with the spotter built and
+live-validated (item 33), ran a real calibration session -
+`coordinator.py --scratch-memory --save`, voice-only, no keyboard
+stand-ins - covering close, soft, and distant delivery, plus a second
+speaker (Kath, from the kitchen). All 5 wake attempts fired correctly,
+scoring 0.82-1.00; the weakest was the soft+distant one, still well
+clear of the 0.5 starting point. A stretch of ordinary background
+conversation, not directed at Jack, never crossed 0.5 either -
+`coordinator.py`'s live `[spotter] wake=.. sleep=..` readout (added with
+the spotter itself, see 4.11/4.16 history) made both the positive and
+negative data visible without extra instrumentation. On that data,
+raised `WAKE_THRESHOLD` from 0.5 to 0.65 in `wakeword.py` - still well
+under the weakest real attempt, with more margin against false accepts,
+per this section's "bias stricter" call. Left `SLEEP_THRESHOLD`,
+`PATIENCE_FRAMES`, and `COOLDOWN_S` unchanged - no real sleep-phrase
+attempt happened this session (Chip typed the keyboard `sleep`
+stand-in once mid-conversation instead, which was correctly ignored -
+that event only fires from Off Watch, confirmed at
+`coordinator.py`'s `_handle_event`); next live session will focus on
+saying "Goodnight, Jack" aloud instead.
+
+Two results logged as "garbled" from that same session turned out to be
+a separate thing: STT accuracy dropping on quiet/distant speech (e.g.
+"That's all for now, Jack." heard as "I saw for now Jack." at p=0.35),
+not a wake-spotter miss - the spotter fired correctly in both cases.
+See [4.2](#42-speech-to-text-stt) - not addressed here, flagged as a
+separate, real finding about far-field STT quality.
+
 ### 4.2 Speech to Text (STT)
 
 **Confidence/no-speech threshold methodology, 2026-09-23**: same

@@ -36,12 +36,16 @@ SLEEP_MODEL = Path(__file__).parent / "sleep_phrase.onnx"
 WAKE_NAME = WAKE_MODEL.stem
 SLEEP_NAME = SLEEP_MODEL.stem
 
-# openWakeWord's own documented default - spec 4.1's decided starting
-# point for both phrases. Still needs real household audio to calibrate
-# a final number (spec 4.1's methodology: wake biased stricter than this
-# default since a false wake is the more disruptive failure; sleep stays
-# at the vanilla default). Not yet done - see CLAUDE.md work-list item 9.
-WAKE_THRESHOLD = 0.5
+# openWakeWord's own documented default (0.5) was the starting point for
+# both phrases (spec 4.1's methodology). Calibrated against real
+# household audio 2026-10-12: 5 real wake attempts (close/soft/distant,
+# two speakers) scored 0.82-1.00, and ambient background conversation
+# never crossed the old 0.5 either - so raised WAKE_THRESHOLD to 0.65,
+# still comfortably below the weakest real attempt (0.82) but with more
+# margin against false accepts, per spec 4.1's "bias stricter" call.
+# SLEEP_THRESHOLD left at the vanilla default - no real sleep-phrase
+# data yet. See docs/log.md, 4.1.
+WAKE_THRESHOLD = 0.65
 SLEEP_THRESHOLD = 0.5
 
 # How many consecutive 80ms frames must clear the threshold before a
