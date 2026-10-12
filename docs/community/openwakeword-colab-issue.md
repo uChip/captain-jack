@@ -1,5 +1,6 @@
 <!--
-Draft GitHub issue for alfiedennen/openwakeword-colab-2026.
+Posted 2026-10-12 as https://github.com/alfiedennen/openwakeword-colab-2026/issues/9
+(this file matches the posted text). Originally drafted for alfiedennen/openwakeword-colab-2026.
 Title (paste into the issue's title box):
 
   Surviving Colab disconnects: fallback runtime, ESC-50 instead of FMA, aria2c for ACAV, Drive checkpoints
@@ -17,9 +18,9 @@ Tested Oct 2026 on Colab Pay-As-You-Go with an L4 GPU. Both phrases trained succ
 
 ## 1. Skip the Python 3.13 dependency fight: use the fallback runtime
 
-Before running anything: **Command Palette (`Ctrl+Shift+P`) → "Use fallback runtime version"**, then pick the oldest snapshot offered (for us, **2025.07 → Python 3.11.13**).
+Before running anything: **Command Palette (`Ctrl+Shift+P`) → "Use fallback runtime version"**, then pick the oldest snapshot offered (for us, **2026.04 → Python 3.12**).
 
-On the current default runtime (Python 3.13) we needed about 30 patch-and-restart cycles, and `piper-phonemize` still ended up with an ABI mismatch (`undefined symbol: espeak_TextToPhonemesWithTerminator`). On the 3.11 snapshot, the unmodified install cells ran through without a fatal error. Colab will eventually drop that snapshot, but while it's there this is the fastest fix.
+On the current default runtime (Python 3.13) we needed about 30 patch-and-restart cycles, and `piper-phonemize` still ended up with an ABI mismatch (`undefined symbol: espeak_TextToPhonemesWithTerminator`). On the 3.12 snapshot, the unmodified install cells ran through without a fatal error. Colab will eventually drop that snapshot, but while it's there this is the fastest fix.
 
 ## 2. Diagnosing the disconnects
 

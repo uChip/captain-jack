@@ -525,6 +525,20 @@ threshold later during real-audio calibration - trading some of the
 spare false-positive margin for better recall - without retraining.
 Copied off Colab, committed, and pulled onto the Pi.
 
+**Correction and contribution back, 2026-10-12**: the final validated
+runs above (both `wake_phrase.onnx` and `sleep_phrase.onnx`) actually
+used Colab's **2026.04** fallback snapshot (Python 3.12), not the
+2025.07/Python 3.11.13 one noted earlier in this section - per Chip.
+The notebook that trained both models is now committed as
+`train_wakeword.ipynb` (outputs kept). Since the upstream notebook repo
+has five open PRs and no merges since its initial commit, its changes
+were written up as an issue rather than a PR or a public fork (Chip
+didn't want to maintain a fork):
+[alfiedennen/openwakeword-colab-2026#9](https://github.com/alfiedennen/openwakeword-colab-2026/issues/9) -
+fallback runtime, aria2c for ACAV, ESC-50 for FMA, Drive zip
+checkpoints, the clip-dir pitfall, and the misleading final FP/hour
+print. Posted text kept in `docs/community/openwakeword-colab-issue.md`.
+
 **Still outstanding**: both custom models are now trained and
 validated, but training them is necessary, not sufficient, for item 9 -
 the actual Pi-side wake-word spotter module (loading both `.onnx` files
