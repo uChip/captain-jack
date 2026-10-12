@@ -610,6 +610,7 @@ wavs:
     - {file: "TimeFlies.wav"}
     - {file: "TimesYouGetUp.wav"}
     - {file: "TitleWave.wav"}
+    - {file: "TooSoonOld.wav"}
     - {file: "TrimTheSails.wav"}
     - {file: "TurnOnTheLight.wav"}
     - {file: "TwoDaysMatterMost.wav"}
@@ -630,6 +631,7 @@ wavs:
     - {file: "WindHasOpinions.wav"}
     - {file: "WithWhatYouHate.wav"}
     - {file: "WorthHearin.wav"}
+    - {file: "WorthyOfHerLove.wav"}
     - {file: "WovenIntoOthers.wav"}
     - {file: "YieldToTemptation.wav"}
     - {file: "YourOwnActions.wav"}
