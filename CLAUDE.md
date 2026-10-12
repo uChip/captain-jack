@@ -537,8 +537,8 @@ worked in parallel if priorities change.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
-     significantly now that the three bugs above are fixed. Chip's own
-     follow-up, 2026-10-12.
+     significantly now that the four bugs above are fixed (items 34/36).
+     Chip's own follow-up, 2026-10-12.
 9. Optional: TTS engine bake-off — Supertonic-3 against the `kokoro-pi`
    now in place (see `docs/specification.md` section 4.7 and Open Issues
    issue 16), judged primarily on voice quality with real-time
