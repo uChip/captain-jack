@@ -550,6 +550,22 @@ quiet/distant speech, not wake-spotter misses — see
 [4.2](#42-speech-to-text-stt), a separate concern. See
 [log.md's 4.1 history](log.md#41-wake-word-spotter).
 
+**Sleep threshold left unchanged, 2026-10-12**: a follow-up session
+focused on "Goodnight, Jack" got 5 real attempts, 4 of which printed and
+fired cleanly (0.91–1.00, well clear of 0.5); the one miss printed
+nothing at all, meaning it scored under the 0.1 debug floor — too quiet
+to register as speech-like to the model at all, not a near-miss on the
+threshold itself. Lowering `SLEEP_THRESHOLD` wouldn't have caught that
+one and risks false accepts for no real gain, so it stays at the vanilla
+default, matching this section's own "sleep is a softer failure, less
+reason to bias it" call. One attempt was said conversationally during On
+Watch instead of as the fixed phrase ("Good night, Jack.", STT p=0.42,
+lower than the session's other phrases) — correctly handled by Haiku's
+own `MODE: NAP` tag, not this spotter, per
+[4.11](#411-sleep-mode-state-machine); its lower STT confidence lines up
+with the same soft-delivery pattern as the one missed spotter attempt.
+See [log.md's 4.1 history](log.md#41-wake-word-spotter).
+
 **Interfaces**: listens to the XVF3800's audio stream (already usable —
 see [3.2](#32-seeed-respeaker-xvf3800)); on detecting the wake phrase,
 signals the

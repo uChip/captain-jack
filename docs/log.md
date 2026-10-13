@@ -576,6 +576,48 @@ not a wake-spotter miss - the spotter fired correctly in both cases.
 See [4.2](#42-speech-to-text-stt) - not addressed here, flagged as a
 separate, real finding about far-field STT quality.
 
+**Sleep threshold left unchanged, 2026-10-12**: a second session that
+same day focused on "Goodnight, Jack" specifically - voice only, Enter
+used between cycles just to get back On Watch quickly. Of 5 real
+attempts, 4 fired cleanly and printed (1.00, 1.00, 0.91, 1.00 - each
+followed by 0-3 extra `[spotter]` lines as the same utterance's score
+decayed across a few more frames; `COOLDOWN_S` correctly suppressed any
+of those from re-firing, it's the debug *print* that isn't
+cooldown-gated, printing every frame above the 0.1 floor regardless).
+The 5th attempt, spoken softly, printed nothing at all - meaning it
+scored under that same 0.1 floor, not merely under the 0.5 threshold.
+That rules out a threshold fix: nothing between 0.1 and 0.5 would have
+caught it, since it never got that high in the first place. Left
+`SLEEP_THRESHOLD` at the vanilla default accordingly - matches this
+section's own call that an unwanted "go quiet" is the softer failure,
+less reason to bias it, and the real data here doesn't argue for moving
+it either way.
+
+One attempt in that session was a bonus data point, not a sleep-phrase
+test: Chip said "Goodnight, Jack" conversationally during an On Watch
+turn rather than as the fixed phrase. The spotter still scored it (the
+debug print is just suppressed while On Watch - see
+`coordinator.py`'s `_on_spotter_score`) but the actual transition went
+through Haiku's own `MODE: NAP` tag instead, per
+[4.11](#411-sleep-mode-state-machine)'s existing "no fixed phrase from On
+Watch" design - worked correctly, not a new path. STT heard it as "Good
+night, Jack." at p=0.42, distinctly lower than the same session's other
+phrases (0.65-0.70) - consistent with the missed spotter attempt above:
+people likely say "goodnight" more quietly than everyday speech, which
+costs confidence on both paths the same way. Not something a threshold
+number fixes either; noted as a real, cross-cutting observation rather
+than acted on.
+
+A separate, unexplained timing anomaly surfaced in the same session:
+one reply's `[first audio Xs after you stopped talking]` read 5.55s
+against a 3.2-3.8s baseline everywhere else that session, but - unlike
+the similar-looking anomaly from the previous day (see
+[4.2](#42-speech-to-text-stt)) - `stt_s` itself was perfectly normal
+(1.00s) this time, so it isn't the same slow-whisper-decode pattern.
+Left open; no `--save`-able root cause found yet beyond "happened once,
+on a badly garbled utterance Haiku still correctly read as end-of-
+session intent from."
+
 ### 4.2 Speech to Text (STT)
 
 **Confidence/no-speech threshold methodology, 2026-09-23**: same

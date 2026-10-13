@@ -466,11 +466,15 @@ when it was last confirmed passing.
   across close/soft/distant delivery and a second speaker, scoring
   0.82-1.00; a stretch of undirected background talk never crossed 0.5.
   `WAKE_THRESHOLD` raised 0.5 → 0.65 on that data (see docs/log.md's 4.1
-  history). `SLEEP_THRESHOLD`/`PATIENCE_FRAMES`/`COOLDOWN_S` still
-  untouched - no real sleep-phrase attempt yet.
-- **Not covered**: real sleep-phrase threshold calibration (no real
-  data yet - next live session), and `PATIENCE_FRAMES`/`COOLDOWN_S`
-  calibration (no data suggesting either needs to move). Wired into
-  `coordinator.py` and live-watched there too, see `test_coordinator.py`'s
-  entry above and log.md's 4.16 history for the full story (closes out
-  build step 7's wake-word piece).
+  history).
+- **Sleep threshold checked, left unchanged, 2026-10-12** (same method,
+  focused on "Goodnight, Jack"): 4/5 attempts fired cleanly (0.91-1.00);
+  the one miss printed nothing at all (scored under the 0.1 debug floor,
+  not a near-miss on 0.5), so no threshold number would have caught it.
+  `SLEEP_THRESHOLD` left at the vanilla default. `PATIENCE_FRAMES`/
+  `COOLDOWN_S` still untouched - no data pointing at either.
+- **Not covered**: `PATIENCE_FRAMES`/`COOLDOWN_S` calibration (no data
+  suggesting either needs to move). Wired into `coordinator.py` and
+  live-watched there too, see `test_coordinator.py`'s entry above and
+  log.md's 4.16 history for the full story (closes out build step 7's
+  wake-word piece).

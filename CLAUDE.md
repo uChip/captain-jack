@@ -473,6 +473,22 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     be the far-field/quiet-speech accuracy gap, not a wake-spotter or
     repetition-rule issue - see item 36. See `docs/log.md`'s 4.1
     history.
+38. Sleep threshold checked against real data, left unchanged,
+    2026-10-12: a follow-up voice-only session focused on "Goodnight,
+    Jack" got 4/5 clean fires (0.91-1.00); the one miss printed nothing
+    at all, meaning it scored under the 0.1 debug floor - too quiet to
+    register as speech-like, not a near-miss on 0.5, so lowering
+    `SLEEP_THRESHOLD` wouldn't have caught it. Left at the vanilla
+    default. Bonus data point: the same phrase said conversationally
+    during On Watch (not as the fixed phrase) correctly went through
+    Haiku's own `MODE: NAP` tag instead (per spec 4.11, not a new path)
+    and was heard by STT as "Good night, Jack." at a lower confidence
+    (p=0.42) than the session's other phrases - consistent with people
+    naturally saying "goodnight" more softly, which costs confidence on
+    both paths the same way. Also flagged, unresolved: one reply in that
+    session took 5.55s to first audio against a 3.2-3.8s baseline, with
+    a perfectly normal `stt_s` - a different-looking anomaly from the
+    one in item 34, not yet explained. See `docs/log.md`'s 4.1 history.
 
 ## Work list — split by hardware dependency
 
@@ -535,11 +551,12 @@ worked in parallel if priorities change.
      use (spec 4.1/4.11 flag all of these as initial numbers;
      `coordinator.py` prints a live `[spotter] wake=.. sleep=..` readout
      whenever not On Watch to support this). `WAKE_THRESHOLD` calibrated
-     2026-10-12 against real audio (see "Done so far" item 37) - still
-     open: real sleep-phrase data (`SLEEP_THRESHOLD`), and whether
-     `PATIENCE_FRAMES`/`COOLDOWN_S` need any change; the two timeouts are
-     Chip's feel call, not a data-calibration task, still pending his
-     answer.
+     2026-10-12 against real audio (item 37); `SLEEP_THRESHOLD` checked
+     against real data the same day and left at the vanilla default -
+     no near-miss evidence it needs to move (item 38). Still open:
+     whether `PATIENCE_FRAMES`/`COOLDOWN_S` need any change (no data
+     suggesting either does so far); the two timeouts are Chip's feel
+     call, not a data-calibration task, still pending his answer.
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: `identity.md`'s
