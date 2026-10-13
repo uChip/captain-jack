@@ -546,17 +546,21 @@ worked in parallel if priorities change.
    runs together against the real bird, gated behind `--port`/
    `--dry-run` so the no-hardware test suite stays unaffected. What's
    left, roughly in order:
-   - Tune both new timeouts (2-minute On Watch, 15-minute Off Watch) and
-     the spotter's own threshold/patience/cooldown numbers against real
-     use (spec 4.1/4.11 flag all of these as initial numbers;
-     `coordinator.py` prints a live `[spotter] wake=.. sleep=..` readout
-     whenever not On Watch to support this). `WAKE_THRESHOLD` calibrated
-     2026-10-12 against real audio (item 37); `SLEEP_THRESHOLD` checked
-     against real data the same day and left at the vanilla default -
-     no near-miss evidence it needs to move (item 38). Still open:
-     whether `PATIENCE_FRAMES`/`COOLDOWN_S` need any change (no data
-     suggesting either does so far); the two timeouts are Chip's feel
-     call, not a data-calibration task, still pending his answer.
+   - Spotter threshold calibration against real use (spec 4.1 flagged
+     these as initial numbers; `coordinator.py` prints a live
+     `[spotter] wake=.. sleep=..` readout whenever not On Watch to
+     support this). `WAKE_THRESHOLD` calibrated 2026-10-12 against real
+     audio (item 37); `SLEEP_THRESHOLD` checked against real data the
+     same day and left at the vanilla default - no near-miss evidence it
+     needs to move (item 38). Still open: whether `PATIENCE_FRAMES`/
+     `COOLDOWN_S` need any change (no data suggesting either does so
+     far). The two timeouts (2-minute On Watch, 15-minute Off Watch) are
+     **decided, 2026-10-12: left as-is** - Chip's call that a deliberate
+     test session doesn't reproduce real social-conversation pacing, so
+     "feel" from testing isn't trustworthy either way, and erring short
+     risks the known failure mode of other voice assistants cutting
+     people off mid-conversation. Don't re-litigate without new
+     information (see spec 4.11).
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: `identity.md`'s

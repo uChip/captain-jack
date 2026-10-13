@@ -1725,10 +1725,20 @@ the original order unchanged otherwise. `take_turn()` now calls
 `tests/test_mode_tag.py` gained `check_reversed_tag_order()`, confirmed
 to fail without the fix and pass with it.
 
-**Not yet done**: tuning either timeout against real use (both are
-still spec 4.11's initial, unvalidated numbers); the wake/sleep-phrase
-spotter's own real-audio threshold calibration (spec 4.1's methodology
-- separate from this section).
+**Timeouts left as-is, decided 2026-10-12**: asked Chip whether the
+2-minute On Watch / 15-minute Off Watch numbers feel right now that
+there's real usage to judge by. His call: don't tune either from "feel"
+at all - a deliberate test session doesn't reproduce a real social
+conversation's pacing (a 2-minute silent gap feels long sitting there
+testing it, but might be unremarkable mid-conversation with other things
+going on), and the actual comparable failure mode is well known and
+worth avoiding: Alexa's timeout is seconds, not minutes, and it visibly
+drops off household conversations that are still going. Both numbers
+stand unchanged; the wake/sleep-phrase spotter's own real-audio
+threshold calibration (spec 4.1's methodology) is separate from this
+section and is now done for the wake phrase and checked-and-left-alone
+for the sleep phrase - see [4.1](#41-wake-word-spotter)'s 2026-10-12
+entries.
 
 ### 4.12 Gesture Engine and Catalog
 

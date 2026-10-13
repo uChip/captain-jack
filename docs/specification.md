@@ -1351,10 +1351,16 @@ network-for-the-LLM-turn-only principle (see `CLAUDE.md`).
     wake phrase detected.
 
 Timeout values (2 minutes On Watch, 15 minutes Off Watch) are Chip's
-initial numbers, not yet tuned against real use. Still undefined: exact
-match/variant tolerance for the two fixed phrases (see
-[Wake Word Spotter](#41-wake-word-spotter)), and the Asleep-specific
-gesture/sound catalog subset (see [Open Issues](#5-open-issues) issue 5).
+initial numbers, **kept as-is, decided 2026-10-12**: a deliberate test
+session doesn't reproduce real social-conversation pacing, so "feel"
+from testing isn't trustworthy evidence either way — and the known
+comparable failure mode (a too-short timeout cutting off conversation
+mid-flow, as other voice assistants visibly do) argues against erring
+short. Still undefined: exact match/variant tolerance for the two fixed
+phrases (see [Wake Word Spotter](#41-wake-word-spotter), now partly
+calibrated — the threshold itself is most of what "tolerance" means
+here), and the Asleep-specific gesture/sound catalog subset (see
+[Open Issues](#5-open-issues) issue 5).
 
 **Intended function**: own overall mode state, gate which of
 [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)'s
