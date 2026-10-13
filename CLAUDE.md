@@ -489,6 +489,33 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     session took 5.55s to first audio against a 3.2-3.8s baseline, with
     a perfectly normal `stt_s` - a different-looking anomaly from the
     one in item 34, not yet explained. See `docs/log.md`'s 4.1 history.
+39. Haiku's reply now streams into TTS, 2026-10-12: `orchestrate.py`
+    gained `SpeechStreamer` (an incremental version of `tts.py`'s
+    `split_sentences()`, stopping cold at the first newline since a
+    real spoken reply is single-line prose and `MODE:`/`MEMORY:` always
+    start on their own line right after it) and `stream_turn()` (calls
+    the Messages API's streaming endpoint instead of waiting for the
+    whole reply). `coordinator.py`'s `handle_utterance()` now calls
+    `stream_turn()` instead of `take_turn()`, queuing each sentence to
+    TTS as soon as it's ready rather than only after Haiku finishes the
+    entire reply (tags included) - the "next lever" flagged since the
+    original build (spec 4.16 build step 5). Found and fixed a new race
+    this opened: a reply's true last sentence isn't known until the
+    full reply has arrived, so if TTS/Playback happen to be faster than
+    the network, that sentence's own playback can finish before
+    `_last_tag` is set to match it - same class of bug as the
+    2026-10-11 sentence-gap race, a different pair of racing events.
+    `coordinator.py`'s new `_finish_reply()` catches up immediately
+    rather than dropping the mic reopen/`reply_done`. Also fixed, found
+    on the error path: a turn that fails with zero sentences ever
+    spoken needs to resume the On Watch timeout itself now, since
+    `_begin_reply()` pauses it before Haiku's success/failure is known.
+    All covered by a new `tests/test_streaming_reply.py` plus new
+    `tests/test_coordinator.py` cases; confirmed each new check fails
+    without its fix. Not yet confirmed: a real live-device latency
+    measurement - blocked this session on an expired
+    `ANTHROPIC_API_KEY`, not a code issue. See `docs/log.md`'s 4.3
+    history (new section).
 
 ## Work list — split by hardware dependency
 
@@ -565,9 +592,12 @@ worked in parallel if priorities change.
      only runs ambient motion in On Watch today.
    - Open refinements from the live conversation runs: `identity.md`'s
      reply-length target raised from twenty to thirty words, 2026-10-12
-     (measured real replies averaging 31 words; see "Done so far" item 35)
-     - still worth streaming Haiku's reply into TTS to cut the 2.6-3.8s
-     delay, and passing low-confidence transcripts to Haiku marked
+     (measured real replies averaging 31 words; see "Done so far" item 35);
+     Haiku's reply now streams into TTS instead of waiting for the whole
+     reply first, 2026-10-12, cutting the delay for any 2+-sentence
+     reply (see "Done so far" item 39) - still open: a real live-device
+     measurement of how much (blocked on an expired API key, not a code
+     issue), and passing low-confidence transcripts to Haiku marked
      unclear (see spec 4.2). The frequent STT repeats/garbling flagged
      after the 2026-10-11 live session turned out to be three real bugs,
      not noise - all root-caused and fixed 2026-10-12, see "Done so far"

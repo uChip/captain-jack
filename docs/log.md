@@ -2277,3 +2277,83 @@ in `identity.md`, unchanged) was confirmed live the same day: a reply
 to "do you have a short mystery story for me?" ran well over a hundred
 words and Chip didn't want it shortened - the exception, not the
 baseline, is what should govern a reply like that.
+
+### 4.3 Conversation Orchestrator
+
+**Streamed replies, 2026-10-12**: tackled next on the work list after
+the wake-threshold calibration and the timeout decision - the delay to
+Jack's first sound (section 4.16's "next lever," flagged since the
+original build in September) comes from waiting for Haiku's *entire*
+reply, tag lines included, before any of it can be spoken, even though
+TTS already synthesizes sentence by sentence once it has something to
+work with.
+
+Added `orchestrate.py`'s `SpeechStreamer`: an incremental version of
+`tts.split_sentences()` (same too-short-fragment-merges-forward rule),
+fed piece by piece as `client.messages.stream()`'s text arrives rather
+than all at once. It stops cold at the first newline rather than
+waiting for the stream to finish: a real spoken reply is single-line
+prose (see `identity.md`'s style rules) and `MODE:`/`MEMORY:` always
+start on their own line right after it, so a newline alone reliably
+marks "no more speech after this point" - confirmed by feeding sample
+replies through character-by-character and checking the result matches
+`split_sentences()` exactly, for every chunk size tried. One accepted,
+documented difference: a too-short trailing fragment with nothing after
+it can't be merged backward into an already-dispatched sentence (that
+sentence may already be synthesizing or playing by the time the stream
+ends), so it's spoken as its own slightly-short sentence instead - a
+cosmetic edge case, not a correctness one.
+
+`get_reply_stream()`/`stream_turn()` wrap this the same way
+`get_reply()`/`take_turn()` already wrapped the non-streaming call;
+both now share one tag-parsing/memory-saving tail (`_finish_turn()`,
+factored out of the old `take_turn()` body, pure extraction, no
+behavior change). `coordinator.py`'s `handle_utterance()` switched from
+`take_turn()` to `stream_turn()`, passing an `on_sentence` callback that
+tags and queues each sentence to TTS the moment it's ready - exactly
+the dispatch speak() used to do all at once, now spread across the
+stream. Confirmed this is actually incremental, not just correct: a
+test wraps the fake stream to count how many characters had been
+consumed when the first sentence was reported, and checks it's well
+short of the full reply.
+
+This opened a real race that couldn't happen with the old all-at-once
+`speak()`: a reply's true last sentence isn't known until the full
+reply (tags included) has arrived, and if TTS/Playback happen to be
+faster than the rest of the network round-trip, that sentence's own
+"finished" playback event can come and go *before* `_last_tag` is set
+to match it - exactly the class of bug the 2026-10-11 sentence-gap race
+was (docs/log.md's 4.16 history), just a different pair of racing
+events. Fixed by tracking how many of the current reply's sentences
+have already finished playing (and the real `dac_time` of the most
+recent one) as they happen, independent of whether `_last_tag` is set
+yet; once the reply's sentence count is finally known,
+`coordinator.py`'s new `_finish_reply()` checks whether that count was
+already reached and, if so, fires the mic-reopen/`reply_done` logic
+immediately using the dac_time already recorded, rather than silently
+dropping it. Verified live (temporarily disabling the catch-up branch
+by hand, not `git stash` - this fix lives inside an `if` body, not a
+separable diff) to fail without it and pass with it
+(`tests/test_coordinator.py`'s `check_late_last_sentence_race`).
+
+Also fixed, found while handling the error path: `handle_utterance()`
+now has to start pausing the On Watch timeout (`_begin_reply()`) before
+knowing whether Haiku will reply at all, since sentences can start
+queuing before the full turn succeeds or fails - if a turn fails with
+*zero* sentences ever spoken (an API error with nothing streamed in
+yet), the old all-at-once `speak()` simply never touched `deadline` at
+all, but the new per-reply bookkeeping would otherwise leave it paused
+forever with nothing left to resume it. `_finish_reply()` now resumes
+the ordinary 2-minute timer itself in that specific case, the same way
+`_apply_pending_mode()` does when Haiku signals no mode change.
+
+All new logic (`SpeechStreamer`, `stream_turn()`,
+`coordinator.py`'s per-reply bookkeeping and the race catch-up) is
+covered by `tests/test_streaming_reply.py` and new cases in
+`tests/test_coordinator.py`; the full existing suite (including the
+2026-09-25/2026-10-07/2026-10-11 regression tests for the sentence-gap
+race and the non-reply-clip mic reopen) still passes unchanged. Not yet
+done: a real live-device latency measurement confirming the expected
+improvement - blocked this session on an expired `ANTHROPIC_API_KEY`
+in the shell environment, not a code issue; the automated fake-client
+tests already confirm the mechanism is genuinely incremental.

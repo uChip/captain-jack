@@ -32,17 +32,43 @@ from orchestrate import MEMORY_PATH  # noqa: E402
 CLIP = Path(__file__).parent / "data" / "quick_brown_fox_ch1.wav"
 
 
+class FakeStream:
+    """Stands in for anthropic's MessageStream: yields the canned reply
+    one character at a time, the strictest test of boundary-detection
+    across chunks - a real streamed reply can split anywhere."""
+
+    def __init__(self, reply):
+        self.reply = reply
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    @property
+    def text_stream(self):
+        return iter(self.reply)
+
+    def get_final_text(self):
+        return self.reply
+
+
 class FakeClient:
     """Stands in for anthropic.Anthropic(): records requests, returns a canned reply."""
 
     def __init__(self, reply):
         self.reply = reply
         self.requests = []
-        self.messages = SimpleNamespace(create=self._create)
+        self.messages = SimpleNamespace(create=self._create, stream=self._stream)
 
     def _create(self, **kwargs):
         self.requests.append(kwargs)
         return SimpleNamespace(content=[SimpleNamespace(type="text", text=self.reply)])
+
+    def _stream(self, **kwargs):
+        self.requests.append(kwargs)
+        return FakeStream(self.reply)
 
 
 def load_clip():
@@ -276,6 +302,49 @@ def check_nonreply_clip_reopens_mic():
     return errors
 
 
+def check_late_last_sentence_race():
+    """Streaming (coordinator.py's handle_utterance(), 2026-10-12) opens
+    a race that couldn't happen with the old all-at-once speak(): a
+    reply's sentences are queued to TTS as Haiku's text streams in, so
+    the true last one isn't known until the full reply (tags included)
+    has arrived - by which point, if TTS/Playback happen to be faster
+    than the rest of the network round-trip, that last sentence's own
+    "finished" playback event may already have come and gone while
+    _last_tag still pointed at the previous reply, never matching.
+    _finish_reply() must catch up immediately rather than silently
+    dropping the mic reopen/reply_done - see its own comment."""
+    errors = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("shouldn't be called"),
+                                     out=lambda *a: None)
+    coord.start_session()
+
+    reply = coord._begin_reply()
+    coord._queue_sentence(reply, 0, "First sentence spoken here now.")
+    coord._queue_sentence(reply, 1, "Second and last sentence spoken too.")
+    # Both sentences' playback finishes before _finish_reply ever runs -
+    # _last_tag is still None, so neither "finished" call below can match it.
+    coord._on_playback("started", (reply, 0), 0.0)
+    coord._on_playback("finished", (reply, 0), 1.0)
+    coord._on_playback("started", (reply, 1), 1.0)
+    coord._on_playback("finished", (reply, 1), 2.0)
+    if coord.listener._ignore_until == float("inf"):
+        pass   # expected so far - nothing has told _on_playback which tag is last yet
+
+    coord._pending_mode = "END_SESSION"
+    coord._finish_reply(reply, 2)   # learns the count only now, after both already finished
+
+    while not coord.events.empty():
+        coord._handle_event(*coord.events.get())
+
+    if coord.listener._ignore_until == float("inf"):
+        errors.append("mic never reopened - the race-finalized reply_done was dropped")
+    if coord.mode != "off_watch":
+        errors.append(f"MODE: END_SESSION should still apply after the race, got mode={coord.mode!r}")
+
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -291,7 +360,8 @@ def check_live():
 
 if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
-              + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic())
+              + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
+              + check_late_last_sentence_race())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -302,6 +372,8 @@ if __name__ == "__main__":
     print("PASS: coordinator transcribes, calls Haiku, saves memory to scratch only, rejects noise, "
           "the Sleep-Mode State Machine transitions correctly (telling Motion how Asleep was "
           "entered), the mic stays deaf across a "
-          "multi-sentence reply's own sentence gaps but reopens after, and a standalone "
-          "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too"
+          "multi-sentence reply's own sentence gaps but reopens after, a standalone "
+          "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too, and a "
+          "streamed reply's own last sentence finishing before it's known to be last still "
+          "reopens the mic/fires reply_done correctly"
           + (", live Haiku replied" if live else ""))

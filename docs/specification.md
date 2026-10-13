@@ -729,10 +729,11 @@ transcribed text to the
 
 ### 4.3 Conversation Orchestrator
 
-History: none yet.
+History: [log.md#43-conversation-orchestrator](log.md#43-conversation-orchestrator).
 
 **Status: Implemented** — `orchestrate.py`'s `take_turn()`, called by
-the text CLI and by the voice Coordinator (`coordinator.py`).
+the text CLI, and `stream_turn()` (2026-10-12), called by the voice
+Coordinator (`coordinator.py`) instead.
 
 **Description**: the central Python loop tying persona, memory, and the
 Haiku API together. Currently a text CLI (`input()`/`print()`); live-tested
@@ -746,13 +747,27 @@ trailing `MEMORY:` line from the spoken reply, validate/save any proposed
 memory fact (see [Memory Subsystem](#45-memory-subsystem)), and return the
 spoken reply for output.
 
+**Streamed replies (2026-10-12)**: `stream_turn()` is the same turn, but
+calls the Messages API's streaming endpoint and speaks the reply
+sentence by sentence as its text arrives, via a new `SpeechStreamer`
+(incremental version of [TTS](#47-text-to-speech-tts)'s own
+`split_sentences()`), instead of waiting for Haiku to finish the whole
+reply - including the trailing `MODE:`/`MEMORY:` lines - before any of
+it can be spoken. `SpeechStreamer` stops at the first newline, since a
+real spoken reply is single-line prose and the tag lines always start
+on their own line right after it - so no tag text can ever reach TTS,
+without needing to wait for the tags themselves to fully arrive first.
+`take_turn()` is unchanged and still used by the text CLI, where there's
+no TTS to feed incrementally; both share the same tag-parsing/memory-
+saving tail (`_finish_turn()`). See [4.16](#416-runtime-integration-end-to-end-turn)
+build step 5 for the latency rationale.
+
 **Interfaces**: reads `memory/identity.md` and `memory/memory.md` directly
 (file I/O lives in orchestration code by design, never delegated to the
 model as an autonomous tool call); calls the Anthropic Messages API; will
-eventually also call [STT](#42-speech-to-text-stt) for input,
-[TTS](#47-text-to-speech-tts) for output, and the
-[home-automation tool schema](#46-home-automation-tool-schema) mid-turn —
-none of that wiring exists yet. In the full program its per-turn logic
+eventually also call the
+[home-automation tool schema](#46-home-automation-tool-schema) mid-turn -
+that wiring doesn't exist yet. In the full program its per-turn logic
 is called by the Coordinator thread (see
 [4.16](#416-runtime-integration-end-to-end-turn)).
 
@@ -1887,7 +1902,12 @@ spotter later changes nothing downstream.
    **Done** — `tts.py`; two live conversations. Delay from end of speech
    to Jack's first sound: 2.6–3.8s (end-pointing ~0.7s, Whisper ~0.5s,
    Haiku ~1.1–1.9s, first sentence's synthesis), 1.75s for the local
-   "say again" line. Streaming Haiku's reply into TTS is the next lever.
+   "say again" line. Streaming Haiku's reply into TTS (2026-10-12,
+   `orchestrate.py`'s `stream_turn()`, see [4.3](#43-conversation-orchestrator))
+   cuts this further for any reply with 2+ sentences, by starting
+   synthesis of the first one while Haiku is still generating the rest -
+   automated-tested (`tests/test_streaming_reply.py`), real-device
+   latency improvement still to be confirmed live.
 6. Beak-sync in Playback + Serial writer. **Done** — `serial_link.py`
    (the Serial writer, a bounded FIFO delay line for beak commands) and
    beak-sync in
