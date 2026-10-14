@@ -831,6 +831,39 @@ too. The tiny.en-vs-base.en default (item 34's call was made on quiet,
 servo-off audio) is also still open: base.en won clearly on servo-off
 audio, at about 0.5-1s more STT time per turn.
 
+**Off Watch noise measured directly, same day**: an Off Watch wake test
+with and without `--port` (sessions 12/13) matched the On Watch finding
+- with servos moving, a normal voice often didn't trigger the spotter
+at all (nothing printed, i.e. under the 0.1 debug floor, so no threshold
+change can recover it); without, anything above a whisper did. Since
+`--save` never records Off Watch audio, wrote
+`tests/measure_servo_noise.py` (Capture + Motion on a fixed schedule of
+modes, quiet room, nobody talking). Median mic level, 100ms slices:
+still -47.8 dBFS; On Watch +-3deg sway -32.4; Off Watch 41deg breathing
+-23.3, within a few dB of normal speech (about -15 to -20). That first
+ad-hoc run also caught an excursion (`motion.py` starts its excursion
+timer at 0, so the first Off Watch cycle plays one right away) with
+bursts to -3/-9 dBFS - Chip saw the head seem to hit its mechanical stop,
+though all software limits sit inside the mechanical ends; not yet
+explained. The tool now disables excursions by default.
+
+Trialled the same shrink on Off Watch breathing (+13/-28 to +-3, ~1s
+holds): Off Watch median dropped ~8 dB to -31.7, the same as the On Watch
+sway, and the ~10s noisy tail seen after the big swing stopped was gone.
+But the 1s holds mostly sat at -34 to -40, rarely reaching the still
+floor - the servos keep buzzing for a second or more after each move.
+Chip could feel the easing stepping at this size. A second run with
+Chip's hand resting on the head lowered moving noise by 3-4 dB but also
+raised the still phases by 4-9 dB (hand contact/breathing near the mics),
+so it's inconclusive beyond "some, not most, comes from the head
+itself"; damped movement still sat at -35/-36.
+
+Decided: On Watch holds the head still for as long as the mic is open
+(starting at mic-open, not speech onset, given the settle time). Off
+Watch, where Jack must move and listen at once, is open; Chip's
+candidate fix is moving the mic array back outside the bird, isolating
+it mechanically altogether.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

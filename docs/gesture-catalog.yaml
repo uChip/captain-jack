@@ -344,8 +344,13 @@ off_watch:
              # Roll dropped entirely (was a "micro-roll" flourish): matching this same
              # fix would need a roll swing large enough to stop reading as "micro" -
              # simpler to cut it than force it into a size that defeats its purpose.
-      - {dp: 13, t: 1600, wait_ms: 1630}
-      - {dp: -28, t: 1600, wait_ms: 1630}
+             # 2026-10-14 trial: shrunk from +13/-28 to +-3 with a ~1s hold at each
+             # end (breath in, pause, breath out, pause) - the 41deg swing measured
+             # ~25dB above a still head, close to speech level, drowning out the wake
+             # phrase (tests/measure_servo_noise.py). Easing may step at this size;
+             # accepted for the trial.
+      - {dp: 3, t: 1600, wait_ms: 2600}
+      - {dp: -3, t: 1600, wait_ms: 2600}
 
   # --- Idle excursions (docs/archive/gesture-library-2026-10-10.md "Idle Gestures") ---
   # Engine rule (2026-09-20): never pick the same excursion id twice in a

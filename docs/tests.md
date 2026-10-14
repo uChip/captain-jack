@@ -142,6 +142,28 @@ when it was last confirmed passing.
   (wired 2026-10-07 and checked live by hand, see log.md 4.16 — this
   test only exercises `motion.py` on its own).
 
+### Servo motion noise at the mic (manual, measurement)
+
+- **Covers**: how much the head servos' movement raises the noise heard
+  by [STT](specification.md#42-speech-to-text-stt) and the
+  [wake-word spotter](specification.md#41-wake-word-detection), per
+  Motion mode — found 2026-10-14 to be the cause of degraded
+  recognition (see log.md 4.2 history).
+- **Script**: [`../tests/measure_servo_noise.py`](../tests/measure_servo_noise.py)
+- **Run**: `venv/bin/python tests/measure_servo_noise.py [--port ...]
+  [--lead-in 10] [--excursions] [--phases still:15,off_watch:20,on_watch:20,still:15]`.
+  **Needs the real bird, a quiet room, and nobody talking.** Off Watch
+  excursions are off unless `--excursions` is given.
+- **Expected**: prints per-phase mic levels (median/p10/p90/max of
+  100ms slices, dBFS) and saves each phase's audio. No pass/fail - for
+  comparison: normal speech at the bird is about −15 to −20 dBFS.
+- **Last run**: 2026-10-14 (ad hoc first version, one Off Watch
+  excursion accidentally included): still −47.8 median; On Watch ±3°
+  sway −32.4; Off Watch 41° breathing −23.3 (two excursion bursts to
+  −3/−9); still afterwards decayed from about −35 to −43 over ~10s.
+- **Not covered**: excursion or speech-driven gestures (only each
+  mode's ambient gesture, by default), and beak motion.
+
 ## Idle and Ambient Audio Player
 
 ### `wavFiles/` clip format

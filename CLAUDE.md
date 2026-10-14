@@ -533,7 +533,12 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     movement of any size is loud (a smaller +-3deg sway with pauses,
     kept for looks, gained only ~3dB). The 2026-10-12 STT/wake
     confirmation runs likely had no `--port`. Recordings in
-    `stt_samples/session6`-`11`. See `docs/log.md`'s 4.2 history.
+    `stt_samples/session6`-`11`. Off Watch is worse: the 41deg
+    breathing measured within a few dB of speech level and made the
+    wake phrase need a raised voice; shrunk to +-3deg with holds as a
+    trial (~8dB quieter, steps perceptibly).
+    `tests/measure_servo_noise.py` measures this per mode. See
+    `docs/log.md`'s 4.2 history.
 
 ## Work list — split by hardware dependency
 
@@ -621,10 +626,11 @@ worked in parallel if priorities change.
      not noise - all root-caused and fixed 2026-10-12, see "Done so far"
      item 34.
    - Servo noise during listening (item 41): hold the head still while
-     the mic is open in On Watch - agreed, not yet built. First, an Off
-     Watch wake/sleep-phrase test with and without `--port` (Off Watch's
-     breathing swings ~41deg). Then revisit tiny.en vs. base.en as the
-     default (base.en clearly better on servo-off audio, ~0.5-1s slower).
+     the mic is open in On Watch - agreed, being built. Off Watch (must
+     move and listen at once) still open - Chip's candidate is moving
+     the mic array back outside the bird. Then revisit tiny.en vs.
+     base.en as the default (base.en clearly better on servo-off audio,
+     ~0.5-1s slower).
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
