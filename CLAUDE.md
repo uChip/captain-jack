@@ -561,7 +561,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     phrase 1/1 over Off Watch/Asleep motion in a noisy house (vs. often
     under 0.1 bolted). Two-box rework and weighted base no longer needed
     on this evidence. A mat lying over the array made things worse - it
-    bridged the isolation. See `docs/log.md`'s 4.2 history.
+    bridged the isolation. Permanent mount designed (not built) in
+    `docs/specification.md` section 3.6 "Bird-to-base isolation mount":
+    requirements, candidates (Chip's glued pads, or screw-on rubber
+    isolators to stay removable), and an acceptance test. See
+    `docs/log.md`'s 4.2 history.
+44. Parts list started, 2026-10-14: `docs/parts-list.md` (linked from
+    spec section 3) records the exact make/model of every installed
+    part - the spec says "9g servo", the list says AGFRC B11DLS. Drafted
+    from the repo and the hardware itself (Pi 5 8GB, XVF3800, CH340 on
+    the Arduino clone); *TBD* entries are for Chip to fill in.
 
 ## Work list — split by hardware dependency
 
@@ -655,9 +664,9 @@ worked in parallel if priorities change.
      speech or the 2-minute timeout. Hold cap / move-abort fixes held in
      reserve. Root fix found 2026-10-14 (items 42/43): soft-mounting
      the bird (temporarily on a silicone mat) removes the noise, Off
-     Watch included. Next: a permanent soft mount (material, isolating
-     the bolts, nothing touching both bird and array - physical work,
-     done offline by Chip); then decide whether to retire the hold
+     Watch included. Next: a permanent soft mount per spec 3.6's
+     design note (physical work, done offline by Chip; test loose pads
+     with `tests/measure_servo_noise.py` before gluing); then decide whether to retire the hold
      (session15 says recognition is fine without it). tiny.en stays
      the default for now (**Chip's call, 2026-10-14**): base.en is more
      accurate with the noise gone (1/7 vs 3/7 wrong), but its extra
