@@ -167,7 +167,7 @@ when it was last confirmed passing.
   head servos against the current AGFRC B11DLS (see log.md 4.2 history).
 - **Script**: [`../tests/measure_bench_servo.py`](../tests/measure_bench_servo.py)
 - **Run**: `venv/bin/python tests/measure_bench_servo.py [--port ...]
-  [--lead-in 10] [--out stt_samples/bench_servo]`. **Needs the test servo
+  [--lead-in 10] [--out stt_samples/bench_servo] [--baseline-only]`. **Needs the test servo
   plugged into the roll channel (pin 5) in place of the bird's roll
   servo, a quiet room, and nobody talking.** Drives only `r` moves.
 - **Expected**: prints mic levels while moving and holding at several

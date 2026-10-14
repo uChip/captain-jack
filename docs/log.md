@@ -889,6 +889,36 @@ acoustically, but it's unknown whether they'd be quieter by mechanical
 conduction into the mic array; analog servos might move more smoothly
 (less noise) or jitter at rest (more). Needs research/measurement.
 
+**Bench servo test, 2026-10-14**: a spare B11DLS plugged into the roll
+channel in place of the bird's roll servo, driven with plain `r` moves
+(`tests/measure_bench_servo.py`, recordings in
+`stt_samples/bench_servo*`). Two placements, same script:
+
+| Segment | Loose, 12in away on a solid surface | Taped to the electronics enclosure |
+|---|---|---|
+| Still | -51.9 | -35.4 (-48.8 with its power unplugged) |
+| +-3 sway, 1.5s moves | -52.0 | -34.7 |
+| +-10 sway, 1.5s moves | -51.8 | -32.5 |
+| +-20 sway, 1.5s moves | -48.1 | -30.8 |
+| +-20, 0.4s moves | -46.7 | -22.7 |
+
+(median dBFS of 100ms slices). Airborne, the servo is almost inaudible:
+the in-bird +-3 sway's ~11dB rise (session11) can't be airborne noise.
+Coupled to the enclosure, the fast move rose ~24dB to near speech level
+and shifted to mostly 2-8kHz energy. The noise reaches the mic through
+the structure, so mechanical isolation (servo mount grommets, a soft mount
+for the XVF3800, or the array outside the bird) looks like a bigger lever
+than a quieter servo alone. A candidate servo is still worth the same
+taped test for comparison.
+
+Unexpected: the taped servo, merely holding, raised the floor ~13dB as a
+135-170Hz hum. Chip felt no buzz by finger, but unplugging its power
+removed it (-48.8). Holding is not silent once coupled, which matters
+for the On Watch hold. The bird's own held servos measured far quieter
+(still -47.8, session servo_noise). Possibly because an unloaded servo
+dithers more, or because the enclosure (which carries the XVF3800)
+couples more directly than the head does - not determined.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

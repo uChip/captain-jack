@@ -22,6 +22,7 @@ low gear rumble from motor whine. Each step's audio is saved as
 
 Run: venv/bin/python tests/measure_bench_servo.py
          [--port /dev/ttyUSB0] [--lead-in 10] [--out stt_samples/bench_servo]
+         [--baseline-only]
 """
 
 import argparse
@@ -68,6 +69,8 @@ def main():
     ap.add_argument("--port", default=serial_link.PORT)
     ap.add_argument("--lead-in", type=float, default=10.0)
     ap.add_argument("--out", default="stt_samples/bench_servo")
+    ap.add_argument("--baseline-only", action="store_true",
+                    help="record just the still baseline (e.g. with the test servo unplugged)")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -86,7 +89,7 @@ def main():
         label[0] = 0
         print("  baseline (still) 8s", flush=True)
         time.sleep(8)
-        for name, amp, ms, secs in STEPS:
+        for name, amp, ms, secs in () if args.baseline_only else STEPS:
             print(f"  {name}: +-{amp} in {ms}ms for {secs}s, then hold {HOLD_S:g}s", flush=True)
             label[0] = len(segs)
             segs.append((name, "moving"))
