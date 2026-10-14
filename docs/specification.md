@@ -285,6 +285,9 @@ and **MY1690 audio player** from the original build are removed outright,
 superseded by the XVF3800's onboard direction-of-arrival output and
 Pi-side idle-audio playback, respectively.
 
+Exact makes and models of every installed part are in
+[parts-list.md](parts-list.md).
+
 ### 3.1 Raspberry Pi 5
 
 History: none yet.
