@@ -965,6 +965,29 @@ it. This puts a soft-mounted bird on the existing enclosure ahead of
 the two-box rework, pending a recognition check (a spoken `--save`
 session with the head moving, compared against session9).
 
+**Recognition confirmed on the mat, same day (session15)**: bird on the
+mat, no weight, array uncovered, `coordinator.py --no-hold` (new flag -
+head keeps swaying while the mic is open) with `--port`, same script as
+sessions 9/14. Per-utterance floor (p10 of 100ms slices) and speech
+level (p90), medians:
+
+| Session | Condition | Floor | Speech | Margin | base.en wrong |
+|---|---|---|---|---|---|
+| session9 | bolted, moving | -29.5 | -17.8 | 11.7 | 3/8 |
+| session10 | servos off | -46.4 | -22.4 | 24.0 | 1/6 |
+| session14 | bolted, On Watch hold | -43.8 | -24.1 | 19.7 | 3/8 |
+| session15 | mat, moving | -55.5 | -23.0 | 32.5 | 1/7 |
+
+base.en's one miss ("House the rest of the crew") is the "How's" error
+that also happens servos-off. tiny.en missed 3 (incl. "That's all for
+Nanojat"), so with the noise gone base.en clearly leads - relevant to
+the open tiny-vs-base default. Two further captures (utt02/utt08) were
+rejected as non-speech. Conclusion: soft-mounting the bird alone solves
+the servo noise problem for On Watch speech; the two-box rework and
+weighted base are no longer needed on this evidence, and the On Watch
+hold may be retirable. Still to check before deciding that: the Off
+Watch wake phrase on the mat, and a run in a noisier house.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household
