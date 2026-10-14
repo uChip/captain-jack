@@ -10,12 +10,19 @@ actually said) can judge accuracy - this tool makes no accept/reject
 decision of its own, unlike stt.py's own rejection_reason().
 
 Run against a directory of saved utterances:
-    venv/bin/python compare_stt.py DIR [--models tiny.en,base.en]
+    venv/bin/python compare_stt.py DIR [--models tiny.en,base.en] [--highpass HZ]
+
+--highpass applies a 4th-order Butterworth high-pass first (zero-phase);
+added 2026-10-14 to test filtering out servo motion noise - it didn't
+help (see docs/log.md's 4.2 history).
 """
 
 import sys
 import time
 from pathlib import Path
+
+import numpy as np
+from scipy.signal import butter, sosfiltfilt
 
 from stt import STT, load_wav
 
@@ -34,6 +41,11 @@ def main():
         i = args.index("--models")
         models = args[i + 1].split(",")
         del args[i:i + 2]
+    highpass = 0
+    if "--highpass" in args:
+        i = args.index("--highpass")
+        highpass = float(args[i + 1])
+        del args[i:i + 2]
     wav_dir = Path(args[0])
     paths = sorted(wav_dir.glob("*.wav"))
     if not paths:
@@ -42,6 +54,9 @@ def main():
 
     for path in paths:
         samples = load_wav(path)
+        if highpass:
+            sos = butter(4, highpass, "highpass", fs=16000, output="sos")
+            samples = np.clip(sosfiltfilt(sos, samples.astype(np.float64)), -32768, 32767).astype(np.int16)
         print(f"\n{path.name}  ({len(samples) / 16000:.1f}s audio)")
         for name in models:
             start = time.monotonic()

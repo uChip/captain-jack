@@ -919,6 +919,26 @@ for the On Watch hold. The bird's own held servos measured far quieter
 dithers more, or because the enclosure (which carries the XVF3800)
 couples more directly than the head does - not determined.
 
+**High-pass filter tried and ruled out, same day**: the in-bird servo
+noise recordings (`stt_samples/servo_noise*`) put most of the motion
+noise in 150-300Hz, about 10dB above 300-1000Hz, so filtering it off in
+software looked like a free fix. Re-transcribed sessions 7/8/9/10/14
+with base.en at no filter, 200Hz, and 300Hz (`compare_stt.py
+--highpass`): word errors unchanged (session9 3/8 at all three, session7
+4/9, session14 3-4/8, servos-off session10 1-3/6, session8 2/8). The
+same misrecognitions survive the filter. Whisper already copes with the
+low-frequency part; the damage is from the smaller (8-12dB) rise inside
+the speech band, which no filter can remove without removing speech.
+Mechanical isolation stands as the fix. Chip's options, in his order
+of preference: a separate enclosure for the Pi, XVF3800, amp, and
+speaker, with only the Arduino serial line crossing to the bird's
+enclosure (the array's orientation relative to the bird needs keying,
+for future DoA); heavier bird base (lead shot) plus a soft mount;
+soft-mounting the array alone (unlikely enough on its own, since the
+enclosure panels themselves radiate). Next cheap test before any
+rework: the bird on rubber/Sorbothane pads with temporary weights,
+measured with `tests/measure_servo_noise.py`.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household
