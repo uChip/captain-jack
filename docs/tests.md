@@ -128,8 +128,10 @@ when it was last confirmed passing.
   entry: the settle gesture plays first and only once; `goodnight_phrase`
   and `idle_timeout` each pick only from their own pool; `None` (MODE:
   NAP) plays no wav; a listed-but-missing file is never picked; and a
-  mode change before Motion reaches the settle cancels it.
-- **Last confirmed passing**: 2026-10-10.
+  mode change before Motion reaches the settle cancels it. Also that
+  `hold(True)` stops gestures between moves, and `hold(False)` or any
+  `set_mode()` releases it (On Watch's listening hold, 2026-10-14).
+- **Last confirmed passing**: 2026-10-14.
 - **First live watch, 2026-10-07** (`motion.py --mode off_watch
   --dry-run --seconds 15` against the real bird, Chip watching): clean
   output, no crash, correct asymmetric breathing swing from
@@ -296,6 +298,10 @@ when it was last confirmed passing.
   Haiku's full text is even known to have ended, if TTS/Playback happen
   to be faster than the network - `_finish_reply()` must catch up
   immediately rather than drop the mic reopen/`reply_done` (log.md 4.3).
+  Also that On Watch holds the head still exactly while the mic is
+  open - held at session start and after each reply (and after a Haiku
+  error that never spoke), released when a reply starts playing
+  (log.md 4.2, servo noise, 2026-10-14).
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no
@@ -309,10 +315,11 @@ when it was last confirmed passing.
   reopens after, a standalone clip (Motion's idle/excursion/settle-in
   wavs) reopens the mic and spotter too, and a streamed reply's own last
   sentence finishing before it's known to be last still reopens the
-  mic/fires reply_done correctly` (plus `, live Haiku replied`) and
+  mic/fires reply_done correctly, and the head holds still exactly while
+  the mic is open` (plus `, live Haiku replied`) and
   exits 0. Everything runs on a scratch copy of `memory/`; the test
   fails if the real `memory.md` changes.
-- **Last confirmed passing**: 2026-10-12.
+- **Last confirmed passing**: 2026-10-14.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real

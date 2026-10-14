@@ -208,6 +208,9 @@ class FakeMotion:
     def fall_asleep(self, context=None):
         self.calls.append(("fall_asleep", context))
 
+    def hold(self, on):
+        self.calls.append(("hold", on))
+
 
 def check_asleep_entry_context():
     """Each way into Asleep tells Motion which settle-in line to play
@@ -345,6 +348,43 @@ def check_late_last_sentence_race():
     return errors
 
 
+def check_head_held_while_mic_open():
+    """On Watch holds the head still for exactly as long as the mic is
+    open (servo noise drowns out speech - docs/log.md's 4.2 history,
+    2026-10-14): held at session start, released when the reply starts
+    playing (mic closes), held again once it's done (mic reopens), and
+    held after a Haiku error that never spoke (mic never closed)."""
+    errors = []
+    client = FakeClient("Aye, a fine morning it be, Matey.\nMODE: NONE\nMEMORY: NONE")
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
+                                     out=lambda *a: None)
+    coord.motion = FakeMotion()
+
+    def holds():
+        return [c[1] for c in coord.motion.calls if c[0] == "hold"]
+
+    coord.start_session()
+    if holds() != [True]:
+        errors.append(f"session start should hold the head, got {holds()!r}")
+    coord.handle_utterance(load_clip())
+    if holds() != [True]:
+        errors.append(f"head released before Jack started talking: {holds()!r}")
+    coord._on_playback("started", coord._first_tag, 0.0)
+    if holds() != [True, False]:
+        errors.append(f"reply starting should release the head, got {holds()!r}")
+    coord._on_playback("finished", coord._last_tag, 1.0)
+    while not coord.events.empty():
+        coord._handle_event(*coord.events.get())
+    if holds() != [True, False, True]:
+        errors.append(f"reply done (mic reopens) should hold again, got {holds()!r}")
+
+    reply = coord._begin_reply()
+    coord._finish_reply(reply, 0)   # the Haiku-error path: nothing spoken, mic never closed
+    if holds()[-1] is not True:
+        errors.append(f"zero-sentence reply should leave the head held, got {holds()!r}")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -361,7 +401,7 @@ def check_live():
 if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
-              + check_late_last_sentence_race())
+              + check_late_last_sentence_race() + check_head_held_while_mic_open())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -375,5 +415,6 @@ if __name__ == "__main__":
           "multi-sentence reply's own sentence gaps but reopens after, a standalone "
           "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too, and a "
           "streamed reply's own last sentence finishing before it's known to be last still "
-          "reopens the mic/fires reply_done correctly"
+          "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
+          "the mic is open"
           + (", live Haiku replied" if live else ""))

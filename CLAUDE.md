@@ -626,7 +626,8 @@ worked in parallel if priorities change.
      not noise - all root-caused and fixed 2026-10-12, see "Done so far"
      item 34.
    - Servo noise during listening (item 41): hold the head still while
-     the mic is open in On Watch - agreed, being built. Off Watch (must
+     the mic is open in On Watch - built 2026-10-14 (`Motion.hold()`,
+     driven by `coordinator.py`), not yet confirmed live. Off Watch (must
      move and listen at once) still open - Chip's candidate is moving
      the mic array back outside the bird. Then revisit tiny.en vs.
      base.en as the default (base.en clearly better on servo-off audio,

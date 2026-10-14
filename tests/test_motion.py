@@ -191,6 +191,29 @@ def check_on_watch_uses_its_own_ambient():
     return errors
 
 
+def check_hold():
+    """hold(True) stops gestures between moves (On Watch's listening
+    hold, 2026-10-14 - servo noise drowns out speech); hold(False) and
+    any set_mode() release it."""
+    errors = []
+    writer = FakeWriter()
+    m = motion.Motion(writer, catalog=TEST_CATALOG)
+    m.set_mode("off_watch")
+    m.hold(True)
+    m.play_gesture(motion.find_gesture(TEST_CATALOG, "off_watch", "amb"))
+    if writer.sent:
+        errors.append(f"held Motion still sent {writer.sent!r}")
+    m.hold(False)
+    m.play_gesture(motion.find_gesture(TEST_CATALOG, "off_watch", "amb"))
+    if len(writer.sent) != 1:
+        errors.append(f"released Motion should send the gesture's one move, sent {writer.sent!r}")
+    m.hold(True)
+    m.set_mode("on_watch")
+    if m.holding:
+        errors.append("set_mode() should release hold")
+    return errors
+
+
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmp:
         motion.WAV_DIR = Path(tmp)   # play_random_wav checks the file exists; none need to be real audio
@@ -201,11 +224,12 @@ if __name__ == "__main__":
 
         errors = (check_resolve_move() + check_find_gesture_anywhere()
                   + check_off_watch_step() + check_asleep_wav_pairing()
-                  + check_fall_asleep() + check_on_watch_uses_its_own_ambient())
+                  + check_fall_asleep() + check_on_watch_uses_its_own_ambient()
+                  + check_hold())
 
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: resolve_move clamping, cross-library gesture lookup, and "
-          "ambient/excursion/wav scheduling and Asleep settle-in correct")
+          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold correct")

@@ -1291,6 +1291,16 @@ gestures/wavs are chosen at random intervals to briefly interrupt it,
 handing control back to the ambient gesture's own next step when they
 finish rather than snapping to a stored constant.
 
+**On Watch listening hold (2026-10-14)**: in On Watch the head holds
+still for exactly as long as the mic is open - from the session's start
+and from the end of each reply until Jack's next reply starts playing.
+Moving servos measurably drown out speech (about 15dB above a still
+head even for the small Attentive Sway; `tests/measure_servo_noise.py`),
+while held servos are quiet. The hold takes effect between moves, since
+the Arduino has no "stop here" command, so a move already sent finishes
+first. Off Watch, where Jack has to move and listen for the wake phrase
+at once, has no equivalent yet - open, see `docs/log.md`'s 4.2 history.
+
 **Off Watch excursion tuning**: a random interval of 30-90 seconds
 between completed ambient-motion steps (`excursion_interval_seconds` in
 [gesture-catalog.yaml](gesture-catalog.yaml)), plus a rule never to pick

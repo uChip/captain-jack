@@ -136,10 +136,20 @@ class Motion:
         self._last_wav = None
         self._settle_pending = False   # set by fall_asleep(), consumed by _step_asleep()
         self._settle_context = None
+        self.holding = False   # see hold()
 
     def set_mode(self, mode):
         self._settle_pending = False   # a later transition cancels an unplayed settle
+        self.holding = False           # a mode change always releases hold()
         self.mode = mode
+
+    def hold(self, on: bool):
+        """Hold the head still (on=True) until released or the mode
+        changes - used while the mic is open in On Watch, since moving
+        servos measurably drown out speech (docs/log.md's 4.2 history,
+        2026-10-14). Takes effect between moves: a move already sent
+        finishes first, since the Arduino has no "stop here" command."""
+        self.holding = on
 
     def fall_asleep(self, context=None):
         """Enter Asleep, settling in first (spec 4.10, "On entering
@@ -170,6 +180,8 @@ class Motion:
 
     def play_gesture(self, gesture):
         for move in gesture["moves"]:
+            if self.holding:
+                return
             self._send(resolve_move(move, self.baseline))
             time.sleep(move["wait_ms"] / 1000.0)
 
@@ -255,7 +267,9 @@ class Motion:
     def _run(self):
         while not self._stop.is_set():
             mode = self.mode
-            if mode == "on_watch":
+            if self.holding:
+                time.sleep(0.05)
+            elif mode == "on_watch":
                 self._step_on_watch()
             elif mode == "off_watch":
                 self._step_off_watch()

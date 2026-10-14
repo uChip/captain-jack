@@ -149,6 +149,7 @@ class Coordinator:
             self.listener.ignore_until(float("inf"))
             self.spotter.ignore_until(float("inf"))
             if tag == self._first_tag:
+                self._hold_head(False)   # mic just closed - Jack may move while he talks
                 self.events.put(("reply_started", time.monotonic()))
         else:
             # Reopen the mic once a *whole* self-contained thing is done
@@ -265,12 +266,25 @@ class Coordinator:
             self.start_nap("Jack said goodnight")
         else:
             self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
+            self._hold_head(True)   # mic is open again
+
+    def _hold_head(self, on: bool):
+        """Hold the head still while the mic is open in On Watch - moving
+        servos measurably drown out speech (docs/log.md's 4.2 history,
+        2026-10-14). Held from session start and after each reply,
+        i.e. for exactly as long as the mic is open; released when a
+        reply's first sentence starts playing (the mic closes then), so
+        Jack still moves while he talks. Any mode change releases it too
+        (Motion.set_mode)."""
+        if self.motion:
+            self.motion.hold(on)
 
     def start_session(self):
         self.mode = "on_watch"
         self.history = []
         if self.motion:
             self.motion.set_mode("on_watch")
+        self._hold_head(True)
         # "speak to Jack" is printed on beep_done (below), not here - printing
         # it immediately races ahead of the beep actually playing, inviting
         # someone to start talking before the mic is open again and losing
@@ -342,6 +356,7 @@ class Coordinator:
             # does when Haiku signals no mode change, rather than leaving
             # it paused with nothing left to ever resume it.
             self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
+            self._hold_head(True)   # the mic never closed, so it's still open
             return
         self._last_tag = (reply, n_sentences - 1)
         if self._sentences_finished >= n_sentences:
