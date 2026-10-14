@@ -264,12 +264,15 @@ class SpeechStreamer:
     "Aye!", gets merged forward into the next sentence rather than spoken
     alone) incrementally, instead of on the whole text at once.
 
-    Stops cold at the first newline: a real spoken reply is single-line
-    prose (see identity.md's style rules / split_tags()'s own
-    assumptions), and MODE:/MEMORY: always start on their own line right
-    after it, so a newline reliably marks "no more speech after this
-    point" without waiting for the rest of the reply - including the
-    tag lines themselves - to arrive.
+    Stops cold at the first line that starts like a meta-tag (MODE:,
+    MEMORY:, or a ``` fence around one - see split_memory_line()), so
+    no tag text ever leaks into speech, without waiting for the rest of
+    the reply - including the tag lines themselves - to arrive. Any
+    other line break is just whitespace between sentences: Haiku does
+    sometimes split a reply into paragraphs (seen live 2026-10-14 - the
+    original "stop at the first newline" rule silently dropped every
+    second paragraph). Only the first few characters of each new line
+    are held back, until they rule a tag in or out.
 
     on_sentence(text) is called once per sentence, in order, as soon as
     each is ready. finish() must be called once after the stream ends,
@@ -284,26 +287,49 @@ class SpeechStreamer:
     nothing left to merge it into.
     """
 
+    TAG_STARTS = ("mode:", "memory:", "```")
+
     def __init__(self, on_sentence):
         self.on_sentence = on_sentence
-        self._text = ""     # streamed text not yet searched for a sentence boundary
+        self._pending = ""  # streamed text not yet sorted into prose vs. tag
+        self._in_line = False  # inside a line already known to be prose
+        self._text = ""     # prose not yet searched for a sentence boundary
         self._carry = ""    # sentence(s) accumulated but still too short to emit
         self.done = False
 
     def feed(self, chunk: str):
         if self.done:
             return
-        self._text += chunk
-        if "\n" in self._text:
-            self._text, _, _ = self._text.partition("\n")
-            self._drain(final=True)
-            self.done = True
-            return
+        self._pending += chunk
+        while True:
+            if self._in_line:
+                line, nl, rest = self._pending.partition("\n")
+                self._text += line + (" " if nl else "")
+                self._pending = rest
+                if not nl:
+                    break
+                self._in_line = False
+            else:
+                head = self._pending.lstrip()  # also skips blank lines
+                low = head.lower()
+                if any(low.startswith(t) for t in self.TAG_STARTS):
+                    self._drain(final=True)
+                    self.done = True
+                    return
+                if not head or any(t.startswith(low) for t in self.TAG_STARTS):
+                    break  # too little of this line yet to tell
+                self._pending = head
+                self._in_line = True
         self._drain(final=False)
 
     def finish(self):
         """Call once after the stream ends - a no-op unless feed() never
-        saw a newline at all (a malformed/tagless reply)."""
+        saw a tag line at all (a malformed/tagless reply)."""
+        if not self.done and not any(
+            self._pending.lstrip().lower().startswith(t) for t in self.TAG_STARTS
+        ):
+            self._text += self._pending
+        self._pending = ""
         if not self.done:
             self._drain(final=True)
             self.done = True

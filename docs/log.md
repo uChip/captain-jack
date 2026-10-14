@@ -2357,3 +2357,25 @@ done: a real live-device latency measurement confirming the expected
 improvement - blocked this session on an expired `ANTHROPIC_API_KEY`
 in the shell environment, not a code issue; the automated fake-client
 tests already confirm the mechanism is genuinely incremental.
+
+**Second paragraphs silently dropped, 2026-10-14**: the first live run
+with streaming on (Chip, `--port`, scratch memory) showed three of six
+replies printed as two paragraphs separated by a blank line, and in
+every case the second paragraph was never spoken. Root cause was
+`SpeechStreamer`'s own design assumption above - "a real spoken reply
+is single-line prose" - which held in the samples it was tested against
+but not in Haiku's actual output; the first newline ended speech for
+the whole reply. The non-streaming path never had this bug
+(`split_tags()` peels tags off the end, and `split_sentences()` treats
+a newline as whitespace), which is why it hadn't shown up before.
+Fixed by stopping only at a line that *starts* like a tag (`MODE:`,
+`MEMORY:`, or a ` ``` ` fence - the same three shapes `split_tags()`
+already handles), holding back just the first few characters of each
+new line until they rule a tag in or out, so the latency benefit is
+kept. Regression samples in `tests/test_streaming_reply.py` include
+the live reply's exact shape plus prose lines deliberately starting
+"Memories..."/"Mode of..." (must not be mistaken for tags); confirmed
+via `git stash` that they fail on the old code. The same run also
+reported degraded recognition - a separate issue, not caused by this
+bug (no STT/capture/listener code changed since the 2026-10-12
+confirmation runs); not yet diagnosed, needs a `--save` session.

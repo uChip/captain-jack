@@ -753,10 +753,12 @@ sentence by sentence as its text arrives, via a new `SpeechStreamer`
 (incremental version of [TTS](#47-text-to-speech-tts)'s own
 `split_sentences()`), instead of waiting for Haiku to finish the whole
 reply - including the trailing `MODE:`/`MEMORY:` lines - before any of
-it can be spoken. `SpeechStreamer` stops at the first newline, since a
-real spoken reply is single-line prose and the tag lines always start
-on their own line right after it - so no tag text can ever reach TTS,
-without needing to wait for the tags themselves to fully arrive first.
+it can be spoken. `SpeechStreamer` stops at the first line that starts
+like a tag (`MODE:`, `MEMORY:`, or a ` ``` ` fence around one) - so no
+tag text can ever reach TTS, without needing to wait for the tags
+themselves to fully arrive first - and treats any other line break as
+ordinary whitespace, since Haiku does sometimes split a spoken reply
+into paragraphs.
 `take_turn()` is unchanged and still used by the text CLI, where there's
 no TTS to feed incrementally; both share the same tag-parsing/memory-
 saving tail (`_finish_turn()`). See [4.16](#416-runtime-integration-end-to-end-turn)

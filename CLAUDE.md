@@ -491,11 +491,10 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     one in item 34, not yet explained. See `docs/log.md`'s 4.1 history.
 39. Haiku's reply now streams into TTS, 2026-10-12: `orchestrate.py`
     gained `SpeechStreamer` (an incremental version of `tts.py`'s
-    `split_sentences()`, stopping cold at the first newline since a
-    real spoken reply is single-line prose and `MODE:`/`MEMORY:` always
-    start on their own line right after it) and `stream_turn()` (calls
-    the Messages API's streaming endpoint instead of waiting for the
-    whole reply). `coordinator.py`'s `handle_utterance()` now calls
+    `split_sentences()`, stopping at the first `MODE:`/`MEMORY:` tag
+    line - see item 40 for why not simply the first newline) and
+    `stream_turn()` (calls the Messages API's streaming endpoint
+    instead of waiting for the whole reply). `coordinator.py`'s `handle_utterance()` now calls
     `stream_turn()` instead of `take_turn()`, queuing each sentence to
     TTS as soon as it's ready rather than only after Haiku finishes the
     entire reply (tags included) - the "next lever" flagged since the
@@ -516,6 +515,18 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     measurement - blocked this session on an expired
     `ANTHROPIC_API_KEY`, not a code issue. See `docs/log.md`'s 4.3
     history (new section).
+40. Streaming's dropped-second-paragraph bug fixed, 2026-10-14: the
+    first live run with item 39 in place showed Haiku sometimes splits
+    a reply into two paragraphs, and the second was never spoken -
+    `SpeechStreamer` stopped at the first newline, on a "replies are
+    single-line" assumption that didn't hold. It now stops only at a
+    line starting like a tag (`MODE:`/`MEMORY:`/a ``` fence) and treats
+    other line breaks as whitespace. Regression cases in
+    `tests/test_streaming_reply.py`, confirmed failing on the old code.
+    The same run reported degraded recognition (only a loud, distinct
+    final utterance came through right) - not yet diagnosed; no STT/
+    capture/listener code changed since the 2026-10-12 confirmation
+    runs. See `docs/log.md`'s 4.3 history.
 
 ## Work list — split by hardware dependency
 

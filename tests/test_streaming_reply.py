@@ -7,8 +7,10 @@ stream_turn() (the streaming counterpart of take_turn()):
     the batch tts.split_sentences() - except for one accepted, documented
     difference (a too-short trailing fragment can't be merged backward
     into an already-dispatched sentence);
-  - it stops at the first newline, never leaking MODE:/MEMORY: text into
-    a spoken sentence;
+  - it stops at the first MODE:/MEMORY:/``` line, never leaking tag
+    text into a spoken sentence - but speaks every paragraph of a
+    multi-paragraph reply (a 2026-10-14 live run caught the original
+    stop-at-first-newline rule silently dropping the second one);
   - stream_turn() calls on_sentence() progressively, as the reply
     streams in, not only once the whole thing (including the trailing
     tags) has arrived - the entire point of streaming;
@@ -27,7 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import anthropic  # noqa: E402
 
-from orchestrate import SpeechStreamer, stream_turn, take_turn  # noqa: E402
+from orchestrate import SpeechStreamer, split_tags, stream_turn, take_turn  # noqa: E402
 from tts import split_sentences  # noqa: E402
 
 SAMPLE_REPLIES = [
@@ -36,6 +38,12 @@ SAMPLE_REPLIES = [
     "Avast! A little from Al, ye say? Blow me down, I be needin a touch more detail there, "
     "Matey.\nMODE: NONE\nMEMORY: NONE",
     "Aye.\nMODE: NONE\nMEMORY: NONE",
+    # Verbatim shape from the 2026-10-14 live run: a blank-line paragraph
+    # break, whose second paragraph the old rule never spoke.
+    "Avast! There be the wake word! Squawk!\n\nWhat brings ye to me perch today, Matey?"
+    "\nMODE: NONE\nMEMORY: NONE",
+    "Aye, a hearty breakfast be just the thing!\nMemories of hardtack linger, Matey.\n"
+    "Mode of travel? A ship, of course.\n\nMODE: NONE\n```\nMEMORY: NONE\n```",
 ]
 
 
@@ -109,10 +117,10 @@ def check_speech_streamer_matches_batch():
     """SpeechStreamer, fed in various chunk sizes (including the
     strictest case, one character at a time), should produce the same
     sentences as the batch split_sentences() - for the spoken text, i.e.
-    everything before the first newline."""
+    everything split_tags() leaves as speech, paragraph breaks included."""
     errors = []
     for reply in SAMPLE_REPLIES:
-        spoken = reply.split("\n")[0]
+        spoken = split_tags(reply)[0]
         want = split_sentences(spoken)
         for chunk_size in (1, 3, 7, 1000):
             got = []
@@ -150,7 +158,7 @@ def check_speech_streamer_tail_fragment_difference():
     return errors
 
 
-def check_speech_streamer_stops_at_newline():
+def check_speech_streamer_stops_at_tags():
     """No tag text should ever reach on_sentence(), regardless of
     whether MODE:/MEMORY: lines happen to contain sentence-ending
     punctuation of their own."""
@@ -161,6 +169,15 @@ def check_speech_streamer_stops_at_newline():
     streamer.finish()
     if got != ["Just an ordinary reply."]:
         errors.append(f"tag text leaked into on_sentence(): {got!r}")
+    for chunk_size in (1, 4, 1000):
+        reply = "First paragraph here, Matey.\n\nSecond one too.\n```\nMEMORY: [joke] X. Y.\n```"
+        got = []
+        streamer = SpeechStreamer(got.append)
+        for i in range(0, len(reply), chunk_size):
+            streamer.feed(reply[i:i + chunk_size])
+        streamer.finish()
+        if got != ["First paragraph here, Matey.", "Second one too."]:
+            errors.append(f"chunk={chunk_size}: fenced/multi-paragraph reply gave {got!r}")
     return errors
 
 
@@ -249,7 +266,7 @@ def check_stream_turn_error_rolls_back_history():
 if __name__ == "__main__":
     errors = (check_speech_streamer_matches_batch()
               + check_speech_streamer_tail_fragment_difference()
-              + check_speech_streamer_stops_at_newline()
+              + check_speech_streamer_stops_at_tags()
               + check_stream_turn_calls_sentences_incrementally()
               + check_stream_turn_matches_take_turn()
               + check_stream_turn_error_rolls_back_history())
@@ -258,6 +275,6 @@ if __name__ == "__main__":
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: SpeechStreamer matches split_sentences() (bar one documented tail-fragment "
-          "difference) and stops cleanly at the MODE:/MEMORY: boundary; stream_turn() calls "
+          "difference), speaks every paragraph, and stops cleanly at the MODE:/MEMORY: boundary; stream_turn() calls "
           "on_sentence() progressively, agrees with take_turn() on the same reply, and rolls "
           "back history on a mid-stream API error")
