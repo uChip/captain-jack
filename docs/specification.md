@@ -425,7 +425,7 @@ fast enough given easing math cost).
 
 ### 3.6 Physical Statue and Perch
 
-History: none yet.
+History: [log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt) (servo noise and the isolation mount, 2026-10-14).
 
 **Description**: life-size 3D-printed parrot on a tree-stump perch, with a
 box base beneath housing all electronics. **Status: construction
@@ -439,6 +439,67 @@ this project requires.
 **Interconnect**: houses and physically mounts the Pi 5, Arduino, servos
 and their power supply, the XVF3800, the external amp, and the
 speaker — all now installed inside the rebuilt enclosure.
+
+#### Bird-to-base isolation mount
+
+**Status: designed, not built.** The bird is currently unbolted and
+resting on a borrowed silicone mat as a stand-in.
+
+**Why**: head-servo motion noise reaches the XVF3800 by conduction
+through the bird into the electronics enclosure, which acts as a
+sounding board. Airborne noise is negligible. Bolted, motion raised
+the mic floor to about −32 dBFS and degraded STT and wake-word
+detection. On a soft mat it measured about −55 dBFS, and recognition
+with the head moving matched servos-off.
+
+**Requirements**:
+- No hard path between the bird and the electronics enclosure. No
+  screw, bolt, or rigid part crosses the isolator.
+- Nothing that touches the bird also touches the mic array or the
+  enclosure near it. A mat lying over the array measured ~12dB worse
+  than one kept clear of it.
+- Wiring crossing the gap has a slack loop, never a taut run.
+- Stable under the bird's own fastest head moves (excursions): no
+  visible rocking or walking.
+- Isolator sized for the load: about 1.5 kg (bird), or about 2.4 kg
+  if the base is reprinted with ~0.9 kg (2 lb) of lead shot. The
+  electronics base is under 0.5 kg, so the assembly is top-heavy.
+  Spread the pads as wide as the footprint allows, and weight or fix
+  the electronics base to its shelf if needed. The shot gave no noise
+  benefit on the mat, but it lowers the centre of gravity and allows a
+  softer mount.
+
+**Design principle**: the isolator's own bounce frequency should be
+well below the noise, which is mostly 150-300 Hz, so aim for about
+30-50 Hz or lower. Soft elastomers only reach that when properly
+loaded, at roughly 10-20% compression. Too hard a grade, or too large
+a pad for the weight, stays stiff and passes the noise.
+
+**Candidates**:
+- **Glued pads (Chip's proposal)**: rounds of sheet material glued to
+  the base, with the bird glued to the pads. No hard connection, and
+  glue also resists tipping. Cost: harder to disassemble, though
+  servos stay replaceable without disturbing the glued joints. Keep
+  the glue layer thin, with no squeeze-out bridging a pad's edges.
+  - Silicone sheet (e.g. a cut baking mat): the proven material
+    class, but it only bonds with silicone RTV adhesive.
+  - Closed-cell neoprene or EPDM sponge: bonds with contact cement.
+  - Sorbothane, softest grade (30 Shore 00), small pads sized from
+    the maker's load tables: predictable, creeps less than generic
+    foam, often sold adhesive-backed. Expected roughly 0.4-0.6 kg per
+    pad with 4 pads.
+- **Screw-on isolators**: rubber mounts with a threaded stud or insert
+  on each face, so neither screw crosses the rubber. Same isolation,
+  and the bird stays removable. At this load, look at light-duty
+  drone-gimbal damper balls or flight-controller mounts; industrial
+  rubber bobbins are typically too stiff.
+
+**Acceptance test**: before gluing anything, set the bird on loose
+pads of the chosen material and run `tests/measure_servo_noise.py`. It
+passes if the moving phases measure about as quiet as on the mat
+(about −55 dBFS, against −32 bolted). Then confirm by voice with
+`coordinator.py --port /dev/ttyUSB0 --no-hold --save DIR`, using the
+session15 script, and an Off Watch wake check.
 
 ### 3.7 Removed and Legacy Hardware
 
