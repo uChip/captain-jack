@@ -159,6 +159,21 @@ when it was last confirmed passing.
 - **Expected**: prints per-phase mic levels (median/p10/p90/max of
   100ms slices, dBFS) and saves each phase's audio. No pass/fail - for
   comparison: normal speech at the bird is about −15 to −20 dBFS.
+
+### Bench servo noise at the mic (manual, measurement)
+
+- **Covers**: airborne noise of a single loose servo on the bench (no
+  mechanical path into the mic array), for comparing candidate quieter
+  head servos against the current AGFRC B11DLS (see log.md 4.2 history).
+- **Script**: [`../tests/measure_bench_servo.py`](../tests/measure_bench_servo.py)
+- **Run**: `venv/bin/python tests/measure_bench_servo.py [--port ...]
+  [--lead-in 10] [--out stt_samples/bench_servo]`. **Needs the test servo
+  plugged into the roll channel (pin 5) in place of the bird's roll
+  servo, a quiet room, and nobody talking.** Drives only `r` moves.
+- **Expected**: prints mic levels while moving and holding at several
+  sway sizes/speeds, plus band shares, and saves each segment's audio.
+  No pass/fail - compare against the baseline segment and against
+  `measure_servo_noise.py`'s in-bird numbers.
 - **Last run**: 2026-10-14 (ad hoc first version, one Off Watch
   excursion accidentally included): still −47.8 median; On Watch ±3°
   sway −32.4; Off Watch 41° breathing −23.3 (two excursion bursts to
