@@ -252,42 +252,51 @@ when it was last confirmed passing.
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
   build step 4, the [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
-  `take_turn()` — utterance → Whisper → Haiku → reply + memory save,
-  session start/end, noise rejection — and the
-  [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)'s
+  `stream_turn()` (2026-10-12; was `take_turn()`) — utterance → Whisper
+  → Haiku → reply + memory save, session start/end, noise rejection —
+  and the [Sleep-Mode State Machine](specification.md#411-sleep-mode-state-machine)'s
   transitions (`MODE: END_SESSION`/`NAP`, wake from Asleep, the
   sleep-phrase stand-in's Off-Watch-only gating, both timeouts, and
   which Asleep-entry context each path hands Motion), driven
   directly through `_handle_event()`/`_handle_timeout()` without
-  starting real audio threads. Also covers two real races found live:
+  starting real audio threads. Also covers three real races found live:
   a multi-sentence reply must keep the mic deaf across its own internal
   sentence gaps, not just after the whole reply ends, or a stray sound
   there can clobber the in-flight reply's tag tracking and silently
   drop a pending `MODE:` tag (log.md 4.16, "Goodnight, Jack" live test,
-  2026-10-07); and a standalone clip (Motion's idle/excursion/settle-in
+  2026-10-07); a standalone clip (Motion's idle/excursion/settle-in
   wavs, tagged with their own filename, not a reply-sentence tuple) must
   reopen the mic/spotter as soon as *it* finishes too, or the mic (and,
   once wired in, the real `WakeSpotter`) goes permanently deaf after the
   first one plays in Off Watch/Asleep (log.md 4.11/4.16, found wiring in
-  `WakeSpotter`, 2026-10-11).
+  `WakeSpotter`, 2026-10-11); and, once replies started streaming in
+  (2026-10-12), a reply's true last sentence can finish playing before
+  Haiku's full text is even known to have ended, if TTS/Playback happen
+  to be faster than the network - `_finish_reply()` must catch up
+  immediately rather than drop the mic reopen/`reply_done` (log.md 4.3).
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no
-  hardware, no API — a fake Haiku client) or add `--live` for one real
-  Haiku call (needs `ANTHROPIC_API_KEY`; a fraction of a cent).
+  hardware, no API — a fake Haiku client, now also standing in for
+  `.messages.stream()`) or add `--live` for one real Haiku call (needs
+  `ANTHROPIC_API_KEY`; a fraction of a cent).
 - **Expected**: prints `PASS: coordinator transcribes, calls Haiku, saves
   memory to scratch only, rejects noise, the Sleep-Mode State Machine
   transitions correctly (telling Motion how Asleep was entered), the mic
   stays deaf across a multi-sentence reply's own sentence gaps but
-  reopens after, and a standalone clip (Motion's idle/excursion/
-  settle-in wavs) reopens the mic and spotter too` (plus `, live Haiku
-  replied`) and exits 0. Everything runs on a scratch copy of `memory/`;
-  the test fails if the real `memory.md` changes.
-- **Last confirmed passing**: 2026-10-11.
+  reopens after, a standalone clip (Motion's idle/excursion/settle-in
+  wavs) reopens the mic and spotter too, and a streamed reply's own last
+  sentence finishing before it's known to be last still reopens the
+  mic/fires reply_done correctly` (plus `, live Haiku replied`) and
+  exits 0. Everything runs on a scratch copy of `memory/`; the test
+  fails if the real `memory.md` changes.
+- **Last confirmed passing**: 2026-10-12.
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real
-  bird, see log.md 4.16).
+  bird, see log.md 4.16); a real live-device latency measurement for
+  streaming (see the new "Streamed Haiku replies" entry below - blocked
+  this session on an expired `ANTHROPIC_API_KEY`, not a code issue).
 - **Live-watched as wired in, 2026-10-11**: the real `WakeSpotter`
   (`_on_frame`/`_on_playback`, not just `test_wakeword.py`'s mechanism
   checks) against the real bird - wake from Off Watch, sleep phrase
@@ -296,6 +305,41 @@ when it was last confirmed passing.
   times. See log.md 4.16 for the full story, including a false alarm
   (0/3 from "Asleep" that turned out to be a session stuck On Watch by
   unrelated STT failures, not a real Asleep-wake bug).
+
+### Streamed Haiku replies
+
+- **Covers**: [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
+  `SpeechStreamer` and `stream_turn()` (2026-10-12) - the incremental
+  sentence splitter and the streaming counterpart of `take_turn()` that
+  speaks a reply as it arrives instead of waiting for all of it first
+  (the "next lever" flagged in
+  [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
+  build step 5 since the original build).
+- **Script**: [`../tests/test_streaming_reply.py`](../tests/test_streaming_reply.py).
+- **Run**: `venv/bin/python tests/test_streaming_reply.py` (automatic,
+  no hardware, no API - a fake streaming client).
+- **Expected**: prints `PASS: SpeechStreamer matches split_sentences()
+  (bar one documented tail-fragment difference) and stops cleanly at
+  the MODE:/MEMORY: boundary; stream_turn() calls on_sentence()
+  progressively, agrees with take_turn() on the same reply, and rolls
+  back history on a mid-stream API error` and exits 0. Checks
+  `SpeechStreamer` against `tts.split_sentences()` across several
+  sample replies and chunk sizes down to one character at a time (they
+  must match, except the one accepted difference: a too-short trailing
+  fragment can't be merged backward into an already-dispatched
+  sentence, so it's spoken alone instead); that no tag text ever
+  reaches a spoken sentence; that `stream_turn()` really does call
+  `on_sentence()` before the whole reply (first sentence confirmed
+  dispatched well short of the full text having streamed in, not just
+  at the end); that `stream_turn()` and `take_turn()` agree on the same
+  reply text; and that a simulated network failure partway through
+  still rolls back history exactly like `take_turn()`'s own error path.
+- **Last confirmed passing**: 2026-10-12.
+- **Not covered**: a real live-device latency measurement (see the
+  "Coordinator turn" entry above); the real Anthropic streaming
+  endpoint's own wire behavior (chunk sizes, timing) - only exercised
+  against a fake client here, though `test_coordinator.py --live`
+  exercises the real one when `ANTHROPIC_API_KEY` is valid.
 
 ### Listener VAD + STT
 
@@ -452,18 +496,29 @@ when it was last confirmed passing.
   after the cooldown elapses (with a fake model forcing the score, so
   it's deterministic), and that the real shipped models load and return
   near-zero scores with no detections on digital silence.
-- **Last confirmed passing**: 2026-10-11.
+- **Last confirmed passing**: 2026-10-12.
 - **Live-watched standalone**, 2026-10-11 (`venv/bin/python
   wakeword.py`, real bird, low-level background family noise in another
   room): both phrases detected correctly when spoken, several other
   non-wake phrases spoken in between correctly ignored, no false
   positives, no missed detections. Not this script's job to cover -
   real detection accuracy isn't a mechanism check, and exact
-  threshold/patience/cooldown numbers are still spec 4.1's deferred
-  real-audio calibration, just informally promising so far.
-- **Not covered**: real numeric threshold/patience/cooldown calibration
-  against a proper real-audio corpus (spec 4.1's methodology, still
-  deferred) - wired into `coordinator.py` and live-watched there too
-  now, see `test_coordinator.py`'s entry above and log.md's 4.16
-  history for the full story (closes out build step 7's wake-word
-  piece).
+  threshold/patience/cooldown numbers were still spec 4.1's deferred
+  real-audio calibration at that point.
+- **Wake threshold calibrated, 2026-10-12** (`coordinator.py --save`,
+  voice only, no keyboard stand-ins): 5/5 wake attempts fired correctly
+  across close/soft/distant delivery and a second speaker, scoring
+  0.82-1.00; a stretch of undirected background talk never crossed 0.5.
+  `WAKE_THRESHOLD` raised 0.5 → 0.65 on that data (see docs/log.md's 4.1
+  history).
+- **Sleep threshold checked, left unchanged, 2026-10-12** (same method,
+  focused on "Goodnight, Jack"): 4/5 attempts fired cleanly (0.91-1.00);
+  the one miss printed nothing at all (scored under the 0.1 debug floor,
+  not a near-miss on 0.5), so no threshold number would have caught it.
+  `SLEEP_THRESHOLD` left at the vanilla default. `PATIENCE_FRAMES`/
+  `COOLDOWN_S` still untouched - no data pointing at either.
+- **Not covered**: `PATIENCE_FRAMES`/`COOLDOWN_S` calibration (no data
+  suggesting either needs to move). Wired into `coordinator.py` and
+  live-watched there too, see `test_coordinator.py`'s entry above and
+  log.md's 4.16 history for the full story (closes out build step 7's
+  wake-word piece).

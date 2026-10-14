@@ -481,7 +481,9 @@ full turn start to finish — is in
 
 History: [log.md#issue-16](log.md#issue-16), [log.md#41-wake-word-spotter](log.md#41-wake-word-spotter).
 
-**Status: Engine chosen, not implemented.**
+**Status: Implemented** (`wakeword.py`, 2026-10-11) and live-validated
+cycling the full state machine by voice. Thresholds partially calibrated
+against real household audio (2026-10-12) — see below.
 
 **Description**: local, always-on keyword spotter running on the Pi,
 using **openWakeWord** — open-source, no account/network dependency at
@@ -532,6 +534,37 @@ What's decided instead:
   distance/noise) and real negative audio (TV, ambient conversation) to
   tune against happens as part of the wake-word testing already queued
   once the board can be exercised (see `CLAUDE.md`'s work list).
+
+**Wake threshold calibrated, 2026-10-12**: a live `coordinator.py --save`
+session covering close/soft/distant delivery and a second speaker (Kath,
+from the kitchen) fired the wake phrase correctly all 5 times, scored
+0.82–1.00 — comfortably clear of the 0.5 starting point even at the
+weakest (soft+distant) attempt. A stretch of ordinary background
+conversation, not directed at Jack, never crossed 0.5 either. On that
+data, raised `WAKE_THRESHOLD` to 0.65 — still well under the weakest real
+attempt, with more margin against false accepts, per the "bias stricter"
+call above. `SLEEP_THRESHOLD`/`PATIENCE_FRAMES`/`COOLDOWN_S` left
+unchanged — no real sleep-phrase data yet (next live session). Two
+"garbled" results in that same session turned out to be STT accuracy on
+quiet/distant speech, not wake-spotter misses — see
+[4.2](#42-speech-to-text-stt), a separate concern. See
+[log.md's 4.1 history](log.md#41-wake-word-spotter).
+
+**Sleep threshold left unchanged, 2026-10-12**: a follow-up session
+focused on "Goodnight, Jack" got 5 real attempts, 4 of which printed and
+fired cleanly (0.91–1.00, well clear of 0.5); the one miss printed
+nothing at all, meaning it scored under the 0.1 debug floor — too quiet
+to register as speech-like to the model at all, not a near-miss on the
+threshold itself. Lowering `SLEEP_THRESHOLD` wouldn't have caught that
+one and risks false accepts for no real gain, so it stays at the vanilla
+default, matching this section's own "sleep is a softer failure, less
+reason to bias it" call. One attempt was said conversationally during On
+Watch instead of as the fixed phrase ("Good night, Jack.", STT p=0.42,
+lower than the session's other phrases) — correctly handled by Haiku's
+own `MODE: NAP` tag, not this spotter, per
+[4.11](#411-sleep-mode-state-machine); its lower STT confidence lines up
+with the same soft-delivery pattern as the one missed spotter attempt.
+See [log.md's 4.1 history](log.md#41-wake-word-spotter).
 
 **Interfaces**: listens to the XVF3800's audio stream (already usable —
 see [3.2](#32-seeed-respeaker-xvf3800)); on detecting the wake phrase,
@@ -696,10 +729,11 @@ transcribed text to the
 
 ### 4.3 Conversation Orchestrator
 
-History: none yet.
+History: [log.md#43-conversation-orchestrator](log.md#43-conversation-orchestrator).
 
 **Status: Implemented** — `orchestrate.py`'s `take_turn()`, called by
-the text CLI and by the voice Coordinator (`coordinator.py`).
+the text CLI, and `stream_turn()` (2026-10-12), called by the voice
+Coordinator (`coordinator.py`) instead.
 
 **Description**: the central Python loop tying persona, memory, and the
 Haiku API together. Currently a text CLI (`input()`/`print()`); live-tested
@@ -713,13 +747,27 @@ trailing `MEMORY:` line from the spoken reply, validate/save any proposed
 memory fact (see [Memory Subsystem](#45-memory-subsystem)), and return the
 spoken reply for output.
 
+**Streamed replies (2026-10-12)**: `stream_turn()` is the same turn, but
+calls the Messages API's streaming endpoint and speaks the reply
+sentence by sentence as its text arrives, via a new `SpeechStreamer`
+(incremental version of [TTS](#47-text-to-speech-tts)'s own
+`split_sentences()`), instead of waiting for Haiku to finish the whole
+reply - including the trailing `MODE:`/`MEMORY:` lines - before any of
+it can be spoken. `SpeechStreamer` stops at the first newline, since a
+real spoken reply is single-line prose and the tag lines always start
+on their own line right after it - so no tag text can ever reach TTS,
+without needing to wait for the tags themselves to fully arrive first.
+`take_turn()` is unchanged and still used by the text CLI, where there's
+no TTS to feed incrementally; both share the same tag-parsing/memory-
+saving tail (`_finish_turn()`). See [4.16](#416-runtime-integration-end-to-end-turn)
+build step 5 for the latency rationale.
+
 **Interfaces**: reads `memory/identity.md` and `memory/memory.md` directly
 (file I/O lives in orchestration code by design, never delegated to the
 model as an autonomous tool call); calls the Anthropic Messages API; will
-eventually also call [STT](#42-speech-to-text-stt) for input,
-[TTS](#47-text-to-speech-tts) for output, and the
-[home-automation tool schema](#46-home-automation-tool-schema) mid-turn —
-none of that wiring exists yet. In the full program its per-turn logic
+eventually also call the
+[home-automation tool schema](#46-home-automation-tool-schema) mid-turn -
+that wiring doesn't exist yet. In the full program its per-turn logic
 is called by the Coordinator thread (see
 [4.16](#416-runtime-integration-end-to-end-turn)).
 
@@ -1318,10 +1366,16 @@ network-for-the-LLM-turn-only principle (see `CLAUDE.md`).
     wake phrase detected.
 
 Timeout values (2 minutes On Watch, 15 minutes Off Watch) are Chip's
-initial numbers, not yet tuned against real use. Still undefined: exact
-match/variant tolerance for the two fixed phrases (see
-[Wake Word Spotter](#41-wake-word-spotter)), and the Asleep-specific
-gesture/sound catalog subset (see [Open Issues](#5-open-issues) issue 5).
+initial numbers, **kept as-is, decided 2026-10-12**: a deliberate test
+session doesn't reproduce real social-conversation pacing, so "feel"
+from testing isn't trustworthy evidence either way — and the known
+comparable failure mode (a too-short timeout cutting off conversation
+mid-flow, as other voice assistants visibly do) argues against erring
+short. Still undefined: exact match/variant tolerance for the two fixed
+phrases (see [Wake Word Spotter](#41-wake-word-spotter), now partly
+calibrated — the threshold itself is most of what "tolerance" means
+here), and the Asleep-specific gesture/sound catalog subset (see
+[Open Issues](#5-open-issues) issue 5).
 
 **Intended function**: own overall mode state, gate which of
 [Idle and Ambient Audio Player](#410-idle-and-ambient-audio-player)'s
@@ -1848,7 +1902,12 @@ spotter later changes nothing downstream.
    **Done** — `tts.py`; two live conversations. Delay from end of speech
    to Jack's first sound: 2.6–3.8s (end-pointing ~0.7s, Whisper ~0.5s,
    Haiku ~1.1–1.9s, first sentence's synthesis), 1.75s for the local
-   "say again" line. Streaming Haiku's reply into TTS is the next lever.
+   "say again" line. Streaming Haiku's reply into TTS (2026-10-12,
+   `orchestrate.py`'s `stream_turn()`, see [4.3](#43-conversation-orchestrator))
+   cuts this further for any reply with 2+ sentences, by starting
+   synthesis of the first one while Haiku is still generating the rest -
+   automated-tested (`tests/test_streaming_reply.py`), real-device
+   latency improvement still to be confirmed live.
 6. Beak-sync in Playback + Serial writer. **Done** — `serial_link.py`
    (the Serial writer, a bounded FIFO delay line for beak commands) and
    beak-sync in

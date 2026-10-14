@@ -2,7 +2,7 @@
 
 Implements the Coordinator from docs/specification.md section 4.16(c),
 build step 7: wires Capture -> Listener -> STT -> the orchestrator's
-take_turn() -> TTS -> Playback, with Playback's events driving the
+stream_turn() -> TTS -> Playback, with Playback's events driving the
 Listener's turn-taking gate, and (when --port/--dry-run is given) the
 Serial writer + Motion & idle thread for beak-sync and ambient gestures.
 Replies are spoken sentence by sentence (and printed).
@@ -55,7 +55,7 @@ import serial_link
 from capture import Capture
 from listener import HOLDOFF_S, Listener
 from motion import Motion
-from orchestrate import MEMORY_DIR, household_names, take_turn
+from orchestrate import MEMORY_DIR, household_names, stream_turn
 from playback import RATE, Playback
 from stt import STT, names_prompt
 from tts import TTS, split_sentences
@@ -97,7 +97,9 @@ class Coordinator:
         self._pending_mode = None    # Haiku's MODE: tag for the reply in flight, applied on reply_done
         self._reply = 0              # counts replies, to tag their sentences
         self._first_tag = None       # first and last sentence of the reply being spoken
-        self._last_tag = None
+        self._last_tag = None        # (reply, len(sentences) - 1) - only known once fully streamed
+        self._sentences_finished = 0  # how many of the CURRENT reply's sentences have played, see _finish_reply
+        self._last_sentence_dac_time = 0.0  # dac_time of the most recent one, for _finish_reply's race catch-up
         self._heard_at = None        # when the utterance being answered was handed over
 
         self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)))
@@ -165,6 +167,9 @@ class Coordinator:
             # wired in, the WakeSpotter) went deaf after the first such
             # clip in Off Watch/Asleep and never reopened for the rest of
             # that mode. See docs/log.md's 4.11/4.16 history.
+            if isinstance(tag, tuple) and tag[0] == self._reply:
+                self._sentences_finished += 1
+                self._last_sentence_dac_time = dac_time
             if not isinstance(tag, tuple) or tag == self._last_tag:
                 self.listener.ignore_until(dac_time + HOLDOFF_S)
                 self.spotter.ignore_until(dac_time + HOLDOFF_S)
@@ -290,18 +295,70 @@ class Coordinator:
         self.deadline = None   # Asleep has no further timeout - only the wake phrase ends it
         self.out(f"[Asleep - {why}. Press Enter to wake Jack.]")
 
-    def speak(self, text):
-        """Queue text to be spoken sentence by sentence; the On Watch
-        timeout pauses until the last sentence has played."""
-        sentences = split_sentences(text)
-        if not sentences:
-            return
+    def _begin_reply(self) -> int:
+        """Starts a new tagged reply: bumps the reply counter and resets
+        the per-reply bookkeeping speak() and the streaming path in
+        handle_utterance() both need. Returns the new reply number."""
         self._reply += 1
-        self._first_tag = (self._reply, 0)
-        self._last_tag = (self._reply, len(sentences) - 1)
+        self._first_tag = None
+        self._last_tag = None
+        self._sentences_finished = 0
         self.deadline = None
+        return self._reply
+
+    def _queue_sentence(self, reply: int, i: int, sentence: str):
+        """Tags and queues one sentence to TTS - the first one queued
+        for a reply also becomes _first_tag (for the first-audio timing
+        print), however many more are still to come."""
+        tag = (reply, i)
+        if self._first_tag is None:
+            self._first_tag = tag
+        self.tts.say(sentence, tag)
+
+    def _finish_reply(self, reply: int, n_sentences: int):
+        """Call once all of a reply's sentences are known and queued -
+        marks (reply, n_sentences - 1) as _last_tag, the one
+        _on_playback watches for to reopen the mic and fire reply_done.
+
+        Streaming (handle_utterance below) can't know this number until
+        Haiku's full reply, tags included, has arrived - by which point
+        TTS may already be partway through synthesizing/playing earlier
+        sentences. In the (expected to be rare) case where the reply's
+        true last sentence already finished playing before we got here
+        - its own _on_playback("finished", ...) call came and went while
+        _last_tag still pointed at the previous reply, so it never
+        matched - catch up immediately instead of silently dropping the
+        mic reopen/reply_done, same class of race as the sentence-gap
+        bug found live 2026-10-11 (docs/log.md's 4.16 history), just a
+        different pair of racing events. Reuses the dac_time that
+        playback event itself already recorded, rather than asking
+        Playback for the current time - by now that sentence's audio is
+        in the past, not "now"."""
+        if n_sentences == 0:
+            # Nothing was ever said for this reply (a Haiku error before
+            # any sentence streamed in, or - in principle - an empty
+            # spoken reply). _begin_reply() already paused the On Watch
+            # timeout for it; resume it the same way _apply_pending_mode
+            # does when Haiku signals no mode change, rather than leaving
+            # it paused with nothing left to ever resume it.
+            self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
+            return
+        self._last_tag = (reply, n_sentences - 1)
+        if self._sentences_finished >= n_sentences:
+            t = self._last_sentence_dac_time
+            self.listener.ignore_until(t + HOLDOFF_S)
+            self.spotter.ignore_until(t + HOLDOFF_S)
+            self.events.put(("reply_done", None))
+
+    def speak(self, text):
+        """Queue a fixed string to be spoken sentence by sentence, all
+        at once - used for DIDNT_CATCH, not Haiku's replies (those
+        stream in progressively, see handle_utterance below)."""
+        sentences = split_sentences(text)
+        reply = self._begin_reply()
         for i, sentence in enumerate(sentences):
-            self.tts.say(sentence, (self._reply, i))
+            self._queue_sentence(reply, i, sentence)
+        self._finish_reply(reply, len(sentences))
 
     def save_utterance(self, samples) -> str:
         self._saved += 1
@@ -325,17 +382,26 @@ class Coordinator:
             return
         self.out(f"You:  {heard.text}   [{stats}]")
 
+        reply = self._begin_reply()
+        n = 0
+
+        def on_sentence(sentence):
+            nonlocal n
+            self._queue_sentence(reply, n, sentence)
+            n += 1
+
         start = time.monotonic()
         try:
-            turn = take_turn(self.client, self.history, heard.text, self.memory_dir)
+            turn = stream_turn(self.client, self.history, heard.text, on_sentence, self.memory_dir)
         except anthropic.APIError as e:
             self.out(f"  [error reaching Haiku: {e}]")
+            self._finish_reply(reply, n)
             return
         self.out(f"Jack: {turn.spoken}   [haiku {time.monotonic() - start:.2f}s]")
         if turn.saved:
             self.out(f"  [memory saved - {turn.saved}]")
         self._pending_mode = turn.mode
-        self.speak(turn.spoken)
+        self._finish_reply(reply, n)
 
 
 def scratch_memory_copy() -> Path:

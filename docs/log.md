@@ -548,6 +548,76 @@ real-audio calibration of both phrases' operating thresholds (section
 4.1's methodology above), which can't happen until the spotter exists
 to run them through.
 
+**Wake threshold calibrated, 2026-10-12**: with the spotter built and
+live-validated (item 33), ran a real calibration session -
+`coordinator.py --scratch-memory --save`, voice-only, no keyboard
+stand-ins - covering close, soft, and distant delivery, plus a second
+speaker (Kath, from the kitchen). All 5 wake attempts fired correctly,
+scoring 0.82-1.00; the weakest was the soft+distant one, still well
+clear of the 0.5 starting point. A stretch of ordinary background
+conversation, not directed at Jack, never crossed 0.5 either -
+`coordinator.py`'s live `[spotter] wake=.. sleep=..` readout (added with
+the spotter itself, see 4.11/4.16 history) made both the positive and
+negative data visible without extra instrumentation. On that data,
+raised `WAKE_THRESHOLD` from 0.5 to 0.65 in `wakeword.py` - still well
+under the weakest real attempt, with more margin against false accepts,
+per this section's "bias stricter" call. Left `SLEEP_THRESHOLD`,
+`PATIENCE_FRAMES`, and `COOLDOWN_S` unchanged - no real sleep-phrase
+attempt happened this session (Chip typed the keyboard `sleep`
+stand-in once mid-conversation instead, which was correctly ignored -
+that event only fires from Off Watch, confirmed at
+`coordinator.py`'s `_handle_event`); next live session will focus on
+saying "Goodnight, Jack" aloud instead.
+
+Two results logged as "garbled" from that same session turned out to be
+a separate thing: STT accuracy dropping on quiet/distant speech (e.g.
+"That's all for now, Jack." heard as "I saw for now Jack." at p=0.35),
+not a wake-spotter miss - the spotter fired correctly in both cases.
+See [4.2](#42-speech-to-text-stt) - not addressed here, flagged as a
+separate, real finding about far-field STT quality.
+
+**Sleep threshold left unchanged, 2026-10-12**: a second session that
+same day focused on "Goodnight, Jack" specifically - voice only, Enter
+used between cycles just to get back On Watch quickly. Of 5 real
+attempts, 4 fired cleanly and printed (1.00, 1.00, 0.91, 1.00 - each
+followed by 0-3 extra `[spotter]` lines as the same utterance's score
+decayed across a few more frames; `COOLDOWN_S` correctly suppressed any
+of those from re-firing, it's the debug *print* that isn't
+cooldown-gated, printing every frame above the 0.1 floor regardless).
+The 5th attempt, spoken softly, printed nothing at all - meaning it
+scored under that same 0.1 floor, not merely under the 0.5 threshold.
+That rules out a threshold fix: nothing between 0.1 and 0.5 would have
+caught it, since it never got that high in the first place. Left
+`SLEEP_THRESHOLD` at the vanilla default accordingly - matches this
+section's own call that an unwanted "go quiet" is the softer failure,
+less reason to bias it, and the real data here doesn't argue for moving
+it either way.
+
+One attempt in that session was a bonus data point, not a sleep-phrase
+test: Chip said "Goodnight, Jack" conversationally during an On Watch
+turn rather than as the fixed phrase. The spotter still scored it (the
+debug print is just suppressed while On Watch - see
+`coordinator.py`'s `_on_spotter_score`) but the actual transition went
+through Haiku's own `MODE: NAP` tag instead, per
+[4.11](#411-sleep-mode-state-machine)'s existing "no fixed phrase from On
+Watch" design - worked correctly, not a new path. STT heard it as "Good
+night, Jack." at p=0.42, distinctly lower than the same session's other
+phrases (0.65-0.70) - consistent with the missed spotter attempt above:
+people likely say "goodnight" more quietly than everyday speech, which
+costs confidence on both paths the same way. Not something a threshold
+number fixes either; noted as a real, cross-cutting observation rather
+than acted on.
+
+A separate, unexplained timing anomaly surfaced in the same session:
+one reply's `[first audio Xs after you stopped talking]` read 5.55s
+against a 3.2-3.8s baseline everywhere else that session, but - unlike
+the similar-looking anomaly from the previous day (see
+[4.2](#42-speech-to-text-stt)) - `stt_s` itself was perfectly normal
+(1.00s) this time, so it isn't the same slow-whisper-decode pattern.
+Left open; no `--save`-able root cause found yet beyond "happened once,
+on a badly garbled utterance Haiku still correctly read as end-of-
+session intent from."
+
 ### 4.2 Speech to Text (STT)
 
 **Confidence/no-speech threshold methodology, 2026-09-23**: same
@@ -1655,10 +1725,20 @@ the original order unchanged otherwise. `take_turn()` now calls
 `tests/test_mode_tag.py` gained `check_reversed_tag_order()`, confirmed
 to fail without the fix and pass with it.
 
-**Not yet done**: tuning either timeout against real use (both are
-still spec 4.11's initial, unvalidated numbers); the wake/sleep-phrase
-spotter's own real-audio threshold calibration (spec 4.1's methodology
-- separate from this section).
+**Timeouts left as-is, decided 2026-10-12**: asked Chip whether the
+2-minute On Watch / 15-minute Off Watch numbers feel right now that
+there's real usage to judge by. His call: don't tune either from "feel"
+at all - a deliberate test session doesn't reproduce a real social
+conversation's pacing (a 2-minute silent gap feels long sitting there
+testing it, but might be unremarkable mid-conversation with other things
+going on), and the actual comparable failure mode is well known and
+worth avoiding: Alexa's timeout is seconds, not minutes, and it visibly
+drops off household conversations that are still going. Both numbers
+stand unchanged; the wake/sleep-phrase spotter's own real-audio
+threshold calibration (spec 4.1's methodology) is separate from this
+section and is now done for the wake phrase and checked-and-left-alone
+for the sleep phrase - see [4.1](#41-wake-word-spotter)'s 2026-10-12
+entries.
 
 ### 4.12 Gesture Engine and Catalog
 
@@ -2197,3 +2277,83 @@ in `identity.md`, unchanged) was confirmed live the same day: a reply
 to "do you have a short mystery story for me?" ran well over a hundred
 words and Chip didn't want it shortened - the exception, not the
 baseline, is what should govern a reply like that.
+
+### 4.3 Conversation Orchestrator
+
+**Streamed replies, 2026-10-12**: tackled next on the work list after
+the wake-threshold calibration and the timeout decision - the delay to
+Jack's first sound (section 4.16's "next lever," flagged since the
+original build in September) comes from waiting for Haiku's *entire*
+reply, tag lines included, before any of it can be spoken, even though
+TTS already synthesizes sentence by sentence once it has something to
+work with.
+
+Added `orchestrate.py`'s `SpeechStreamer`: an incremental version of
+`tts.split_sentences()` (same too-short-fragment-merges-forward rule),
+fed piece by piece as `client.messages.stream()`'s text arrives rather
+than all at once. It stops cold at the first newline rather than
+waiting for the stream to finish: a real spoken reply is single-line
+prose (see `identity.md`'s style rules) and `MODE:`/`MEMORY:` always
+start on their own line right after it, so a newline alone reliably
+marks "no more speech after this point" - confirmed by feeding sample
+replies through character-by-character and checking the result matches
+`split_sentences()` exactly, for every chunk size tried. One accepted,
+documented difference: a too-short trailing fragment with nothing after
+it can't be merged backward into an already-dispatched sentence (that
+sentence may already be synthesizing or playing by the time the stream
+ends), so it's spoken as its own slightly-short sentence instead - a
+cosmetic edge case, not a correctness one.
+
+`get_reply_stream()`/`stream_turn()` wrap this the same way
+`get_reply()`/`take_turn()` already wrapped the non-streaming call;
+both now share one tag-parsing/memory-saving tail (`_finish_turn()`,
+factored out of the old `take_turn()` body, pure extraction, no
+behavior change). `coordinator.py`'s `handle_utterance()` switched from
+`take_turn()` to `stream_turn()`, passing an `on_sentence` callback that
+tags and queues each sentence to TTS the moment it's ready - exactly
+the dispatch speak() used to do all at once, now spread across the
+stream. Confirmed this is actually incremental, not just correct: a
+test wraps the fake stream to count how many characters had been
+consumed when the first sentence was reported, and checks it's well
+short of the full reply.
+
+This opened a real race that couldn't happen with the old all-at-once
+`speak()`: a reply's true last sentence isn't known until the full
+reply (tags included) has arrived, and if TTS/Playback happen to be
+faster than the rest of the network round-trip, that sentence's own
+"finished" playback event can come and go *before* `_last_tag` is set
+to match it - exactly the class of bug the 2026-10-11 sentence-gap race
+was (docs/log.md's 4.16 history), just a different pair of racing
+events. Fixed by tracking how many of the current reply's sentences
+have already finished playing (and the real `dac_time` of the most
+recent one) as they happen, independent of whether `_last_tag` is set
+yet; once the reply's sentence count is finally known,
+`coordinator.py`'s new `_finish_reply()` checks whether that count was
+already reached and, if so, fires the mic-reopen/`reply_done` logic
+immediately using the dac_time already recorded, rather than silently
+dropping it. Verified live (temporarily disabling the catch-up branch
+by hand, not `git stash` - this fix lives inside an `if` body, not a
+separable diff) to fail without it and pass with it
+(`tests/test_coordinator.py`'s `check_late_last_sentence_race`).
+
+Also fixed, found while handling the error path: `handle_utterance()`
+now has to start pausing the On Watch timeout (`_begin_reply()`) before
+knowing whether Haiku will reply at all, since sentences can start
+queuing before the full turn succeeds or fails - if a turn fails with
+*zero* sentences ever spoken (an API error with nothing streamed in
+yet), the old all-at-once `speak()` simply never touched `deadline` at
+all, but the new per-reply bookkeeping would otherwise leave it paused
+forever with nothing left to resume it. `_finish_reply()` now resumes
+the ordinary 2-minute timer itself in that specific case, the same way
+`_apply_pending_mode()` does when Haiku signals no mode change.
+
+All new logic (`SpeechStreamer`, `stream_turn()`,
+`coordinator.py`'s per-reply bookkeeping and the race catch-up) is
+covered by `tests/test_streaming_reply.py` and new cases in
+`tests/test_coordinator.py`; the full existing suite (including the
+2026-09-25/2026-10-07/2026-10-11 regression tests for the sentence-gap
+race and the non-reply-clip mic reopen) still passes unchanged. Not yet
+done: a real live-device latency measurement confirming the expected
+improvement - blocked this session on an expired `ANTHROPIC_API_KEY`
+in the shell environment, not a code issue; the automated fake-client
+tests already confirm the mechanism is genuinely incremental.
