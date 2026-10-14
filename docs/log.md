@@ -864,6 +864,31 @@ Watch, where Jack must move and listen at once, is open; Chip's
 candidate fix is moving the mic array back outside the bird, isolating
 it mechanically altogether.
 
+**On Watch hold, first live run (session14, base.en, `--port`), same
+day**: the head stops while the mic is open and resumes when Jack
+speaks, as intended. Noise floor -45.7 dBFS (session9 moving -33.7,
+session10 servos off -50.6), so the hold recovers most but not all of
+the gap. Recognition 2-3/8 wrong ("How's" heard as "I was" twice,
+"crew" as "courtroom" once, "That's" as "Thanks") - better than servos
+moving, short of servos off. Two causes visible in the clips: Chip
+spoke 3-6 dB softer than in sessions 9/10 (deliberately normal level),
+and clips that opened right after a reply (utt02/05/06) start at -31 to
+-36 dBFS against -44 after a fresh wake - the hold blocks new moves but
+an in-flight 1.5s sway runs to completion, and the servos buzz for
+about a second after it.
+
+Chip also asked what happens if nobody speaks: as built, the head stays
+frozen until speech or the 2-minute On Watch timeout. Two fixes were
+proposed and **deliberately held in reserve, not built**: cap the hold
+at ~8-10s of silence then re-hold at speech onset, and abort the
+in-flight move when the hold starts. Chip's reasoning: a stop is a
+bandaid that needs another bandaid to stay lifelike. First explore the
+source instead - the head servos are AGFRC B11DLS (metal-gear, digital),
+chosen for torque and reliability. Plastic gears would be quieter
+acoustically, but it's unknown whether they'd be quieter by mechanical
+conduction into the mic array; analog servos might move more smoothly
+(less noise) or jitter at rest (more). Needs research/measurement.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

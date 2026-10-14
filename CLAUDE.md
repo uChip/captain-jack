@@ -627,7 +627,11 @@ worked in parallel if priorities change.
      item 34.
    - Servo noise during listening (item 41): hold the head still while
      the mic is open in On Watch - built 2026-10-14 (`Motion.hold()`,
-     driven by `coordinator.py`), not yet confirmed live. Off Watch (must
+     driven by `coordinator.py`), confirmed live 2026-10-14 (session14:
+     floor -46 vs -34 moving/-51 off; 2-3/8 wrong) but frozen until
+     speech or the 2-minute timeout. Hold cap / move-abort fixes held in
+     reserve; first exploring quieter head servos (currently metal-gear
+     digital AGFRC B11DLS) - see `docs/log.md` 4.2. Off Watch (must
      move and listen at once) still open - Chip's candidate is moving
      the mic array back outside the bird. Then revisit tiny.en vs.
      base.en as the default (base.en clearly better on servo-off audio,
