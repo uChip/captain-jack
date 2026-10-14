@@ -988,6 +988,19 @@ weighted base are no longer needed on this evidence, and the On Watch
 hold may be retirable. Still to check before deciding that: the Off
 Watch wake phrase on the mat, and a run in a noisier house.
 
+**Wake/sleep on the mat, same day**: `coordinator.py --port` (hold on,
+tiny.en), bird on the mat, with the house noisier than any earlier run
+(people moving around, neighbors' construction) - partly the
+noisier-house check above. All 4 wake attempts fired over Off
+Watch/Asleep motion (Off Watch 0.68 and 0.98, Asleep 1.00 and 0.99,
+threshold 0.65), and "Goodnight, Jack" fired once from Off Watch (sleep
+1.00) - against bolted, where a normal voice often scored under 0.1.
+The first wake barely cleared; delivery not noted, so one to watch.
+tiny.en misheard the two softly spoken lines: "Goodnight, Jack" as "Good
+night, sir" (p=0.41) and "Time for a nap, Jack" as "Time for an app
+check" (p=0.33). Haiku still did the right thing with the first; the
+second only reached NAP on a follow-up. Fits session15 favoring base.en.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

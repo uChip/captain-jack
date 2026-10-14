@@ -551,6 +551,17 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     serial line crossing over, array orientation keyed for future DoA),
     with a heavier, soft-mounted bird base as the alternative. Script:
     `tests/measure_bench_servo.py`. See `docs/log.md`'s 4.2 history.
+43. Soft-mounting the bird fixes servo noise, 2026-10-14: the bird
+    unbolted and set on a silicone mat (2lb of lead shot made no
+    difference) cut motion noise at the mic ~23-26dB (-32 to about -55
+    dBFS). Spoken check with the head swaying while listening
+    (`coordinator.py --no-hold`, new flag; session15): floor -55.5,
+    margin 32.5dB, base.en 1/7 wrong (the "How's" miss that also happens
+    servos-off) vs. 3/8 bolted; tiny.en 3/7. Wake phrase 4/4 and sleep
+    phrase 1/1 over Off Watch/Asleep motion in a noisy house (vs. often
+    under 0.1 bolted). Two-box rework and weighted base no longer needed
+    on this evidence. A mat lying over the array made things worse - it
+    bridged the isolation. See `docs/log.md`'s 4.2 history.
 
 ## Work list — split by hardware dependency
 
@@ -642,15 +653,15 @@ worked in parallel if priorities change.
      driven by `coordinator.py`), confirmed live 2026-10-14 (session14:
      floor -46 vs -34 moving/-51 off; 2-3/8 wrong) but frozen until
      speech or the 2-minute timeout. Hold cap / move-abort fixes held in
-     reserve. Quieter servos de-prioritized 2026-10-14: the noise is
-     conducted, not airborne (item 42), so the fix is mechanical
-     isolation - next a no-rework test (bird on rubber/Sorbothane pads
-     with temporary weights, `tests/measure_servo_noise.py`), then
-     likely a separate electronics/mic enclosure (physical rework, done
-     offline by Chip). This also covers Off Watch (must move and listen
-     at once). Then revisit tiny.en vs.
-     base.en as the default (base.en clearly better on servo-off audio,
-     ~0.5-1s slower).
+     reserve. Root fix found 2026-10-14 (items 42/43): soft-mounting
+     the bird (temporarily on a silicone mat) removes the noise, Off
+     Watch included. Next: a permanent soft mount (material, isolating
+     the bolts, nothing touching both bird and array - physical work,
+     done offline by Chip); then decide whether to retire the hold
+     (session15 says recognition is fine without it). Then switch the
+     default to base.en - with the noise gone it clearly beats tiny.en
+     (1/7 vs 3/7 wrong, and tiny.en misheard soft "goodnight"/"nap"
+     lines), at ~0.5-1s more STT time.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
