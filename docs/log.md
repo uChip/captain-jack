@@ -939,6 +939,32 @@ enclosure panels themselves radiate). Next cheap test before any
 rework: the bird on rubber/Sorbothane pads with temporary weights,
 measured with `tests/measure_servo_noise.py`.
 
+**Bird-on-mat test, same day - soft-mounting the bird works**: bird
+unbolted and set on a silicone kitchen mat (about 1in of wiring slack
+allows lifting it), roll servo back in place, `tests/measure_servo_noise.py`
+(default phases, excursions off; recordings in `stt_samples/servo_noise_padded*`,
+`servo_noise_mat_*`). Median dBFS of 100ms slices:
+
+| Run | Still | Off Watch | On Watch |
+|---|---|---|---|
+| Bolted (earlier) | -47.8 | -31.7 | -32.4 |
+| Mat + 2lb lead shot, mat covering the array | -48.3 | -43.5 | -42.8 |
+| Mat, no weight, array uncovered | -55.6 | -53.6 | -53.7 |
+| Same, repeat | -65.2 | -55.2 | -57.5 |
+| Mat + weight, array uncovered | -57.9 | -58.2 | -55.1 |
+
+The still floor is the room (it swung -48 to -65 between runs minutes
+apart), so absolute moving level is the measure, not moving-minus-still.
+On the mat, motion noise drops ~23-26dB (-32 to about -55), at or below
+the room's own floor. The lead shot made no difference once the array
+was uncovered, so a weighted base isn't needed (at least on a mat this
+soft). The covered-array run was ~12dB worse: the mat lying over the
+array likely bridged vibration from the bird's base onto it - nothing
+touching the bird should also touch the array or the enclosure near
+it. This puts a soft-mounted bird on the existing enclosure ahead of
+the two-box rework, pending a recognition check (a spoken `--save`
+session with the head moving, compared against session9).
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household
