@@ -539,6 +539,18 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     trial (~8dB quieter, steps perceptibly).
     `tests/measure_servo_noise.py` measures this per mode. See
     `docs/log.md`'s 4.2 history.
+42. Servo noise path found, 2026-10-14: it reaches the mic by
+    conduction, not through the air. A spare B11DLS loose on the bench
+    12in away was inaudible at small sways (+-20deg added ~4dB); taped to
+    the electronics enclosure, a fast +-20deg move hit -23 dBFS (near
+    speech level), and even holding still it added a ~13dB 135-170Hz hum.
+    A software high-pass (200/300Hz, `compare_stt.py --highpass`) was
+    tried on recorded sessions and changed nothing - the damaging part is
+    inside the speech band. Fix is mechanical; Chip's preferred route is
+    a separate enclosure for Pi/XVF3800/amp/speaker (only the Arduino
+    serial line crossing over, array orientation keyed for future DoA),
+    with a heavier, soft-mounted bird base as the alternative. Script:
+    `tests/measure_bench_servo.py`. See `docs/log.md`'s 4.2 history.
 
 ## Work list — split by hardware dependency
 
@@ -630,10 +642,13 @@ worked in parallel if priorities change.
      driven by `coordinator.py`), confirmed live 2026-10-14 (session14:
      floor -46 vs -34 moving/-51 off; 2-3/8 wrong) but frozen until
      speech or the 2-minute timeout. Hold cap / move-abort fixes held in
-     reserve; first exploring quieter head servos (currently metal-gear
-     digital AGFRC B11DLS) - see `docs/log.md` 4.2. Off Watch (must
-     move and listen at once) still open - Chip's candidate is moving
-     the mic array back outside the bird. Then revisit tiny.en vs.
+     reserve. Quieter servos de-prioritized 2026-10-14: the noise is
+     conducted, not airborne (item 42), so the fix is mechanical
+     isolation - next a no-rework test (bird on rubber/Sorbothane pads
+     with temporary weights, `tests/measure_servo_noise.py`), then
+     likely a separate electronics/mic enclosure (physical rework, done
+     offline by Chip). This also covers Off Watch (must move and listen
+     at once). Then revisit tiny.en vs.
      base.en as the default (base.en clearly better on servo-off audio,
      ~0.5-1s slower).
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
