@@ -1001,6 +1001,12 @@ night, sir" (p=0.41) and "Time for a nap, Jack" as "Time for an app
 check" (p=0.33). Haiku still did the right thing with the first; the
 second only reached NAP on a follow-up. Fits session15 favoring base.en.
 
+Decided by Chip, same day: stay on tiny.en for now. Recognition is
+better on base.en, but processing time is already noticeable (first
+audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en
+wins out later, pair it with a filler (e.g. a squawk) right after the
+utterance ends, so the wait reads as Jack reacting rather than lag.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

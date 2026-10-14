@@ -658,10 +658,12 @@ worked in parallel if priorities change.
      Watch included. Next: a permanent soft mount (material, isolating
      the bolts, nothing touching both bird and array - physical work,
      done offline by Chip); then decide whether to retire the hold
-     (session15 says recognition is fine without it). Then switch the
-     default to base.en - with the noise gone it clearly beats tiny.en
-     (1/7 vs 3/7 wrong, and tiny.en misheard soft "goodnight"/"nap"
-     lines), at ~0.5-1s more STT time.
+     (session15 says recognition is fine without it). tiny.en stays
+     the default for now (**Chip's call, 2026-10-14**): base.en is more
+     accurate with the noise gone (1/7 vs 3/7 wrong), but its extra
+     ~0.5-1s on an already-noticeable ~3s wait outweighs that today. If
+     base.en is picked later, pair it with a filler sound (e.g. a
+     squawk) played right after the utterance ends, to cover the wait.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
