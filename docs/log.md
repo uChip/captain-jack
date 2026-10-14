@@ -791,6 +791,46 @@ sentence using "the" four times). Added both the repro and the
 ordinary-sentence check to `tests/test_stt.py`; confirmed via `git
 stash` that the repro fails without the fix.
 
+**Servo motion noise, not code, behind the "degraded" recognition,
+2026-10-14**: Chip reported recognition had gotten worse - only a loud,
+distinct utterance came through right. No STT/capture/listener code had
+changed since the 2026-10-12 confirmation runs. Recorded sessions
+(`stt_samples/session6`-`session11`, a fixed script) showed why:
+
+- The household-names `initial_prompt` was first suspected (it
+  deterministically turned "What is" into "Liz" and "perch" into
+  "parrot" - both words straight from the prompt), but across all 45
+  then-saved utterances it helped about as often as it hurt on
+  tiny.en, and clearly helped base.en (without it, base.en rejected
+  5 correct transcripts on low confidence). Kept.
+- The real factor was the head servos moving. Chip ran the same script
+  four ways (session7 tiny/servos on, session8 tiny/off, session9
+  base/on, session10 base/off). Noise floor: about -34 dBFS with
+  `--port` vs. -45 to -51 without; speech-to-noise margin 18 dB vs.
+  27-31 dB. Offline, same audio for both models: servos on, tiny.en 8/17
+  wrong and base.en 7/17; servos off, tiny.en 4/14 and base.en 1/14. The
+  2026-10-12 sessions 1-3 (floor about -50 dBFS) appear to have run
+  without `--port`, which is why they looked fine.
+- It's movement, not power: the servo supply is on continuously and the
+  sketch attaches all four servos at startup, so in sessions 8/10 the
+  servos were powered and holding - and quiet. On Watch's ambient
+  `am-attentive-sway` runs nonstop, including while someone is talking.
+- Trial (session11, base.en): shrank the sway to +-3 pitch/+-1 roll with
+  a ~1s hold at each end. Floor improved only ~3 dB (-37 dBFS) and
+  recognition about the same (2-3/7 wrong). At 100ms resolution, the gaps
+  between words sit at -20 to -30 dBFS while the head moves - close to
+  speech level - and dip to about -40 only during the holds. Movement of
+  any size is loud; only stopping helps. Chip kept the smaller paused
+  sway anyway, for looks, pending later fine-tuning.
+
+Next, agreed with Chip: hold the head still while the mic is open in On
+Watch. First, an Off Watch wake/sleep-phrase test with and without
+servos, since Off Watch's `id-idle-breathing` swings about 41deg of
+pitch, and the 2026-10-12 wake calibration likely ran without `--port`
+too. The tiny.en-vs-base.en default (item 34's call was made on quiet,
+servo-off audio) is also still open: base.en won clearly on servo-off
+audio, at about 0.5-1s more STT time per turn.
+
 ### 4.15 Speaker Recognition (Voice ID)
 
 **Enrollment flow, 2026-09-23**: decided the flow — how household

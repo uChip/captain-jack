@@ -522,11 +522,18 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     single-line" assumption that didn't hold. It now stops only at a
     line starting like a tag (`MODE:`/`MEMORY:`/a ``` fence) and treats
     other line breaks as whitespace. Regression cases in
-    `tests/test_streaming_reply.py`, confirmed failing on the old code.
-    The same run reported degraded recognition (only a loud, distinct
-    final utterance came through right) - not yet diagnosed; no STT/
-    capture/listener code changed since the 2026-10-12 confirmation
-    runs. See `docs/log.md`'s 4.3 history.
+    `tests/test_streaming_reply.py`, confirmed failing on the old code;
+    confirmed live the same day (every second paragraph spoken). See
+    `docs/log.md`'s 4.3 history.
+41. "Degraded" recognition root-caused, 2026-10-14: head-servo motion
+    noise, not code. With `--port`, On Watch's nonstop ambient sway
+    raises the capture noise floor from about -50 to -34 dBFS, and both
+    Whisper models get about half of a fixed script wrong (servos off:
+    tiny.en 4/14, base.en 1/14). Powered-but-holding servos are quiet;
+    movement of any size is loud (a smaller +-3deg sway with pauses,
+    kept for looks, gained only ~3dB). The 2026-10-12 STT/wake
+    confirmation runs likely had no `--port`. Recordings in
+    `stt_samples/session6`-`11`. See `docs/log.md`'s 4.2 history.
 
 ## Work list — split by hardware dependency
 
@@ -613,6 +620,11 @@ worked in parallel if priorities change.
      after the 2026-10-11 live session turned out to be three real bugs,
      not noise - all root-caused and fixed 2026-10-12, see "Done so far"
      item 34.
+   - Servo noise during listening (item 41): hold the head still while
+     the mic is open in On Watch - agreed, not yet built. First, an Off
+     Watch wake/sleep-phrase test with and without `--port` (Off Watch's
+     breathing swings ~41deg). Then revisit tiny.en vs. base.en as the
+     default (base.en clearly better on servo-off audio, ~0.5-1s slower).
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade

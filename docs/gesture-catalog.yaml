@@ -168,9 +168,12 @@ on_watch:
 
   - id: am-attentive-sway
     name: "Attentive Sway — ambient idle motion filling quiet moments; On Watch's default/base state"
-    moves:
-      - {dp: 4, dr: 2, t: 1500, wait_ms: 1530}
-      - {dp: -4, dr: -2, t: 1500, wait_ms: 1530}
+    moves:   # 2026-10-14 trial: shrunk from +-4 pitch/+-2 roll and given a ~1s
+             # hold at each end (breath in, pause, breath out, pause) - testing
+             # whether smaller, less-continuous motion cuts the servo noise that
+             # measurably hurt STT accuracy in the session7-10 comparison.
+      - {dp: 3, dr: 1, t: 1500, wait_ms: 2500}
+      - {dp: -3, dr: -1, t: 1500, wait_ms: 2500}
 
   # --- Speech-Driven (docs/archive/gesture-library-2026-10-10.md "Speech-Driven Gestures") ---
 
