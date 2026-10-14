@@ -29,6 +29,7 @@ Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
+                                   [--no-hold]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -37,6 +38,9 @@ utterance heard to DIR as a numbered .wav, for diagnosing mishearings.
 --port opens the Arduino for beak-sync + ambient motion (omit to run
 voice-only, as before); --dry-run drives the same Motion/Serial wiring
 without a real port, for testing it when no Arduino is attached.
+--no-hold keeps the head moving while the mic is open in On Watch, for
+measuring recognition over servo motion (e.g. with the bird soft-mounted,
+docs/log.md's 4.2 history).
 """
 
 import queue
@@ -79,12 +83,13 @@ def beep() -> np.ndarray:
 
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
-                 save_dir=None, port=None, dry_run=False):
+                 save_dir=None, port=None, dry_run=False, hold=True):
         self.memory_dir = Path(memory_dir)
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
         self.out = out
+        self.hold = hold
         self.save_dir = Path(save_dir) if save_dir else None
         self._saved = 0
         self.events = queue.Queue()
@@ -276,7 +281,7 @@ class Coordinator:
         reply's first sentence starts playing (the mic closes then), so
         Jack still moves while he talks. Any mode change releases it too
         (Motion.set_mode)."""
-        if self.motion:
+        if self.motion and self.hold:
             self.motion.hold(on)
 
     def start_session(self):
@@ -440,7 +445,8 @@ def main():
         memory_dir = scratch_memory_copy()
         print(f"Using a scratch copy of memory: {memory_dir}")
 
-    coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run)
+    coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
+                        hold="--no-hold" not in args)
 
     def keyboard():
         for line in sys.stdin:

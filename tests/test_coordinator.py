@@ -385,6 +385,18 @@ def check_head_held_while_mic_open():
     return errors
 
 
+def check_no_hold():
+    """--no-hold (hold=False) never holds the head, for measuring
+    recognition over servo motion."""
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=lambda *a: None, hold=False)
+    coord.motion = FakeMotion()
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    held = [c for c in coord.motion.calls if c[0] == "hold"]
+    return [f"hold=False should never hold the head, got {held!r}"] if held else []
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -401,7 +413,8 @@ def check_live():
 if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
-              + check_late_last_sentence_race() + check_head_held_while_mic_open())
+              + check_late_last_sentence_race() + check_head_held_while_mic_open()
+              + check_no_hold())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
