@@ -316,7 +316,11 @@ when it was last confirmed passing.
   Also that On Watch holds the head still exactly while the mic is
   open - held at session start and after each reply (and after a Haiku
   error that never spoke), released when a reply starts playing
-  (log.md 4.2, servo noise, 2026-10-14).
+  (log.md 4.2, servo noise, 2026-10-14). And that a squawk filler
+  (`wavFiles/fillers/`, 2026-10-15) is queued the moment an utterance is
+  handed over, ahead of the reply, never the same one twice running;
+  that its finishing reopens the mic without firing `reply_done`; and
+  that `filler=False` (`--no-filler`) plays none.
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no

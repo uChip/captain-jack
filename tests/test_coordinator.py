@@ -397,6 +397,49 @@ def check_no_hold():
     return [f"hold=False should never hold the head, got {held!r}"] if held else []
 
 
+def check_filler():
+    """A squawk filler is queued the moment an utterance is handed over -
+    ahead of the reply's first sentence, and before Haiku is even called
+    - rotating so the same one never plays twice running. It's a
+    standalone clip, so its finishing reopens the mic but never fires
+    reply_done. filler=False (--no-filler) plays none."""
+    errors = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye, that it is.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=lambda *a: None)
+    if len(coord.fillers) < 2:
+        return [f"expected 2+ filler clips in {coordinator.FILLER_DIR}, got {list(coord.fillers)}"]
+    coord.start_session()
+    coord.player._queue.get_nowait()   # the listening beep
+    played = []
+    for _ in range(6):
+        coord.handle_utterance(load_clip())
+        tag, _samples = coord.player._queue.get_nowait()
+        if tag not in coord.fillers:
+            errors.append(f"first thing queued after an utterance should be a filler, got {tag!r}")
+            break
+        played.append(tag)
+    if any(a == b for a, b in zip(played, played[1:])):
+        errors.append(f"same filler played twice in a row: {played}")
+
+    coord._on_playback("started", played[-1], 0.0)
+    coord._on_playback("finished", played[-1], 0.4)
+    if coord.listener._ignore_until == float("inf"):
+        errors.append("mic never reopened after the filler finished")
+    if any(kind == "reply_done" for kind, _ in list(coord.events.queue)):
+        errors.append("filler finishing fired reply_done")
+
+    quiet = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=lambda *a: None, filler=False)
+    quiet.start_session()
+    quiet.player._queue.get_nowait()   # the listening beep
+    quiet.handle_utterance(load_clip())
+    if not quiet.player._queue.empty():
+        errors.append("filler=False still queued audio on Playback after an utterance")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -414,7 +457,7 @@ if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
-              + check_no_hold())
+              + check_no_hold() + check_filler())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -429,5 +472,5 @@ if __name__ == "__main__":
           "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too, and a "
           "streamed reply's own last sentence finishing before it's known to be last still "
           "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
-          "the mic is open"
+          "the mic is open, and a rotating squawk filler plays the moment an utterance ends"
           + (", live Haiku replied" if live else ""))

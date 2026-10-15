@@ -673,13 +673,16 @@ worked in parallel if priorities change.
      ~0.5-1s on an already-noticeable ~3s wait outweighs that today. If
      base.en is picked later, pair it with a filler sound (e.g. a
      squawk) played right after the utterance ends, to cover the wait.
-   - Filler sound to cover processing time (**Chip, 2026-10-14**): a
-     short squawk (a few 0.3-0.6s variants, rotated) played the moment
-     an utterance ends, so the ~3s wait for STT + Haiku + first TTS
-     sentence reads as Jack reacting, not lag - and a prerequisite if
-     base.en (slower) ever becomes the default. Fits as-is: the mic is
-     already closed then (turn-taking), and Playback beak-syncs any
-     clip; a one-shot head tilt could pair with it.
+   - Filler sound to cover processing time (**Chip, 2026-10-14**) -
+     built 2026-10-15: `coordinator.py` plays a random squawk from
+     `wavFiles/fillers/` (never the same twice running; `--no-filler`
+     to skip) the moment an utterance is handed over, before STT. The
+     three current clips are placeholders cut from the one real squawk
+     in the library (`generate_fillers.py`: stretched a third longer
+     without changing pitch, then varied in speed, -6dB); Chip says
+     "fine for now", Kath says crow-like. Still open: find real parrot
+     recordings to drop in (no code change needed), confirm in a live
+     `--port` conversation, and the optional one-shot head tilt.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade

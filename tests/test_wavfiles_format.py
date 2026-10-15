@@ -34,7 +34,7 @@ def read_fmt(path):
 
 def check_clips():
     errors = []
-    clips = sorted(WAV_DIR.glob("*.wav"))
+    clips = sorted(WAV_DIR.glob("*.wav")) + sorted(WAV_DIR.glob("fillers/*.wav"))
     if not clips:
         errors.append(f"no .wav files found in {WAV_DIR}")
     for clip in clips:

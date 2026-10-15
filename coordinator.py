@@ -29,7 +29,7 @@ Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
-                                   [--no-hold]
+                                   [--no-hold] [--no-filler]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -40,10 +40,12 @@ voice-only, as before); --dry-run drives the same Motion/Serial wiring
 without a real port, for testing it when no Arduino is attached.
 --no-hold keeps the head moving while the mic is open in On Watch, for
 measuring recognition over servo motion (e.g. with the bird soft-mounted,
-docs/log.md's 4.2 history).
+docs/log.md's 4.2 history). --no-filler skips the squawk played the
+moment an utterance ends (see FILLER_DIR), e.g. for comparing the two.
 """
 
 import queue
+import random
 import shutil
 import sys
 import tempfile
@@ -60,7 +62,7 @@ from capture import Capture
 from listener import HOLDOFF_S, Listener
 from motion import Motion
 from orchestrate import MEMORY_DIR, household_names, stream_turn
-from playback import RATE, Playback
+from playback import RATE, Playback, load_wav
 from stt import STT, names_prompt
 from tts import TTS, split_sentences
 from wakeword import SLEEP_NAME, WAKE_NAME, WakeSpotter
@@ -75,6 +77,15 @@ DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
 # listening beep apart from a spoken reply.
 BEEP_TAG = "listening beep"
 
+# Filler squawks (CLAUDE.md work list, 2026-10-14): one is played the moment
+# an utterance is handed over, before STT even starts, so the ~3s wait for
+# STT + Haiku + the first TTS sentence reads as Jack reacting, not lag.
+# Every .wav here is a candidate, rotated so the same one never plays twice
+# in a row - drop in new squawks without touching code (generate_fillers.py
+# renders the current set). Played on turn-taking's own terms: the mic is
+# deaf while it plays, like any other clip.
+FILLER_DIR = Path(__file__).parent / "wavFiles" / "fillers"
+
 
 def beep() -> np.ndarray:
     t = np.arange(int(0.15 * RATE)) / RATE
@@ -83,13 +94,16 @@ def beep() -> np.ndarray:
 
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
-                 save_dir=None, port=None, dry_run=False, hold=True):
+                 save_dir=None, port=None, dry_run=False, hold=True, filler=True):
         self.memory_dir = Path(memory_dir)
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
         self.out = out
         self.hold = hold
+        self.fillers = ({p.name: load_wav(p) for p in sorted(FILLER_DIR.glob("*.wav"))}
+                        if filler else {})
+        self._last_filler = None
         self.save_dir = Path(save_dir) if save_dir else None
         self._saved = 0
         self.events = queue.Queue()
@@ -390,8 +404,18 @@ class Coordinator:
             w.writeframes(samples.tobytes())
         return f", {path.name}"
 
+    def play_filler(self):
+        """Queue a squawk (see FILLER_DIR), never the same one twice running."""
+        if not self.fillers:
+            return
+        names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
+        name = random.choice(names)
+        self._last_filler = name
+        self.player.play(self.fillers[name], name)
+
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
+        self.play_filler()
         saved = self.save_utterance(samples) if self.save_dir else ""
         heard = self.stt.transcribe(samples)
         stats = f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}{saved}"
@@ -446,7 +470,7 @@ def main():
         print(f"Using a scratch copy of memory: {memory_dir}")
 
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
-                        hold="--no-hold" not in args)
+                        hold="--no-hold" not in args, filler="--no-filler" not in args)
 
     def keyboard():
         for line in sys.stdin:
