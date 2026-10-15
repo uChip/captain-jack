@@ -255,6 +255,12 @@ on_watch:
       - {dy: 25, dr: -10, t: 150, wait_ms: 180}
       - {dy: 0, dr: 0, t: 150, wait_ms: 180}
 
+  - id: fx-squawk-tilt
+    name: "Squawk Tilt — head up and cocked for the filler squawk (coordinator.py, 2026-10-15); never picked at random, Motion.squawk_tilt() plays it with the squawk's own length as the hold"
+    moves:
+      - {dp: 6, dr: 10, t: 150, wait_ms: 180}   # held for the squawk's length instead; 8/15 looked too much (Chip)
+      - {dp: 0, dr: 0, t: 350, wait_ms: 380}
+
   - id: em-alert-perk
     name: "Alert Perk — sharp upward pitch lift, brief hold, settle (mirrors id-alert-perk, see header comment 'Added 2026-09-20 (second round)')"
     moves:

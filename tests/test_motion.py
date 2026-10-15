@@ -28,6 +28,8 @@ TEST_CATALOG = {
     "excursion_interval_seconds": {"off_watch": [0, 0]},   # always due - deterministic
     "on_watch": [
         {"id": "ow-amb", "name": "On Watch Ambient", "moves": [{"t": 10, "wait_ms": 1}]},
+        {"id": "fx-squawk-tilt", "name": "Squawk Tilt",
+         "moves": [{"dp": 8, "dr": 15, "t": 10, "wait_ms": 1}, {"t": 10, "wait_ms": 1}]},
     ],
     "off_watch": [
         {"id": "amb", "name": "Ambient", "moves": [{"dp": 1, "t": 10, "wait_ms": 1}]},
@@ -216,6 +218,30 @@ def check_hold():
     return errors
 
 
+def check_squawk_tilt():
+    """squawk_tilt() sends the tilt after its delay even while held (the
+    mic is deaf during the squawk), holds it for the squawk's length,
+    returns to baseline, and a second call while one runs is skipped."""
+    errors = []
+    writer = FakeWriter()
+    m = motion.Motion(writer, catalog=TEST_CATALOG)
+    m.hold(True)
+    start = time.monotonic()
+    m.squawk_tilt(0.05, 0.1)
+    m.squawk_tilt(0.0, 0.1)   # still running - skipped
+    time.sleep(0.03)
+    if writer.sent:
+        errors.append(f"squawk_tilt sent before its delay: {writer.sent!r}")
+    while m._one_shot.locked() and time.monotonic() - start < 2:
+        time.sleep(0.01)
+    want = ["p43r45y70t10s", "p35r30y70t10s"]
+    if writer.sent != want:
+        errors.append(f"squawk_tilt should send {want!r}, sent {writer.sent!r}")
+    if time.monotonic() - start < 0.15:
+        errors.append("squawk_tilt didn't wait out its delay plus the squawk's length")
+    return errors
+
+
 def check_stop_returns_to_rest():
     """stop() sends head and beak to the catalog's resting pose (not the
     drifted baseline), and SerialWriter.stop() sends whatever head
@@ -251,11 +277,11 @@ if __name__ == "__main__":
         errors = (check_resolve_move() + check_find_gesture_anywhere()
                   + check_off_watch_step() + check_asleep_wav_pairing()
                   + check_fall_asleep() + check_on_watch_uses_its_own_ambient()
-                  + check_hold() + check_stop_returns_to_rest())
+                  + check_hold() + check_squawk_tilt() + check_stop_returns_to_rest())
 
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: resolve_move clamping, cross-library gesture lookup, and "
-          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold correct, and stopping returns the head to rest")
+          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold and squawk tilt correct, and stopping returns the head to rest")

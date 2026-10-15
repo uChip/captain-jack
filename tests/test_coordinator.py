@@ -211,6 +211,9 @@ class FakeMotion:
     def hold(self, on):
         self.calls.append(("hold", on))
 
+    def squawk_tilt(self, delay_s, squawk_s):
+        self.calls.append(("squawk_tilt", delay_s, squawk_s))
+
 
 def check_asleep_entry_context():
     """Each way into Asleep tells Motion which settle-in line to play
@@ -402,7 +405,8 @@ def check_filler():
     ahead of the reply's first sentence, and before Haiku is even called
     - rotating so the same one never plays twice running. It's a
     standalone clip, so its finishing reopens the mic but never fires
-    reply_done. filler=False (--no-filler) plays none."""
+    reply_done. Motion gets a squawk_tilt timed to it. filler=False
+    (--no-filler) plays none."""
     errors = []
     coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
                                      client=FakeClient("Aye, that it is.\nMODE: NONE\nMEMORY: NONE"),
@@ -425,6 +429,14 @@ def check_filler():
             break
     if any(a == b for a, b in zip(played, played[1:])):
         errors.append(f"same filler played twice in a row: {played}")
+
+    coord.motion = FakeMotion()
+    coord.play_filler()
+    tag, _samples = coord.player._queue.get_nowait()
+    want = ("squawk_tilt", coordinator.FILLER_DELAY_S, len(coord.fillers[tag]) / coordinator.RATE)
+    if coord.motion.calls != [want]:
+        errors.append(f"filler should ask Motion for {want!r}, got {coord.motion.calls!r}")
+    coord.motion = None
 
     coord._on_playback("started", played[-1], 0.0)
     coord._on_playback("finished", played[-1], 0.4)

@@ -411,7 +411,7 @@ class Coordinator:
 
     def play_filler(self):
         """Queue a squawk (see FILLER_DIR) after FILLER_DELAY_S of silence,
-        never the same one twice running."""
+        never the same one twice running, with a head tilt to match."""
         if not self.fillers:
             return
         names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
@@ -419,6 +419,8 @@ class Coordinator:
         self._last_filler = name
         lead = np.zeros(int(FILLER_DELAY_S * RATE), dtype=np.int16)
         self.player.play(np.concatenate([lead, self.fillers[name]]), name)
+        if self.motion:
+            self.motion.squawk_tilt(FILLER_DELAY_S, len(self.fillers[name]) / RATE)
 
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()

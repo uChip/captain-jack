@@ -134,8 +134,11 @@ when it was last confirmed passing.
   NAP) plays no wav; a listed-but-missing file is never picked; and a
   mode change before Motion reaches the settle cancels it. Also that
   `hold(True)` stops gestures between moves, and `hold(False)` or any
-  `set_mode()` releases it (On Watch's listening hold, 2026-10-14).
-- **Last confirmed passing**: 2026-10-14.
+  `set_mode()` releases it (On Watch's listening hold, 2026-10-14). And
+  that `squawk_tilt()` waits out its delay, moves even while held, holds
+  for the squawk's length, returns to baseline, and skips a second call
+  while one is running (2026-10-15).
+- **Last confirmed passing**: 2026-10-15.
 - **First live watch, 2026-10-07** (`motion.py --mode off_watch
   --dry-run --seconds 15` against the real bird, Chip watching): clean
   output, no crash, correct asymmetric breathing swing from
@@ -324,8 +327,9 @@ when it was last confirmed passing.
   (log.md 4.2, servo noise, 2026-10-14). And that a squawk filler
   (`wavFiles/fillers/`, 2026-10-15) is queued the moment an utterance is
   handed over, ahead of the reply, never the same one twice running;
-  that its finishing reopens the mic without firing `reply_done`; and
-  that `filler=False` (`--no-filler`) plays none.
+  that its finishing reopens the mic without firing `reply_done`; that
+  Motion is asked for a `squawk_tilt` timed to it; and that
+  `filler=False` (`--no-filler`) plays none.
 - **Script**: [`../tests/test_coordinator.py`](../tests/test_coordinator.py),
   with fixture `../tests/data/quick_brown_fox_ch1.wav`.
 - **Run**: `venv/bin/python tests/test_coordinator.py` (automatic, no

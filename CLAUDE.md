@@ -698,8 +698,11 @@ worked in parallel if priorities change.
      squawk now follows a beat of silence (`FILLER_DELAY_S`) rather
      than landing the instant speech ends - STT runs in parallel either
      way. Tried 0.3s, then 0.6s (session18): Chip "0.6 felt good", and the
-     squawk still ends >=1.1s before Jack's first word. Still open: the
-     optional one-shot head tilt.
+     squawk still ends >=1.1s before Jack's first word. Head tilt added
+     the same day (`Motion.squawk_tilt()`, gesture `fx-squawk-tilt`): up
+     6deg and cocked 10deg for the squawk's length, then back - 8/15 looked
+     too much on the bench. Still open (Chip): cock toward the speaker
+     once DoA is read (item 7). Not yet seen in a live conversation.
    - First-audio latency (2026-10-15): session16 measured 2.0-3.6s from
      end of speech to Jack's first word (streaming helped), the spread
      being mostly the first sentence's synthesis time. A long first

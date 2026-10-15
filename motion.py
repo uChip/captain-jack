@@ -54,6 +54,7 @@ REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to j
 
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
 SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
+SQUAWK_TILT_ID = "fx-squawk-tilt"
 
 
 def load_catalog() -> dict:
@@ -138,6 +139,7 @@ class Motion:
         self._settle_pending = False   # set by fall_asleep(), consumed by _step_asleep()
         self._settle_context = None
         self.holding = False   # see hold()
+        self._one_shot = threading.Lock()   # held while squawk_tilt() runs - see _run()
 
     def set_mode(self, mode):
         self._settle_pending = False   # a later transition cancels an unplayed settle
@@ -151,6 +153,33 @@ class Motion:
         2026-10-14). Takes effect between moves: a move already sent
         finishes first, since the Arduino has no "stop here" command."""
         self.holding = on
+
+    def squawk_tilt(self, delay_s: float, squawk_s: float):
+        """Tilt the head up and cocked for the filler squawk: starts
+        delay_s from now (the squawk's lead-in silence), holds for
+        squawk_s, then settles back to the baseline. Runs on its own short
+        thread and ignores hold() - the mic is already deaf while the
+        squawk plays, so the noise costs nothing - while the main loop
+        pauses its own gestures until it's done. Skipped if one is still
+        running. Always cocks the same way for now; Chip would like it
+        toward the speaker once DoA is read (read_doa_azimuth() is still a
+        stub) - flip dr's sign by which side the azimuth falls."""
+        if not self._one_shot.acquire(blocking=False):
+            return
+        first, back = find_gesture_anywhere(self.catalog, SQUAWK_TILT_ID)["moves"]
+
+        def run():
+            try:
+                if self._stop.wait(delay_s):
+                    return
+                self._send(resolve_move(first, self.baseline))
+                time.sleep(max(first["t"] / 1000.0, squawk_s))
+                self._send(resolve_move(back, self.baseline))
+                time.sleep(back["wait_ms"] / 1000.0)
+            finally:
+                self._one_shot.release()
+
+        threading.Thread(target=run, name="squawk-tilt", daemon=True).start()
 
     def fall_asleep(self, context=None):
         """Enter Asleep, settling in first (spec 4.10, "On entering
@@ -274,7 +303,7 @@ class Motion:
     def _run(self):
         while not self._stop.is_set():
             mode = self.mode
-            if self.holding:
+            if self.holding or self._one_shot.locked():
                 time.sleep(0.05)
             elif mode == "on_watch":
                 self._step_on_watch()
