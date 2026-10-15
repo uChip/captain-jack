@@ -695,9 +695,10 @@ worked in parallel if priorities change.
      into git-ignored `xc_cache/`). Jack is painted as a Scarlet Macaw -
      two of the six are Scarlet. Live `--port` conversation the same day:
      squawks fine, no head snap, clean shutdown; at Chip's request the
-     squawk now follows a 0.3s beat of silence (`FILLER_DELAY_S`) rather
+     squawk now follows a beat of silence (`FILLER_DELAY_S`) rather
      than landing the instant speech ends - STT runs in parallel either
-     way. Still open: confirm the delay feels right live, and the
+     way. Tried 0.3s, then 0.6s (session18): Chip "0.6 felt good", and the
+     squawk still ends >=1.1s before Jack's first word. Still open: the
      optional one-shot head tilt.
    - First-audio latency (2026-10-15): session16 measured 2.0-3.6s from
      end of speech to Jack's first word (streaming helped), the spread

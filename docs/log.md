@@ -2516,9 +2516,17 @@ alongside it (2026-10-11 decision, see CLAUDE.md).
 first placeholders cut from an existing clip (Kath: "sounds like a
 crow"), then six real macaw calls from xeno-canto picked by Chip and Kath
 from an 8-way audition on the bird. After a live session Chip asked for a
-beat before it: a squawk the instant speech ended felt abrupt, so it now
-follows 0.3s of silence. STT already runs in parallel with it, so this
-only moves the squawk within the wait.
+beat before it: a squawk the instant speech ended felt abrupt, so it got
+0.3s of silence first. STT already runs in parallel with it, so this
+only moves the squawk within the wait. Chip felt that could still be a
+little longer; session17 showed Jack's first word never came before 2.4s
+after speech ended, so 0.6s was tried live (session18): squawks ended
+0.9-1.2s after speech, first audio 2.32-3.48s (mean 2.78s, same as
+before - the filler never delayed a reply). Chip: "0.6 felt good" - kept.
+Same session, tiny.en with the bird on the towel: 3 of 6 transcripts had
+an error ("What did you have" -> "What you have", "Go for sail" -> "Go for
+a sale", "quick conversation" -> "quick count recession"); Haiku's
+replies stayed sensible on all three.
 
 First-sentence split: session16's first-audio times (2.0-3.6s) minus STT
 tracked the length of Jack's first sentence (1.5s for 6-7 words, 2.8s for

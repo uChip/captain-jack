@@ -86,9 +86,10 @@ BEEP_TAG = "listening beep"
 # deaf while it plays, like any other clip.
 FILLER_DIR = Path(__file__).parent / "wavFiles" / "fillers"
 # Silence played ahead of the squawk (Chip, 2026-10-15): a squawk the instant
-# you stop talking felt abrupt; a beat first breaks up the wait better. Costs
-# nothing - STT starts immediately either way, in parallel with playback.
-FILLER_DELAY_S = 0.3
+# you stop talking felt abrupt; a beat first breaks up the wait better. 0.3s
+# tried first, 0.6s kept after session18. Costs nothing - STT starts
+# immediately either way, in parallel with playback.
+FILLER_DELAY_S = 0.6
 
 
 def beep() -> np.ndarray:
