@@ -704,7 +704,11 @@ worked in parallel if priorities change.
      being mostly the first sentence's synthesis time. A long first
      sentence is now spoken in two pieces (`tts.split_first_sentence()`)
      - Chip couldn't hear the join in an audition; 0.8-1.8s sooner on
-     the four test sentences. Still open: confirm live.
+     the four test sentences. Still open: confirm live. Watch item
+     (**Chip, 2026-10-15**): he finds Kokoro pauses too long at commas
+     generally. If that's ever tuned shorter, re-audition the split -
+     its join is hidden partly by being close to a comma pause, and the
+     split adds 0.02-0.28s on top of Kokoro's own.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
