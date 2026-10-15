@@ -444,6 +444,27 @@ def check_filler():
     return errors
 
 
+def check_first_sentence_split():
+    """A reply's long first sentence reaches TTS as two pieces (tts.
+    split_first_sentence, 2026-10-15), later sentences whole; the pieces
+    are ordinary tagged sentences, so _last_tag still counts them all."""
+    errors = []
+    reply = ("Aye, oatmeal be honest fare — seeds and grain, the way nature intended! "
+             "Fills the belly proper, matey, and keeps a bird spry.\nMODE: NONE\nMEMORY: NONE")
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=FakeClient(reply),
+                                     out=lambda *a: None, filler=False)
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    queued = [item[0] for item in list(coord.tts._queue.queue) if item]
+    want = ["Aye, oatmeal be honest fare —", "seeds and grain, the way nature intended!",
+            "Fills the belly proper, matey, and keeps a bird spry."]
+    if queued != want:
+        errors.append(f"expected TTS queue {want!r}, got {queued!r}")
+    if coord._last_tag != (coord._reply, 2):
+        errors.append(f"_last_tag should be the third queued piece, got {coord._last_tag!r}")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -461,7 +482,7 @@ if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
-              + check_no_hold() + check_filler())
+              + check_no_hold() + check_filler() + check_first_sentence_split())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -476,5 +497,5 @@ if __name__ == "__main__":
           "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too, and a "
           "streamed reply's own last sentence finishing before it's known to be last still "
           "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
-          "the mic is open, and a rotating squawk filler plays the moment an utterance ends"
+          "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two"
           + (", live Haiku replied" if live else ""))

@@ -40,6 +40,23 @@ SPEED = 1.0
 MIN_SENTENCE_CHARS = 20
 
 SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
+
+# Splitting a reply's long FIRST sentence so Jack starts talking sooner
+# (2026-10-15): Kokoro synthesizes a whole sentence before any of it can
+# play, so a long first sentence delays first audio. Spoken as two pieces,
+# piece 1 plays while piece 2 synthesizes. Chip couldn't hear the join in a
+# whole-vs-split audition on the bird (4 real sentences from session16), and
+# first audio came 0.8-1.8s sooner. Only at a natural break (comma, dash,
+# semicolon, colon, or a sentence end merged in by MIN_SENTENCE_CHARS),
+# keeping that punctuation on piece 1. Piece 2 must be ready before piece 1
+# finishes: synthesis ran ~3x faster than playback there, and the tightest
+# case measured (6 words then 19) still had 1.3s to spare - so piece 2 may
+# be at most SPLIT_MAX_RATIO times piece 1's length, in words.
+SPLIT_MIN_WORDS = 10
+SPLIT_MIN_FIRST_WORDS = 4
+SPLIT_MIN_REST_WORDS = 3    # a near-whole first piece saves nothing
+SPLIT_MAX_RATIO = 3.5
+SPLIT_AFTER_RE = re.compile(r"[,;:.!?]$|^[—–-]$|[—–]$")
 MARKUP_RE = re.compile(r"[*_#`~]")
 
 
@@ -63,6 +80,18 @@ def split_sentences(text: str) -> list[str]:
         else:
             sentences.append(carry)
     return sentences
+
+
+def split_first_sentence(sentence: str) -> list[str]:
+    """[sentence], or [piece1, piece2] split at the earliest natural break
+    that satisfies the SPLIT_* rules above."""
+    words = sentence.split()
+    if len(words) < SPLIT_MIN_WORDS:
+        return [sentence]
+    for i in range(SPLIT_MIN_FIRST_WORDS, len(words) - SPLIT_MIN_REST_WORDS + 1):
+        if SPLIT_AFTER_RE.search(words[i - 1]) and len(words) - i <= SPLIT_MAX_RATIO * i:
+            return [" ".join(words[:i]), " ".join(words[i:])]
+    return [sentence]
 
 
 def _lowpass_taps(cutoff, rate, n_taps=241, beta=8.6):

@@ -47,6 +47,38 @@ def check_offline():
         if got != want:
             errors.append(f"split_sentences({text!r}) = {got}, expected {want}")
 
+    split_cases = {
+        # the four sentences auditioned on the bird, 2026-10-15
+        "Aye, oatmeal be honest fare — seeds and grain, the way nature intended!":
+            ["Aye, oatmeal be honest fare —", "seeds and grain, the way nature intended!"],
+        "Captain Chip and Mistress Kath keepin' the ship afloat, and Matey Liz holdin' down the fort.":
+            ["Captain Chip and Mistress Kath keepin' the ship afloat,", "and Matey Liz holdin' down the fort."],
+        "This animatronic gullet don't need feedin' — just a bit of oil for the joints and a charge "
+        "in me battery, and I be good as gold.":
+            ["This animatronic gullet don't need feedin' —",
+             "just a bit of oil for the joints and a charge in me battery, and I be good as gold."],
+        # under SPLIT_MIN_WORDS
+        "Blow me down, ye caught me out!": ["Blow me down, ye caught me out!"],
+        # no break after enough words ("Aye," is too short a first piece)
+        "Aye, every day be a good day for sailin' if ye got the wind at yer back!":
+            ["Aye, every day be a good day for sailin' if ye got the wind at yer back!"],
+        # a merged-in short sentence counts as a break
+        "Arr, ye be askin' after me grub. Seeds and nuts and a cracker now and then!":
+            ["Arr, ye be askin' after me grub.", "Seeds and nuts and a cracker now and then!"],
+        # the only usable break leaves too little after it
+        "Avast! Ye be askin' about the finest grog that ever sailed the seven seas, matey!":
+            ["Avast! Ye be askin' about the finest grog that ever sailed the seven seas, matey!"],
+        # first piece too short for the rest (5 words then 18+) - skip to a later break
+        "Arr, that be a tale, for the old sea dogs who sailed with me through storm and calm "
+        "and every blasted squall between here and Tortuga.":
+            ["Arr, that be a tale, for the old sea dogs who sailed with me through storm and calm "
+             "and every blasted squall between here and Tortuga."],
+    }
+    for text, want in split_cases.items():
+        got = tts.split_first_sentence(text)
+        if got != want:
+            errors.append(f"split_first_sentence({text!r}) = {got}, expected {want}")
+
     one_k = tts.resample_24k_to_16k(tone(1000))
     if abs(len(one_k) - tts.RATE) > 2:
         errors.append(f"1s at 24kHz became {len(one_k)} samples, expected {tts.RATE}")
@@ -96,5 +128,5 @@ if __name__ == "__main__":
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
-    print("PASS: sentence split, clean-up, and 24k->16k resampling correct"
+    print("PASS: sentence split, first-sentence split, clean-up, and 24k->16k resampling correct"
           + (", kokoro-pi synthesizes faster than real time" if live else ""))

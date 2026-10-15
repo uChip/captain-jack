@@ -1918,7 +1918,12 @@ lock, so threads genuinely run in parallel where it matters.
   Playback. **Sentence by sentence (decided 2026-09-25)**: sentence 1
   starts playing while sentence 2 is being synthesized, so the wait
   before Jack starts talking is roughly one sentence's synthesis time,
-  not the whole reply's.
+  not the whole reply's. **First sentence split (2026-10-15)**: a long
+  first sentence (10+ words) is spoken as two pieces at its earliest
+  natural break (comma, dash, etc.) that leaves the second piece short
+  enough to synthesize while the first plays
+  (`tts.split_first_sentence()`), so the wait is one *piece's* synthesis
+  time; the join is inaudible in practice.
 - **(e) Playback** — sole writer to the XVF3800's playback device. Takes
   mono 16kHz buffers from any source (TTS sentences, idle clips, canned
   clips) through one queue and plays them in order. Per output block it

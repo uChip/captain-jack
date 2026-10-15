@@ -64,7 +64,7 @@ from motion import Motion
 from orchestrate import MEMORY_DIR, household_names, stream_turn
 from playback import RATE, Playback, load_wav
 from stt import STT, names_prompt
-from tts import TTS, split_sentences
+from tts import TTS, split_first_sentence, split_sentences
 from wakeword import SLEEP_NAME, WAKE_NAME, WakeSpotter
 
 ON_WATCH_TIMEOUT_S = 120       # spec 4.11: 2 minutes with no prompt -> Off Watch
@@ -436,9 +436,13 @@ class Coordinator:
         n = 0
 
         def on_sentence(sentence):
+            # A long first sentence is spoken in two pieces so Jack starts
+            # sooner (tts.split_first_sentence); each piece is just another
+            # tagged sentence from here on.
             nonlocal n
-            self._queue_sentence(reply, n, sentence)
-            n += 1
+            for piece in split_first_sentence(sentence) if n == 0 else [sentence]:
+                self._queue_sentence(reply, n, piece)
+                n += 1
 
         start = time.monotonic()
         try:

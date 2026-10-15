@@ -275,13 +275,14 @@ when it was last confirmed passing.
 
 - **Covers**: [Runtime Integration](specification.md#416-runtime-integration-end-to-end-turn)
   build step 5 and [TTS](specification.md#47-text-to-speech-tts) —
-  `tts.py`'s sentence splitting, markdown clean-up, 24→16kHz resampling,
-  and kokoro-pi synthesis.
+  `tts.py`'s sentence splitting, first-sentence splitting
+  (`split_first_sentence()`, 2026-10-15), markdown clean-up, 24→16kHz
+  resampling, and kokoro-pi synthesis.
 - **Script**: [`../tests/test_tts.py`](../tests/test_tts.py)
 - **Run**: `venv/bin/python tests/test_tts.py` (automatic, no hardware,
   no model) or add `--live` to synthesize with kokoro-pi (needs the
   models built in `models/kokoro-pi`, see CLAUDE.md).
-- **Expected**: prints `PASS: sentence split, clean-up, and 24k->16k
+- **Expected**: prints `PASS: sentence split, first-sentence split, clean-up, and 24k->16k
   resampling correct` (plus `, kokoro-pi synthesizes faster than real
   time`) and exits 0.
 - **Last confirmed passing**: 2026-09-25, including `--live` (0.37x

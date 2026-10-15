@@ -699,6 +699,12 @@ worked in parallel if priorities change.
      than landing the instant speech ends - STT runs in parallel either
      way. Still open: confirm the delay feels right live, and the
      optional one-shot head tilt.
+   - First-audio latency (2026-10-15): session16 measured 2.0-3.6s from
+     end of speech to Jack's first word (streaming helped), the spread
+     being mostly the first sentence's synthesis time. A long first
+     sentence is now spoken in two pieces (`tts.split_first_sentence()`)
+     - Chip couldn't hear the join in an audition; 0.8-1.8s sooner on
+     the four test sentences. Still open: confirm live.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade

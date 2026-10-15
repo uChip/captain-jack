@@ -2509,6 +2509,29 @@ machine multiple times cleanly. Closes out the wake-word spotter's live
 validation; the keyboard stand-ins remain available permanently
 alongside it (2026-10-11 decision, see CLAUDE.md).
 
+
+**Squawk filler and first-sentence split, 2026-10-15** (both aimed at the
+~3s wait before Jack answers). Filler: a random squawk from
+`wavFiles/fillers/` queued the moment an utterance is handed over -
+first placeholders cut from an existing clip (Kath: "sounds like a
+crow"), then six real macaw calls from xeno-canto picked by Chip and Kath
+from an 8-way audition on the bird. After a live session Chip asked for a
+beat before it: a squawk the instant speech ended felt abrupt, so it now
+follows 0.3s of silence. STT already runs in parallel with it, so this
+only moves the squawk within the wait.
+
+First-sentence split: session16's first-audio times (2.0-3.6s) minus STT
+tracked the length of Jack's first sentence (1.5s for 6-7 words, 2.8s for
+13) - Kokoro synthesizes a whole sentence before any of it plays. Rendered
+four real long sentences whole and split at a comma/dash: first sound
+0.8-1.8s sooner, piece 2 always synthesized well before piece 1 finished
+(synthesis ~3x faster than playback; tightest case 6 words then 19 had
+1.3s to spare), join pause 0.02-0.28s longer than Kokoro's own. Chip had
+set the bar - an audible mid-reply gap would be worse than a slow start -
+and in a whole-vs-split audition on the bird, heard twice, "can't really
+hear the split at all." Built as `tts.split_first_sentence()`, first
+sentence only (later ones already synthesize while earlier ones play).
+Not yet measured live.
 ### 4.4 Persona and Identity Prompt
 
 **Reply-length target raised, 2026-10-12**: live conversation runs
