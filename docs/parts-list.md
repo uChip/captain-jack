@@ -14,11 +14,11 @@ Entries marked *TBD* are for Chip to fill in.
 |---|---|---|---|---|
 | Single-board computer | Raspberry Pi 5 Model B, Rev 1.1, 8GB RAM | 1 | Amazon | Read from the board itself. Headless; see spec 3.1. |
 | Pi storage | microSD, 128GB nominal (119GB usable) | 1 | Amazon | Make/model SanDisk Extreme. |
-| Pi power supply | RasTech 5.1v 5A wall wart | 1 | Amazon | |
+| Pi power supply | RasTech 5.1vdc 5A wall wart | 1 | Amazon | USB-C connector | 
 | Pi power cabling | USB-C 90 Degree Angle Adapter | 1 | Amazon | Helps with cable routing |
 | Pi cooling | GeeekPi Aluminum Heatsink Case | 1 | Amazon | Passive cooler / heatsink |
 | Mic array / audio I/O | Seeed reSpeaker XVF3800 4-Mic Array (USB ID 2886:001a) | 1 | Amazon | Seeed's 16kHz "standard" firmware (fixed S16_LE, 16kHz, 2ch). See spec 3.2. |
-| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. Set to the lowest of its 4 strap-pin gain settings. See spec 3.3. |
+| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. 5v power fed from Arduino. Set to the lowest of its 4 strap-pin gain settings. See spec 3.3. |
 | Speaker |  40mm, 4Ω, 5W | 1 | adafruit.com | Product ID: 3968. |
 | Pi-to-XVF3800 cable | USB A to Type C, 6in | 1 | Amazon | USB, kept short. |
 | XVF3800-to-amp cable | single 22g wire | 1 | on hand | soldered to tip rung of 3.5mm connector, kept short. |
@@ -37,8 +37,9 @@ Entries marked *TBD* are for Chip to fill in.
 | Part | Make / model | Qty | Source | Notes |
 |---|---|---|---|---|
 | Statue and perch | 3D-printed, PLA filament, ~1.5kg | 1 | Printed | See spec 3.6. |
+| Gymbal mechanism | 3D-printed, PLA filament, ~50mg | 1 | Printed | Enables head pitch, roll, yaw |
 | Electronics enclosure | 3D-printed, PLA filament, ~0.25kg | 1 | Printed | Rebuilt 2026-10-06. |
-| Bird-to-base isolation mount | Not chosen yet | | | Temporarily a silicone mat. See spec 3.6 "Bird-to-base isolation mount". |
+| Bird-to-base isolation mount | Sorbothane pads 1.5" x 0.25" (provisional on order) | 4 | Amazon | Temporarily a borrowed silicon mat. See spec 3.6 "Bird-to-base isolation mount". |
 | Optional base ballast | Lead shot, 2 lb (~0.9 kg) | | On hand | Only if the base is reprinted. |
 
 ## To fill in
