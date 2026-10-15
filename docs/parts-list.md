@@ -6,8 +6,6 @@ describes what each part does; this file records exactly which part is
 installed, so a replacement or a comparison (e.g. a quieter servo) can
 start from the real part. Update it whenever a part is swapped or added.
 
-Entries marked *TBD* are for Chip to fill in.
-
 ## Compute and audio
 
 | Part | Make / model | Qty | Source | Notes |
@@ -31,21 +29,16 @@ Entries marked *TBD* are for Chip to fill in.
 | Beak servo | GOTECK 2502MG (2g class) | 1 | Amazon | Driven with plain `Servo`, not `ServoEasing` (spec 4.14). |
 | Servo power supply | MP4560 DC-DC Buck Converter Module | 1 | Amazon | On continuously, driven from Arduino VIN pin (12v); servos attached at sketch startup. |
 | Pi-to-Arduino cable | USB A to Micro USB, 6in | 1 | Amazon | USB serial. |
+| Servo controller | SparkFun RedBoard Qwiic (Arduino Uno clone) | 1 | sparkfun.com | USB-serial chip is a CH340 (USB ID 1a86:7523), which shows as `/dev/ttyUSB0`. See spec 3.4. |
+| Servo controller power supply | Generic 12v 1A wall wart | 1 | on hand | technically inadequate, should be 2A, but seems to be working fine, doesn't get hot |
+| Servo controller proto board | Proto Shield Kit | 1 | Amazon | Used to mount buck converter and servo connector headers. 1 used from package of 9 |
 
 ## Structure
 
 | Part | Make / model | Qty | Source | Notes |
 |---|---|---|---|---|
 | Statue and perch | 3D-printed, PLA filament, ~1.5kg | 1 | Printed | See spec 3.6. |
-| Gymbal mechanism | 3D-printed, PLA filament, ~50mg | 1 | Printed | Enables head pitch, roll, yaw |
+| Gimbal mechanism | 3D-printed, PLA filament, ~50g | 1 | Printed | Enables head pitch, roll, yaw |
 | Electronics enclosure | 3D-printed, PLA filament, ~0.25kg | 1 | Printed | Rebuilt 2026-10-06. |
-| Bird-to-base isolation mount | Sorbothane pads 1.5" x 0.25" (provisional on order) | 4 | Amazon | Temporarily a borrowed silicon mat. See spec 3.6 "Bird-to-base isolation mount". |
+| Bird-to-base isolation mount | Sorbothane pads 1.5" x 0.25" (provisional on order) | 4 | Amazon | Temporarily a folded microfiber towel (a borrowed silicone mat was used for the 2026-10-14 tests). Pads due 2026-10-19. See spec 3.6 "Bird-to-base isolation mount". |
 | Optional base ballast | Lead shot, 2 lb (~0.9 kg) | | On hand | Only if the base is reprinted. |
-
-## To fill in
-
-| Part | Make / model | Qty | Source | Notes |
-|---|---|---|---|---|
-| Servo controller | SparkFun RedBoard Qwiic (Arduino Uno clone) | 1 | sparkfun.com | USB-serial chip is a CH340 (USB ID 1a86:7523), which shows as `/dev/ttyUSB0`. See spec 3.4. |
-| Servo controller power supply | Generic 12v 1A wall wart | 1 | on hand | technically inadequate, should be 2A, but seems to be working fine, doesn't get hot |
-| Servo controller proto board | Proto Shield Kit | 1 | Amazon | Used to mount buck converter and servo connector headers. 1 used from package of 9 |
