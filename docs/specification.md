@@ -1142,14 +1142,29 @@ capacity — see [4.16](#416-runtime-integration-end-to-end-turn)(f)).
 
 ### 4.9 Direction of Arrival (DoA) Reader
 
-History: none yet.
+History: [log.md#49-direction-of-arrival-doa-reader](log.md#49-direction-of-arrival-doa-reader).
 
-**Status: Not started** — the XVF3800 is USB-connected to the Pi, so this
-needs no hardware that isn't on hand, just code and Seeed's control-tool
-documentation (see `CLAUDE.md`'s work list).
+**Status: Reader built, not calibrated or wired in (2026-10-15).**
+`doa.py` reads the board directly over USB; a first walk-around was
+inconclusive (bird loosely placed, household noise) and is to be redone
+after the bird's permanent mount (`tests/doa_walkaround.py`).
+`motion.py`'s `read_doa_azimuth()` is still a stub.
 
-**Description**: Pi-side code reading per-beam azimuth from the XVF3800 via
-`xvf_host AEC_AZIMUTH_VALUES`.
+**Description**: Pi-side code reading direction from the XVF3800 with
+USB vendor control requests on endpoint 0 (`doa.py`; parameter ids from
+Seeed's `python_control/respeaker_get_doa.py`, which stands in for
+`xvf_host`): `DOA_VALUE` (one azimuth in degrees plus a speech-detected
+flag) and `AEC_AZIMUTH_VALUES` (four per-beam azimuths). Reading needs
+no driver and doesn't touch the audio streams; it does need the udev
+rule in `doa.py`'s docstring for non-root access. The board holds its
+last value while nobody's talking, Jack's own speech included, and
+swings round to a new direction over ~1-2s rather than jumping.
+
+**Calibration (pending)**: the board's 0° is not Jack's front. The board
+sits flat with two mics parallel to the enclosure's front edge, and the
+bird, once mounted, faces that edge - so the offset should be a fixed
+multiple of 90°, with direction (which way is left) still to be
+confirmed.
 
 **Intended function**: supply a continuous sound-direction cue that pulls
 On Watch's and Off Watch's baseline yaw toward whoever's currently
@@ -1161,7 +1176,9 @@ the old electret-mic-based triangulation entirely.
 **Interfaces**: reads from the XVF3800 over USB; feeds the
 [Gesture Engine](#412-gesture-engine-and-catalog)'s baseline-yaw tracking
 for whichever mode has `doa_yaw_tracking` enabled
-([gesture-catalog.yaml](gesture-catalog.yaml)).
+([gesture-catalog.yaml](gesture-catalog.yaml)), and (Chip, 2026-10-15)
+which side the filler squawk's head cock leans (`Motion.squawk_tilt()`) -
+left or right of front only, read as the speaker finishes.
 
 ### 4.10 Idle and Ambient Audio Player
 

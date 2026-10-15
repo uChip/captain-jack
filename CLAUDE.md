@@ -582,6 +582,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     `Motion.stop()` returns the head to rest itself. Confirmed live. See
     spec 4.13 "Connection and reset" and `docs/log.md`'s 4.13 history.
 
+46. DoA reading working, 2026-10-15: Seeed's GitHub repo has the
+    control tool item 7 had been missing (an `rpi_64bit` `xvf_host`, and
+    a Python script using plain USB control requests). `doa.py` reads
+    the direction and speech flag that way; a udev rule (in its
+    docstring) gives non-root access. The reading freezes while Jack
+    talks and follows a voice with a ~1-2s swing. A first walk-around
+    didn't map cleanly - loose bird, household noise, rough positions -
+    so calibration waits for the remount (`tests/doa_walkaround.py`).
+    See spec 4.9 and `docs/log.md`'s 4.9 history.
+
 ## Work list — split by hardware dependency
 
 Everything below needs nothing that isn't already on hand — including
@@ -626,11 +636,13 @@ worked in parallel if priorities change.
    confidence thresholds and STT's no_speech/logprob/entropy thresholds
    (methodology decided for both, see sections 4.1/4.2 — actual numbers
    for both still pending this testing).
-7. Track down Seeed's official XVF3800 control tool/protocol docs — no
-   `xvf_host` tool or equivalent exists on this Pi (not found via
-   `apt`/`pip`/filesystem search), and reading `AEC_AZIMUTH_VALUES` over
-   the exposed USB-HID (`/dev/hidraw0`) or vendor-specific USB interface
-   needs Seeed's real reference application, not reverse-engineering.
+7. DoA: calibrate and wire in. Reading works since 2026-10-15
+   (`doa.py`, via Seeed's own Python control script - see "Done so far"
+   item 46); a first walk-around was inconclusive. After the bird's
+   permanent mount: rerun `tests/doa_walkaround.py` in a quiet house,
+   find the board-to-Jack offset, then fill in `motion.py`'s
+   `read_doa_azimuth()` - first use is the squawk head cock leaning
+   toward the speaker (Chip's request), then spec 4.9's yaw tracking.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — steps 1-7 are now done and fully live-validated (see
    "Done so far" items 24/26/28/29/30): the full thread set

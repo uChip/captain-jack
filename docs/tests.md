@@ -531,6 +531,26 @@ when it was last confirmed passing.
 - **Not covered**: AEC, and anything automated — there's no mic-side
   check that the sound actually came out.
 
+### DoA walk-around (manual, measurement)
+
+- **Covers**: [Direction of Arrival (DoA) Reader](specification.md#49-direction-of-arrival-doa-reader)
+  calibration - which `doa.py` angle is Jack's front, and which way is
+  his left.
+- **Script**: [`../tests/doa_walkaround.py`](../tests/doa_walkaround.py)
+- **Run**: `venv/bin/python tests/doa_walkaround.py [--out doa.csv]
+  [--window 12]`. **Needs the real bird, mounted, and as quiet a house
+  as possible.** Jack speaks each position aloud; count aloud there
+  until he speaks again.
+- **Expected**: per position, the circular mean and spread of the
+  speech-flagged readings from the last 5s of its window; the raw
+  readings saved as CSV. No pass/fail - a good run steps steadily round
+  the circle (front, front-left, left one way; front-right, right the
+  other) with small spreads, and holds still while Jack talks.
+- **Last run**: 2026-10-15 (an earlier ad hoc version, 10s windows):
+  inconclusive - bird loosely placed, household noise; see log.md 4.9.
+- **Not covered**: positions behind the bird, distance, and wiring into
+  `motion.py`.
+
 ## Wake Word Spotter
 
 ### Spotter mechanism (`WakeSpotter`)

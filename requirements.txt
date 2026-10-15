@@ -7,3 +7,4 @@ pywhispercpp==1.5.1
 onnxruntime==1.30.0
 kokoro-pi==1.2.0
 openwakeword==0.4.0
+pyusb==1.3.1

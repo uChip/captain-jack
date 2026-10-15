@@ -1683,6 +1683,39 @@ found and fixed in the same pass - see `serial_link.py`'s and
 `playback.py`'s own history in version control for both fixes' full
 detail.
 
+### 4.9 Direction of Arrival (DoA) Reader
+
+**Access found, 2026-10-15.** The 2026-09-20 search (see "reSpeaker
+XVF3800 arrival and DoA investigation" above) only looked on this Pi.
+Seeed's GitHub repo (`respeaker/reSpeaker_XVF3800_USB_4MIC_ARRAY`)
+has both an `rpi_64bit` `xvf_host` binary and a short Python script,
+`python_control/respeaker_get_doa.py`, that reads `DOA_VALUE` and
+`AEC_AZIMUTH_VALUES` with plain USB vendor control requests (pyusb).
+Used the Python route - readable, nothing to install but pyusb. The
+board's USB node is root-only, so a udev rule giving `plugdev` access was
+added (Chip ran it); a plain `udevadm trigger` didn't apply it to the
+already-plugged board, `--action=add` did. Firmware reads 2.0.6.
+`doa.py` wraps it.
+
+**First walk-around, 2026-10-15 - inconclusive.** Jack spoke each
+position; Chip counted aloud ~10s at front, front-left, left,
+front-right, right (about 4ft, angles by eye), then quiet. Good: the
+reading froze while Jack spoke (his own voice doesn't steer it) and moved
+for Chip's voice. Not clean: it takes ~1-2s to settle and sweeps through
+the angles in between; the settled values didn't step around the circle
+in order (speech-flagged, last 5s of each window: front 100 with a ±114
+spread - 348 for most of the window, then 150; front-left 271; left
+296, ±108; front-right 126; right 173; quiet 125). 150 turned up in three
+positions and 125 in the quiet stretch, flagged as speech. Likely
+causes, per Chip: other household sounds, him still moving at the start
+of windows, rough angles, and the bird sitting a little off axis on the
+towel. The board itself is flat, two mics parallel to the enclosure's
+front edge (mimicking Seeed's own enclosure), and Jack will face that
+edge once mounted. Agreed to redo it after the remount, with
+`tests/doa_walkaround.py` (longer windows, scores only the settled end
+of each). The head cock only needs left vs. right, so it may work even
+if fine angles stay rough.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
