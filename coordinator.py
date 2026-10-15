@@ -85,6 +85,10 @@ BEEP_TAG = "listening beep"
 # renders the current set). Played on turn-taking's own terms: the mic is
 # deaf while it plays, like any other clip.
 FILLER_DIR = Path(__file__).parent / "wavFiles" / "fillers"
+# Silence played ahead of the squawk (Chip, 2026-10-15): a squawk the instant
+# you stop talking felt abrupt; a beat first breaks up the wait better. Costs
+# nothing - STT starts immediately either way, in parallel with playback.
+FILLER_DELAY_S = 0.3
 
 
 def beep() -> np.ndarray:
@@ -405,13 +409,15 @@ class Coordinator:
         return f", {path.name}"
 
     def play_filler(self):
-        """Queue a squawk (see FILLER_DIR), never the same one twice running."""
+        """Queue a squawk (see FILLER_DIR) after FILLER_DELAY_S of silence,
+        never the same one twice running."""
         if not self.fillers:
             return
         names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
         name = random.choice(names)
         self._last_filler = name
-        self.player.play(self.fillers[name], name)
+        lead = np.zeros(int(FILLER_DELAY_S * RATE), dtype=np.int16)
+        self.player.play(np.concatenate([lead, self.fillers[name]]), name)
 
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()

@@ -419,6 +419,10 @@ def check_filler():
             errors.append(f"first thing queued after an utterance should be a filler, got {tag!r}")
             break
         played.append(tag)
+        lead = int(coordinator.FILLER_DELAY_S * coordinator.RATE)
+        if _samples[:lead].any() or len(_samples) != lead + len(coord.fillers[tag]):
+            errors.append(f"filler should be {coordinator.FILLER_DELAY_S}s of silence, then the squawk")
+            break
     if any(a == b for a, b in zip(played, played[1:])):
         errors.append(f"same filler played twice in a row: {played}")
 

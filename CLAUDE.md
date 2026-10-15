@@ -693,8 +693,12 @@ worked in parallel if priorities change.
      auditioned on the bird; the rest are kept in `fillers/unused/`.
      `generate_fillers.py` rebuilds all of it (downloads by xeno-canto ID
      into git-ignored `xc_cache/`). Jack is painted as a Scarlet Macaw -
-     two of the six are Scarlet. Still open: confirm in a live `--port`
-     conversation, and the optional one-shot head tilt.
+     two of the six are Scarlet. Live `--port` conversation the same day:
+     squawks fine, no head snap, clean shutdown; at Chip's request the
+     squawk now follows a 0.3s beat of silence (`FILLER_DELAY_S`) rather
+     than landing the instant speech ends - STT runs in parallel either
+     way. Still open: confirm the delay feels right live, and the
+     optional one-shot head tilt.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade
