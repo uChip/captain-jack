@@ -2569,7 +2569,11 @@ then easing back over 350ms. It ignores the listening hold - the mic is
 already deaf while the squawk plays - and the main Motion loop pauses
 while it runs. Bench-auditioned on the bird with six squawks: up 8deg /
 cocked 15deg looked too much; Chip's estimate of 6/10 looked right. Chip
-would like the cock toward the speaker once DoA is available.
+would like the cock toward the speaker once DoA is available. Live
+`--port` conversation (session19): Chip - motion smooth, angles about
+right, no delay to the reply. First audio 1.92-3.32s (mean 2.60s; minus
+STT 1.40-2.13s, the best yet); the tilt is back at rest by ~1.65s after
+speech ends at the latest. 5/5 transcripts correct.
 
 First-sentence split: session16's first-audio times (2.0-3.6s) minus STT
 tracked the length of Jack's first sentence (1.5s for 6-7 words, 2.8s for

@@ -714,7 +714,8 @@ worked in parallel if priorities change.
      the same day (`Motion.squawk_tilt()`, gesture `fx-squawk-tilt`): up
      6deg and cocked 10deg for the squawk's length, then back - 8/15 looked
      too much on the bench. Still open (Chip): cock toward the speaker
-     once DoA is read (item 7). Not yet seen in a live conversation.
+     once DoA is read (item 7). Confirmed live (session19): smooth,
+     angles about right, no delay to the reply.
    - First-audio latency (2026-10-15): session16 measured 2.0-3.6s from
      end of speech to Jack's first word (streaming helped), the spread
      being mostly the first sentence's synthesis time. A long first
