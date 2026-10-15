@@ -38,6 +38,7 @@ import argparse
 import collections
 import queue
 import sys
+import termios
 import threading
 import time
 
@@ -57,6 +58,16 @@ BAUD = 115200
 # Not confirmed to fix it yet; see WARMUP_CMD below for the other half
 # of this experiment.
 ARDUINO_BOOT_DELAY_S = 5.0
+
+# Since 2026-10-15, only the FIRST open after the Pi boots actually resets
+# the Arduino: start() clears the port's HUPCL flag, so closing the port
+# leaves DTR asserted and the next open sees no DTR edge. Two resets a few
+# seconds apart (e.g. a program exiting and another starting right away)
+# reliably snapped the head full forward on the second one, held there
+# until setup() reran - not explained, but a reset after a long idle never
+# did it (docs/log.md's 4.13 history). Firmware uploads still work:
+# arduino-cli pulses DTR itself. With no reset on later opens the
+# ARDUINO_BOOT_DELAY_S wait is usually unneeded; harmless, so kept.
 
 BEAK_RANGE = 60   # ServoControl.ino: 0 = beak open, 60 = beak fully closed (rest)
 
@@ -125,6 +136,9 @@ class SerialWriter:
             import serial
 
             self._ser = serial.Serial(self._port_name, BAUD, timeout=0.2)
+            attrs = termios.tcgetattr(self._ser.fd)
+            attrs[2] &= ~termios.HUPCL   # cflag: don't drop DTR on close - see above
+            termios.tcsetattr(self._ser.fd, termios.TCSANOW, attrs)
             time.sleep(ARDUINO_BOOT_DELAY_S)
             self._drain()
             self._write(WARMUP_CMD)
@@ -135,7 +149,12 @@ class SerialWriter:
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=1.0)
+        # Send anything still queued (e.g. Motion.stop()'s return to rest):
+        # with HUPCL off, closing no longer resets the Arduino back to rest.
+        while (self._ser or self.dry_run) and self._send_head_if_any():
+            pass
         if self._ser:
+            self._ser.flush()
             self._ser.close()
             self._ser = None
 

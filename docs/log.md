@@ -1999,6 +1999,38 @@ Consequences of that fix, at the time:
 `gesture-catalog.yaml`, including its own header comments for the full
 first-pass-to-second-pass changelog.
 
+### 4.13 Pi to Arduino Serial Link
+
+**Startup head snap traced to back-to-back resets, 2026-10-15.** Chip saw
+the head pitch violently full forward, hold, return to rest, then the
+beak self-test, at program start. Each step below ruled something out,
+with Chip watching the bird:
+
+| Test | Lurch? | Rules out / shows |
+|---|---|---|
+| Sketch variant waiting 3s before attaching servos, one reset | No | (inconclusive alone) |
+| Normal sketch, one reset by opening the port | No | `setup()`'s attach/write sequence |
+| Squawk + speech playback while logging Arduino output | No; no mid-run reboot | 5V brownout from the amp (it's fed from the RedBoard) |
+| 15 DTR resets, 5s apart | All 15, pitch only | random pulse truncation at reset (would be ~1 in 10) |
+| Test sketch stopping only pitch's pulses, line LOW then floating, 4s each | No | servo going limp on signal loss (it holds) |
+| 6 DTR resets, gaps 20/20/5/20/5/20s | Only the two after 5s gaps | **trigger: a reset within a few seconds of the previous one** |
+
+The head goes forward at the reset and stays there until `setup()` runs
+~1.6s later. Mechanism not found (a scope on the pitch signal line is
+the next step if it ever matters); one anomaly - the port-close reset 5s
+after the last test reset didn't lurch. In practice back-to-back resets
+came from a program exiting (closing the port resets too, via HUPCL
+dropping DTR) and another starting within seconds.
+
+Fix: `serial_link.py` clears HUPCL on open, so only the first open after
+boot resets. Side effects handled: closing no longer returns the head to
+rest, so `Motion.stop()` now does it explicitly and `SerialWriter.stop()`
+flushes queued head commands; programs no longer trigger the beak
+self-test on exit. Confirmed live: four runs back to back 1.5s apart -
+one reset (the first open), no snaps, smooth returns to rest, and a
+final open produced no boot message. Chip will watch for recurrences;
+a snap at the first connect after boot alone would be tolerable.
+
 ### 4.14 Arduino Firmware
 
 **SoftwareSerial interference, noted at MY1690 removal**: SoftwareSerial

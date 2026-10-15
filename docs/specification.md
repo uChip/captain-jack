@@ -1624,7 +1624,8 @@ into this structure — see [gesture-catalog.yaml](gesture-catalog.yaml).
 
 ### 4.13 Pi to Arduino Serial Link
 
-History: [log.md#issue-9](log.md#issue-9).
+History: [log.md#issue-9](log.md#issue-9),
+[log.md#413-pi-to-arduino-serial-link](log.md#413-pi-to-arduino-serial-link).
 
 **Status: Command syntax locked down, servo actuation validated.**
 Implemented in `arduino/ServoControl/ServoControl.ino` and code-reviewed
@@ -1677,6 +1678,15 @@ upstream sensor relay in the new design):
     difference to it.
 - Worst-case transmission time and ACK/timeout-retry are accepted as
   non-blocking — see [Open Issues](#5-open-issues) issue 9.
+- **Connection and reset**: only the first port open after the Pi boots
+  resets the Arduino (DTR auto-reset, rerunning `setup()`'s rest pose
+  and beak self-test). `serial_link.py` clears the port's HUPCL flag on
+  open, so later closes and opens leave DTR asserted and don't reset it
+  — two resets a few seconds apart reliably snap the head full forward
+  (cause unknown, see History). Since closing no longer resets the board
+  to rest, `Motion.stop()` sends the head and beak to rest (1s move) and
+  `SerialWriter.stop()` sends anything still queued before closing.
+  Firmware uploads are unaffected: `arduino-cli` pulses DTR itself.
 - Gesture interruptibility/preemption vs.
   queuing and layering/blending are **not** link-level or Arduino-level
   concerns. Each line the Arduino receives is acted on immediately, as

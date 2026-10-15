@@ -110,6 +110,10 @@ when it was last confirmed passing.
   with a wav from the pool matching how sleep was entered) —
   a faithful port of `exercise_hardware.py`'s already hardware-validated
   gesture logic into a real long-lived thread with `set_mode()`.
+  Also that `stop()` returns head and beak to the catalog's resting
+  pose and `SerialWriter.stop()` sends still-queued head commands
+  before closing (2026-10-15: closing the port no longer resets the
+  Arduino to rest - spec 4.13 "Connection and reset").
 - **Script**: [`../tests/test_motion.py`](../tests/test_motion.py)
 - **Run**: `venv/bin/python tests/test_motion.py` (automatic, no
   hardware — a small synthetic catalog, not the real

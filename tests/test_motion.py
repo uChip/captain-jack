@@ -13,11 +13,13 @@ Run: venv/bin/python tests/test_motion.py
 
 import copy
 import sys
+import time
 import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import motion  # noqa: E402
+import serial_link  # noqa: E402
 
 TEST_CATALOG = {
     "resting": {"pitch": 35, "roll": 30, "yaw": 70, "beak": 60},
@@ -214,6 +216,30 @@ def check_hold():
     return errors
 
 
+def check_stop_returns_to_rest():
+    """stop() sends head and beak to the catalog's resting pose (not the
+    drifted baseline), and SerialWriter.stop() sends whatever head
+    commands are still queued before closing - together they replace the
+    return to rest that closing the port used to cause by resetting the
+    Arduino (serial_link.py clears HUPCL since 2026-10-15)."""
+    errors = []
+    writer = FakeWriter()
+    m = motion.Motion(writer, catalog=TEST_CATALOG)
+    m.baseline.pitch = 10   # drifted away from resting
+    m.stop()
+    want = f"b60p35r30y70t{motion.REST_ON_STOP_MS}s"
+    if writer.sent[-1:] != [want]:
+        errors.append(f"stop() should end with {want!r}, sent {writer.sent!r}")
+
+    sent = []
+    sw = serial_link.SerialWriter(now_fn=time.monotonic, dry_run=True, on_send=sent.append)
+    sw.send_head(want)   # queued, never picked up by a running writer thread
+    sw.stop()
+    if sent != [want]:
+        errors.append(f"SerialWriter.stop() should send queued head commands, sent {sent!r}")
+    return errors
+
+
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory() as tmp:
         motion.WAV_DIR = Path(tmp)   # play_random_wav checks the file exists; none need to be real audio
@@ -225,11 +251,11 @@ if __name__ == "__main__":
         errors = (check_resolve_move() + check_find_gesture_anywhere()
                   + check_off_watch_step() + check_asleep_wav_pairing()
                   + check_fall_asleep() + check_on_watch_uses_its_own_ambient()
-                  + check_hold())
+                  + check_hold() + check_stop_returns_to_rest())
 
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: resolve_move clamping, cross-library gesture lookup, and "
-          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold correct")
+          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold correct, and stopping returns the head to rest")

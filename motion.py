@@ -50,6 +50,7 @@ WAV_DIR = Path(__file__).parent / "wavFiles"
 
 AXIS_RANGE = {"p": (0, 50), "r": (0, 50), "y": (0, 130)}
 BEAK_RANGE = (0, 60)
+REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to jerk
 
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
 SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
@@ -167,9 +168,15 @@ class Motion:
         self._thread.start()
 
     def stop(self):
+        """Stop, then return the head and beak to rest. Closing the serial
+        port used to reset the Arduino, which did this as a side effect;
+        it no longer does (serial_link.py, 2026-10-15). Call before the
+        SerialWriter's own stop(), which sends what's still queued."""
         self._stop.set()
         if self._thread:
             self._thread.join()
+        resting = self.catalog["resting"]
+        self._send(resolve_move({"beak": resting["beak"], "t": REST_ON_STOP_MS}, Baseline(resting)))
 
     # --- gesture playback ---
 

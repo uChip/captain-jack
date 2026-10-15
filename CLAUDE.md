@@ -571,6 +571,16 @@ below is in `docs/log.md`'s "CLAUDE.md History" section.
     part - the spec says "9g servo", the list says AGFRC B11DLS. Drafted
     from the repo and the hardware itself (Pi 5 8GB, XVF3800, CH340 on
     the Arduino clone); *TBD* entries are for Chip to fill in.
+    Chip filled them in 2026-10-15.
+45. Startup head snap fixed, 2026-10-15: the head snapped full forward
+    when the Arduino was reset within a few seconds of a previous reset
+    (e.g. one program exiting, another starting) - never after a long
+    idle. Isolated by bench tests with Chip watching (ruled out
+    `setup()`, amp brownout, pulse truncation, servo going limp);
+    mechanism still unknown. `serial_link.py` now clears the port's
+    HUPCL flag so only the first open after boot resets the board;
+    `Motion.stop()` returns the head to rest itself. Confirmed live. See
+    spec 4.13 "Connection and reset" and `docs/log.md`'s 4.13 history.
 
 ## Work list — split by hardware dependency
 
