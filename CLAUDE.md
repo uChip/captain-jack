@@ -686,13 +686,15 @@ worked in parallel if priorities change.
    - Filler sound to cover processing time (**Chip, 2026-10-14**) -
      built 2026-10-15: `coordinator.py` plays a random squawk from
      `wavFiles/fillers/` (never the same twice running; `--no-filler`
-     to skip) the moment an utterance is handed over, before STT. The
-     three current clips are placeholders cut from the one real squawk
-     in the library (`generate_fillers.py`: stretched a third longer
-     without changing pitch, then varied in speed, -6dB); Chip says
-     "fine for now", Kath says crow-like. Still open: find real parrot
-     recordings to drop in (no code change needed), confirm in a live
-     `--port` conversation, and the optional one-shot head tilt.
+     to skip) the moment an utterance is handed over, before STT. Same
+     day, the crow-like placeholders were replaced by six real macaw
+     calls from xeno-canto (CC BY-NC-SA 4.0, credited in
+     `wavFiles/fillers/CREDITS.md`), picked by Chip and Kath from eight
+     auditioned on the bird; the rest are kept in `fillers/unused/`.
+     `generate_fillers.py` rebuilds all of it (downloads by xeno-canto ID
+     into git-ignored `xc_cache/`). Jack is painted as a Scarlet Macaw -
+     two of the six are Scarlet. Still open: confirm in a live `--port`
+     conversation, and the optional one-shot head tilt.
    - Re-run the STT regression (`compare_stt.py` + a `--save` session)
      next time the house is genuinely noisy, not quiet like the
      2026-10-12 confirmation runs - to check recognition doesn't degrade

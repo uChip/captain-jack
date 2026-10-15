@@ -224,3 +224,6 @@ models/
 # voices, never committed; compare_stt.py reads them in place for tiny-vs-
 # base analysis.
 stt_samples/
+
+# xeno-canto recordings downloaded by generate_fillers.py (re-fetchable by ID)
+xc_cache/
