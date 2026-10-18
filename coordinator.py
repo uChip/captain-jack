@@ -29,7 +29,7 @@ Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
-                                   [--no-hold] [--no-filler]
+                                   [--no-hold] [--no-filler] [--no-home]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -42,6 +42,9 @@ without a real port, for testing it when no Arduino is attached.
 measuring recognition over servo motion (e.g. with the bird soft-mounted,
 docs/log.md's 4.2 history). --no-filler skips the squawk played the
 moment an utterance ends (see FILLER_DIR), e.g. for comparing the two.
+--no-home leaves out the home-automation tools (home.py), so nothing in
+the house can be switched - by default Jack can control the devices
+marked in docs/home-automation-device-list.csv.
 """
 
 import queue
@@ -61,6 +64,7 @@ import serial_link
 from capture import Capture
 from listener import HOLDOFF_S, Listener
 from motion import Motion
+from home import Home
 from orchestrate import MEMORY_DIR, household_names, stream_turn
 from playback import RATE, Playback, load_wav
 from stt import STT, names_prompt
@@ -99,8 +103,9 @@ def beep() -> np.ndarray:
 
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
-                 save_dir=None, port=None, dry_run=False, hold=True, filler=True):
+                 save_dir=None, port=None, dry_run=False, hold=True, filler=True, home=None):
         self.memory_dir = Path(memory_dir)
+        self.home = home
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
@@ -449,7 +454,8 @@ class Coordinator:
 
         start = time.monotonic()
         try:
-            turn = stream_turn(self.client, self.history, heard.text, on_sentence, self.memory_dir)
+            turn = stream_turn(self.client, self.history, heard.text, on_sentence, self.memory_dir,
+                               home=self.home)
         except anthropic.APIError as e:
             self.out(f"  [error reaching Haiku: {e}]")
             self._finish_reply(reply, n)
@@ -484,6 +490,8 @@ def main():
 
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
                         hold="--no-hold" not in args, filler="--no-filler" not in args)
+    if "--no-home" not in args:
+        coord.home = Home(log=coord.out)
 
     def keyboard():
         for line in sys.stdin:

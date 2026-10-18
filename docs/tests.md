@@ -599,3 +599,37 @@ when it was last confirmed passing.
   live-watched there too, see `test_coordinator.py`'s entry above and
   log.md's 4.16 history for the full story (closes out build step 7's
   wake-word piece).
+
+## Home Automation
+
+### Home-automation tools
+
+- **Covers**: [Home-Automation Tool Schema](specification.md#46-home-automation-tool-schema)
+  (`home.py`, 2026-10-18) and the tool round trip in
+  [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
+  `take_turn()`/`stream_turn()` - the allowlist in
+  [home-automation-allowlist.md](home-automation-allowlist.md) enforced
+  in code against the real inventory CSV.
+- **Script**: [`../tests/test_home_tools.py`](../tests/test_home_tools.py).
+- **Run**: `venv/bin/python tests/test_home_tools.py` (automatic, no
+  network, no devices, no API - a fake vendor link and a fake client).
+- **Expected**: prints `PASS: inventory loads only allowed devices;
+  refusals never reach a vendor; ...` and exits 0. Checks that only
+  `Jack controls = yes` rows load (no ecobee, Office Outlet, broken
+  Switch 1, or disconnected Govee lights) with unique names; that
+  unknown devices, actions a Type doesn't allow, out-of-range or
+  wrong-typed numbers and over-cap irrigation are refused with no vendor
+  call; that the fountain pump switches off freely but on only in the
+  turn right after Jack asked (a fresh request or a late yes asks
+  again), while the rest of a group still switches; that vendor
+  failures are reported as failures; and that the round trip speaks the
+  lead-in before the tool runs (confirmed failing without
+  `SpeechStreamer.flush()`), sends results back, parses tags from the
+  final part, keeps history valid, rolls back on an API error, and
+  stops after `MAX_TOOL_ROUNDS`.
+- **Last confirmed passing**: 2026-10-18.
+- **Not covered**: the real vendor APIs (`vendors.py`) - see
+  `list_devices.py` for a read-only check that all three answer; live
+  control is confirmed by hand. Whether Haiku actually asks about the
+  fountain's water and only calls again on a real yes - code enforces
+  the turn order, Haiku judges the answer.

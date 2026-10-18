@@ -1,33 +1,33 @@
-Interface,Device Name,Subdevice,Type,Location,Needs guard rails,Jack controls
-Rachio,Waterman,Courtyard,irrigation valve,Courtyard,yes,yes
-Rachio,Waterman,Back & Side Shrubs,irrigation valve,Outside,yes,yes
-Ecobee,Living therm,,thermostat,Living Room,yes,no
-Ecobee,Casita,,thermostat,Casita,yes,no
-Ecobee,Bedrooms,,thermostat,Bedrooms,yes,no
-Ecobee,Bedroom,,Sensor,Bedrooms,yes,no
-SmartLife,Entry Lights,,light,Courtyard,,yes
-SmartLife,Front Door Light,,light,Entry,,yes
-SmartLife,Patio Fan,,fan,Patio,,yes
-SmartLife,Sewing Room Light,,light,Sewing Room,,yes
-SmartLife,Courtyard Light Two,,light,Courtyard,,yes
-SmartLife,Living Room Fan new,,fan,Living Room,,yes
-SmartLife,Living Room Light,,light,Living Room,,yes
-SmartLife,Casita Door Light,,light,Courtyard,,yes
-SmartLife,Pendant Lights,,dimmer,Kitchen,,yes
-SmartLife,Patio Lights,,dimmer,Patio,,yes
-SmartLife,Nook Light,,light,Kitchen,,yes
-SmartLife,Office Fan,,fan,Office,,yes
-SmartLife,Office Light,,light,Office,,yes
-SmartLife,Outdoor Smart Plug,"Switch 1 <broken, wont turn off>",outlet,Courtyard,,no
-SmartLife,Outdoor Smart Plug,Courtyard Light One,light,Courtyard,,yes
-SmartLife,Outdoor Smart Plug,Courtyard Fountain,pump,Courtyard,yes,yes
-SmartLife,Kitchen Lights ,,dimmer,Kitchen,,yes
-SmartLife,Casita Light Dimmer,,dimmer,Casita,,yes
-SmartLife,Casita Fan,,fan,Casita,,yes
-SmartLife,Side Door,,light,Outside,,yes
-Govee,Rope Light,,rope light,Outside,,yes
-Govee,Office Strip Lights,,rope light,Office,,yes
-Govee,Dual Smart Plug,Reading Light,light,Office,,yes
-Govee,Dual Smart Plug,Office Outlet,outlet,Office,,no
-Govee,Cabinet Lights <disconnected>,,rope light,Kitchen,,no
-Govee,Patio Lights <disconnected>,,rope light,Patio,,no
+Interface,Device Name,Subdevice,Type,Location,Needs guard rails,Jack controls,Channel
+Rachio,Waterman,Courtyard,irrigation valve,Courtyard,yes,yes,
+Rachio,Waterman,Back & Side Shrubs,irrigation valve,Outside,yes,yes,
+Ecobee,Living therm,,thermostat,Living Room,yes,no,
+Ecobee,Casita,,thermostat,Casita,yes,no,
+Ecobee,Bedrooms,,thermostat,Bedrooms,yes,no,
+Ecobee,Bedroom,,Sensor,Bedrooms,yes,no,
+SmartLife,Entry Lights,,light,Courtyard,,yes,
+SmartLife,Front Door Light,,light,Entry,,yes,
+SmartLife,Patio Fan,,fan,Patio,,yes,
+SmartLife,Sewing Room Light,,light,Sewing Room,,yes,
+SmartLife,Courtyard Light Two,,light,Courtyard,,yes,
+SmartLife,Living Room Fan new,,fan,Living Room,,yes,
+SmartLife,Living Room Light,,light,Living Room,,yes,
+SmartLife,Casita Door Light,,light,Courtyard,,yes,
+SmartLife,Pendant Lights,,dimmer,Kitchen,,yes,
+SmartLife,Patio Lights,,dimmer,Patio,,yes,
+SmartLife,Nook Light,,light,Kitchen,,yes,
+SmartLife,Office Fan,,fan,Office,,yes,
+SmartLife,Office Light,,light,Office,,yes,
+SmartLife,Outdoor Smart Plug,"Switch 1 <broken, wont turn off>",outlet,Courtyard,,no,switch_1
+SmartLife,Outdoor Smart Plug,Courtyard Light One,light,Courtyard,,yes,switch_2
+SmartLife,Outdoor Smart Plug,Courtyard Fountain,pump,Courtyard,yes,yes,switch_3
+SmartLife,Kitchen Lights ,,dimmer,Kitchen,,yes,
+SmartLife,Casita Light Dimmer,,dimmer,Casita,,yes,
+SmartLife,Casita Fan,,fan,Casita,,yes,
+SmartLife,Side Door,,light,Outside,,yes,
+Govee,Rope Light,,rope light,Outside,,yes,
+Govee,Office Strip Lights,,rope light,Office,,yes,
+Govee,Dual Smart Plug,Reading Light,light,Office,,yes,
+Govee,Dual Smart Plug,Office Outlet,outlet,Office,,no,
+Govee,Cabinet Lights <disconnected>,,rope light,Kitchen,,no,
+Govee,Patio Lights <disconnected>,,rope light,Patio,,no,

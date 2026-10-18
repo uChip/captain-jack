@@ -209,14 +209,17 @@ without a conversation. None of this is implemented yet.
 History: none yet.
 
 Jack can act on a small, explicit allowlist of home-automation intents —
-lights, fans, switched outlets, thermostat, irrigation, and firing
-already-configured scenes — against the real device inventory (ecobee,
-Govee Home, SmartLife/Tuya, Minoston, Rachio, Reolink). Full detail,
+lights, fans, switched outlets, irrigation, and firing
+already-configured scenes — against the real device inventory (Govee
+Home, SmartLife/Tuya, Rachio; ecobee thermostats excluded for lack of API
+access, Minoston's one device left off, Reolink excluded). The devices
+themselves are listed, with what Jack may control, in
+[home-automation-device-list.csv](home-automation-device-list.csv). Full detail,
 per-category bounds, and per-vendor bridge status live in
 [home-automation-allowlist.md](home-automation-allowlist.md); explicitly
 excluded from v1: smart locks (none installed) and any Reolink camera
-control. The allowlist is fully specified on paper but **not yet wired into
-`orchestrate.py`'s tool schema** — see
+control. Wired into `orchestrate.py` as a tool schema, 2026-10-18
+(scenes not yet) — see
 [Home-Automation Tool Schema](#46-home-automation-tool-schema) and
 [Open Issues](#5-open-issues).
 
@@ -925,26 +928,49 @@ appointment/calendar facts called for by
 
 History: none yet.
 
-**Status: Designed (allowlist only), not implemented.**
+**Status: Implemented, 2026-10-18** (`home.py`, `vendors.py`) - tested
+offline (`tests/test_home_tools.py`); live control not yet confirmed.
 
-**Description**: the fixed, small tool schema Haiku would use to request
+**Description**: the fixed, small tool schema Haiku uses to request
 home-automation actions, scoped exactly to
-[home-automation-allowlist.md](home-automation-allowlist.md)'s categories
-and bounds (lights, fans, switched outlets, thermostat, irrigation, scene
-activation).
+[home-automation-allowlist.md](home-automation-allowlist.md) and the
+devices marked `Jack controls = yes` in
+[home-automation-device-list.csv](home-automation-device-list.csv).
+Six tools: `set_power`, `set_brightness`, `set_color`, `set_fan_speed`,
+`water_zone`, `stop_watering`. Each takes device names from an enum
+built from the CSV; which tools a device appears in follows its `Type`
+(what it controls - dimmer, rope light, fan, pump, irrigation valve,
+etc.). Thermostats are excluded (no ecobee API access, see the
+allowlist); scenes are not built yet.
 
-**Intended function**: same enforcement pattern as memory — Haiku proposes
-an intent + parameters; orchestration code validates against the allowlist
-(including numeric bounds like thermostat clamps and irrigation duration
-caps) before ever calling a vendor API, rather than trusting model output
-directly.
+**Intended function**: same enforcement pattern as memory - Haiku
+proposes, code decides. `Home.run_tool()` refuses (with a reason Haiku
+can relay, and no vendor call) any unknown device, action the device's
+Type doesn't allow, or out-of-range value; irrigation is capped at
+`MAX_ZONE_MINUTES` (provisional 15) and the duration is enforced by the
+Rachio controller itself. The fountain pump switches off freely but on
+only in the turn right after Jack asked whether it has water in it: the
+first request is held and Haiku told to ask; code enforces the turn
+order, Haiku judges whether the answer was yes. A group request ("all
+the courtyard lights") is one call listing each device, run in
+parallel; each device gets its own result line, and a failure is
+reported as one (Jack is told not to claim success before the result).
+The device list also goes into the system prompt ("Devices you
+control"), so Haiku knows names, types and locations.
 
-**Interfaces**: would be invoked mid-turn by the
-[Conversation Orchestrator](#43-conversation-orchestrator); would call out
-to per-vendor APIs (Govee, Tuya/SmartLife IoT Platform, ecobee, Rachio —
-each individually confirmed to have a usable API; Minoston's integration
-path is still unresearched). None of this exists in code yet — no tool
-schema is currently passed to the Anthropic API call in `orchestrate.py`.
+**Interfaces**: called mid-turn by the
+[Conversation Orchestrator](#43-conversation-orchestrator)
+(`take_turn()`/`stream_turn()` with `home=`): Haiku -> tool_use ->
+`run_tool()` -> tool_result -> Haiku, up to `MAX_TOOL_ROUNDS` (4) per
+turn; text before a tool call is spoken right away
+(`SpeechStreamer.flush()`). Vendor calls (`vendors.py`, stdlib HTTP):
+Govee Platform API, Tuya IoT Platform OpenAPI (Smart Life, signed
+requests), Rachio public API. Vendor ids are looked up by name on first
+use, so starting Jack never depends on a vendor's cloud being up. Keys
+from the environment (`GOVEE_API_KEY`, `RACHIO_API_KEY`,
+`TUYA_ACCESS_ID`/`TUYA_ACCESS_SECRET`). `coordinator.py`/
+`orchestrate.py` take `--no-home` to leave the tools out.
+`list_devices.py` is a read-only listing of what each vendor sees.
 
 ### 4.7 Text to Speech (TTS)
 
@@ -2100,18 +2126,19 @@ and is tagged **[RESOLVED]** in place.
   framing](#413-pi-to-arduino-serial-link) had two unreconciled
   descriptions, plus open questions on ACK/retry, per-axis offsets, and
   worst-case transmission time. History: [log.md#issue-9](log.md#issue-9).
-10. [Home-Automation Tool Schema](#46-home-automation-tool-schema) is fully
-  allowlisted on paper but not wired into `orchestrate.py` — no tool schema
-  currently reaches the Anthropic API call.
+10. **[RESOLVED 2026-10-18]** [Home-Automation Tool Schema](#46-home-automation-tool-schema)
+  is wired into `orchestrate.py` (`home.py`).
 11. Minoston's integration path (direct API vs. hub requirement) is
   unresearched — flagged as unknown in
   [home-automation-allowlist.md](home-automation-allowlist.md) itself.
-12. A per-outlet "automation-safe" allowlist doesn't exist yet, needed before
-  any switched-outlet control ships per
+12. **[RESOLVED 2026-10-18]** The per-outlet "automation-safe" allowlist is
+  the inventory CSV's `Jack controls` column, per
   [home-automation-allowlist.md](home-automation-allowlist.md#switched-outlets).
 13. Numeric safety bounds (thermostat clamp range, irrigation max duration)
   are marked TBD in
   [home-automation-allowlist.md](home-automation-allowlist.md).
+  Thermostat is moot for now (excluded, 2026-10-18); irrigation runs on a
+  provisional `MAX_ZONE_MINUTES = 15` in `home.py` pending Chip's number.
 14. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.

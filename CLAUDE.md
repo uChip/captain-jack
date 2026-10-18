@@ -33,9 +33,10 @@ rebuilt and the Pi, Arduino, servo power supply, XVF3800, amp, and
 speaker are all mounted inside it. Playback is confirmed clean at full
 digital scale — the clipping problem is resolved, see
 `docs/specification.md` Open Issues issue 26.
-No home-automation tool calling yet
-either — the intent allowlist (next-step below) isn't wired into a tool
-schema.
+Home-automation tool calling is wired in (`home.py`, 2026-10-18): Jack
+can switch the lights, fans, fountain and irrigation marked in
+`docs/home-automation-device-list.csv`, with the allowlist enforced in
+code; live control not yet confirmed.
 
 **This file and `docs/specification.md` describe current state and
 project definition only.** For design changes, what didn't work,
@@ -53,6 +54,7 @@ ANTHROPIC_API_KEY=... venv/bin/python orchestrate.py   # text-only conversation 
 venv/bin/python playback.py [clip.wav ...]             # play clips through the bird
 venv/bin/python listener.py [--model base.en]          # print transcripts of speech to the bird
 venv/bin/python coordinator.py --scratch-memory        # voice loop; own terminal (reads Enter)
+venv/bin/python list_devices.py                        # read-only: what each smart-home vendor sees
 ```
 
 Model files live in `models/` (git-ignored — download once):
@@ -614,8 +616,13 @@ worked in parallel if priorities change.
    Chip's device inventory with guard-rail marks:
    `docs/home-automation-device-list.csv`. `list_devices.py` (read-only)
    lists what each vendor's API sees - Govee and Rachio working
-   2026-10-18, Tuya next (Chip setting up the IoT Platform project).
-   ecobee dropped - no new developer keys issued since 2024 (see allowlist).
+   2026-10-18, Tuya too the same day. Tool calls built 2026-10-18
+   (`home.py` + `vendors.py`, spec 4.6; `--no-home` to leave out),
+   offline tests pass (`tests/test_home_tools.py`). Still open: live
+   control check; Chip's irrigation cap (provisional 15 min); which
+   Govee dual-plug socket is the Reading Light (CSV `Channel` blank, so
+   it reports "not mapped yet"); scenes. ecobee dropped - no new
+   developer keys issued since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.

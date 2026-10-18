@@ -18,31 +18,17 @@ A vendor whose key isn't set is skipped with a note.
 
 import argparse
 import csv
-import hashlib
-import hmac
-import json
 import os
 import sys
-import time
 import urllib.error
-import urllib.parse
-import urllib.request
 
-TIMEOUT_S = 15
-
-
-def get_json(url, headers):
-    req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as resp:
-        return json.load(resp)
+import vendors
 
 
 def govee_devices(key):
     # Govee's current "Platform API" (the older developer-api.govee.com v1
     # is deprecated). Capabilities list what each device can be told to do.
-    data = get_json("https://openapi.api.govee.com/router/api/v1/user/devices",
-                    {"Govee-API-Key": key})
-    for d in data.get("data", []):
+    for d in vendors.govee_devices(key):
         caps = sorted({c.get("instance", "?") for c in d.get("capabilities", [])})
         yield {"vendor": "Govee", "name": d.get("deviceName", ""),
                "type": d.get("type", "").rsplit(".", 1)[-1],
@@ -51,9 +37,7 @@ def govee_devices(key):
 
 
 def rachio_devices(key):
-    hdr = {"Authorization": f"Bearer {key}"}
-    person_id = get_json("https://api.rach.io/1/public/person/info", hdr)["id"]
-    person = get_json(f"https://api.rach.io/1/public/person/{person_id}", hdr)
+    person = vendors.rachio_person(key)
     for d in person.get("devices", []):
         yield {"vendor": "Rachio", "name": d.get("name", ""),
                "type": "controller", "model": d.get("model", ""),
@@ -68,10 +52,6 @@ def rachio_devices(key):
                    "details": f"enabled={z.get('enabled', '?')}"}
 
 
-TUYA_HOSTS = {"us": "openapi.tuyaus.com", "us-e": "openapi-ueaz.tuyaus.com",
-              "eu": "openapi.tuyaeu.com", "eu-w": "openapi-weaz.tuyaeu.com",
-              "in": "openapi.tuyain.com", "cn": "openapi.tuyacn.com"}
-
 # Tuya category codes -> plain words (the ones a Smart Life house is
 # likely to have; anything else prints as its raw code).
 TUYA_CATEGORIES = {"kg": "switch", "tgkg": "dimmer", "tgq": "dimmer", "tdq": "breaker",
@@ -80,56 +60,14 @@ TUYA_CATEGORIES = {"kg": "switch", "tgkg": "dimmer", "tgq": "dimmer", "tdq": "br
                    "wk": "thermostat", "ggq": "irrigation"}
 
 
-class TuyaCloud:
-    """Minimal Tuya OpenAPI client: HMAC-SHA256 request signing, GET only."""
-
-    def __init__(self, access_id, secret, region):
-        self.access_id, self.secret = access_id, secret.encode()
-        self.host = TUYA_HOSTS[region]
-        self.token = ""
-        self.token = self.get("/v1.0/token?grant_type=1")["access_token"]
-
-    def get(self, path_and_query):
-        t = str(int(time.time() * 1000))
-        empty_body_sha = hashlib.sha256(b"").hexdigest()
-        # Tuya signs the path with its query keys sorted.
-        path, _, query = path_and_query.partition("?")
-        if query:
-            path += "?" + "&".join(sorted(query.split("&")))
-        string_to_sign = f"GET\n{empty_body_sha}\n\n{path}"
-        payload = self.access_id + self.token + t + string_to_sign
-        sign = hmac.new(self.secret, payload.encode(),
-                        hashlib.sha256).hexdigest().upper()
-        hdr = {"client_id": self.access_id, "sign": sign, "t": t,
-               "sign_method": "HMAC-SHA256"}
-        if self.token:
-            hdr["access_token"] = self.token
-        data = get_json(f"https://{self.host}{path}", hdr)
-        if not data.get("success"):
-            # Tuya reports errors in a 200 body; code 28841002 means the
-            # IoT Core trial has lapsed (renew under Cloud > My Services).
-            raise ValueError(f"Tuya error {data.get('code')}: {data.get('msg')}")
-        return data["result"]
-
-
 def tuya_devices(_key):
-    cloud = TuyaCloud(os.environ["TUYA_ACCESS_ID"],
-                      os.environ["TUYA_ACCESS_SECRET"],
-                      os.environ.get("TUYA_REGION", "us"))
-    # Devices from every app account linked to the project, paged.
-    devices, last_row_key = [], ""
-    while True:
-        q = "size=50" + (f"&last_row_key={urllib.parse.quote(last_row_key)}"
-                         if last_row_key else "")
-        page = cloud.get(f"/v1.0/iot-01/associated-users/devices?{q}")
-        devices.extend(page.get("devices", []))
-        if not page.get("has_more"):
-            break
-        last_row_key = page.get("last_row_key", "")
+    cloud = vendors.TuyaCloud(os.environ["TUYA_ACCESS_ID"],
+                              os.environ["TUYA_ACCESS_SECRET"],
+                              os.environ.get("TUYA_REGION", "us"))
+    devices = cloud.devices()
     for d in sorted(devices, key=lambda d: d.get("name", "")):
         try:
-            funcs = cloud.get(f"/v1.0/devices/{d['id']}/functions")
-            codes = " ".join(f["code"] for f in funcs.get("functions", []))
+            codes = " ".join(cloud.functions(d["id"]))
         except (urllib.error.URLError, ValueError) as e:
             codes = f"(functions unavailable: {e})"
         cat = d.get("category", "")

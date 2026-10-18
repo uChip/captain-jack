@@ -5,6 +5,8 @@ take_turn() is one full conversational turn; the text CLI below calls
 it. stream_turn() is the same turn, but speaks the reply sentence by
 sentence as it streams in rather than waiting for all of it - what the
 voice Coordinator (coordinator.py, spec section 4.16) calls instead.
+Either takes an optional home.Home: Jack's home-automation tools (spec
+4.6), run in a tool round trip within the same turn.
 """
 
 import re
@@ -23,6 +25,10 @@ MEMORY_PATH = MEMORY_DIR / "memory.md"
 
 MODEL = "claude-haiku-4-5"
 MAX_TOKENS = 1024
+
+# Most Haiku -> tool -> Haiku round trips one turn may take; a group of
+# devices is one call, so real requests need one or two.
+MAX_TOOL_ROUNDS = 4
 
 MEMORY_LINE_RE = re.compile(r"^MEMORY:\s*(.+)$", re.IGNORECASE)
 TAG_RE = re.compile(
@@ -322,6 +328,16 @@ class SpeechStreamer:
                 self._in_line = True
         self._drain(final=False)
 
+    def flush(self):
+        """Speak whatever text has arrived so far without ending the
+        stream - used when Haiku stops to call a tool mid-reply, so a
+        lead-in like "Aye, lighting her up" is heard while the tool runs
+        rather than held until the reply resumes."""
+        if self.done:
+            return
+        self.feed("\n")
+        self._drain(final=True)
+
     def finish(self):
         """Call once after the stream ends - a no-op unless feed() never
         saw a tag line at all (a malformed/tagless reply)."""
@@ -379,6 +395,61 @@ def get_reply_stream(
     return reply
 
 
+def _tool_turn(client, history, memory_dir, home, on_sentence=None) -> str:
+    """The turn's Haiku call(s) with home-automation tools available:
+    call Haiku; while it asks for tools, run them through home.run_tool()
+    (which enforces the allowlist) and call again with the results.
+    Appends every message to history as it goes. Streams and speaks the
+    text via SpeechStreamer when on_sentence is given. Returns all the
+    turn's text joined - the meta-tags come at the end of the last part,
+    so split_tags() works on it unchanged."""
+    system = load_system_prompt(memory_dir) + home.prompt_section()
+    tools = home.tools()
+    streamer = SpeechStreamer(on_sentence) if on_sentence else None
+    texts = []
+    for _ in range(MAX_TOOL_ROUNDS):
+        params = dict(model=MODEL, max_tokens=MAX_TOKENS, system=system,
+                      messages=history, tools=tools)
+        if streamer:
+            with client.messages.stream(**params) as stream:
+                for text in stream.text_stream:
+                    streamer.feed(text)
+                msg = stream.get_final_message()
+        else:
+            msg = client.messages.create(**params)
+        history.append({"role": "assistant", "content": msg.content})
+        texts.append("".join(b.text for b in msg.content if b.type == "text"))
+        uses = [b for b in msg.content if b.type == "tool_use"]
+        if msg.stop_reason != "tool_use" or not uses:
+            break
+        if streamer:
+            streamer.flush()
+        results = []
+        for b in uses:
+            text, is_error = home.run_tool(b.name, b.input)
+            results.append({"type": "tool_result", "tool_use_id": b.id,
+                            "content": text, "is_error": is_error})
+        history.append({"role": "user", "content": results})
+    if streamer:
+        streamer.finish()
+    return "\n".join(t for t in texts if t)
+
+
+def _home_turn(client, history, user_text, memory_dir, home, on_sentence=None) -> "Turn":
+    """take_turn()/stream_turn() with tools. On an API error, history is
+    rolled back to before the user's message, same as without tools -
+    though any device already switched stays switched."""
+    home.begin_turn()
+    start = len(history)
+    history.append({"role": "user", "content": user_text})
+    try:
+        reply = _tool_turn(client, history, memory_dir, home, on_sentence)
+    except anthropic.APIError:
+        del history[start:]
+        raise
+    return _finish_turn(reply, memory_dir)
+
+
 @dataclass
 class Turn:
     spoken: str             # what Jack says aloud
@@ -404,13 +475,17 @@ def _finish_turn(reply: str, memory_dir: Path) -> Turn:
 
 
 def take_turn(
-    client: anthropic.Anthropic, history: list[dict], user_text: str, memory_dir: Path = MEMORY_DIR
+    client: anthropic.Anthropic, history: list[dict], user_text: str, memory_dir: Path = MEMORY_DIR,
+    home=None,
 ) -> Turn:
     """One conversational turn: call Haiku, split off and save any memory.
 
     Appends both sides to history. On an API error, history is left as it
-    was and the anthropic exception propagates to the caller.
+    was and the anthropic exception propagates to the caller. With home
+    (a home.Home), Haiku can also use the home-automation tools.
     """
+    if home is not None:
+        return _home_turn(client, history, user_text, memory_dir, home)
     history.append({"role": "user", "content": user_text})
     try:
         reply = get_reply(client, history, memory_dir)
@@ -422,7 +497,8 @@ def take_turn(
 
 
 def stream_turn(
-    client: anthropic.Anthropic, history: list[dict], user_text: str, on_sentence, memory_dir: Path = MEMORY_DIR
+    client: anthropic.Anthropic, history: list[dict], user_text: str, on_sentence, memory_dir: Path = MEMORY_DIR,
+    home=None,
 ) -> Turn:
     """Like take_turn(), but speaks the reply as it streams in rather
     than waiting for Haiku to finish it first - cuts the delay to first
@@ -431,8 +507,11 @@ def stream_turn(
     on_sentence(text) is called once per spoken sentence, in order,
     typically well before the trailing MODE:/MEMORY: tags (let alone the
     rest of a longer reply) have finished streaming in. Everything else
-    - history, tag parsing, memory saving - is identical to take_turn().
+    - history, tag parsing, memory saving, home tools - is identical to
+    take_turn().
     """
+    if home is not None:
+        return _home_turn(client, history, user_text, memory_dir, home, on_sentence)
     history.append({"role": "user", "content": user_text})
     try:
         reply = get_reply_stream(client, history, on_sentence, memory_dir)
@@ -446,6 +525,10 @@ def stream_turn(
 def main():
     client = anthropic.Anthropic()
     history: list[dict] = []
+    home = None
+    if "--no-home" not in sys.argv[1:]:
+        from home import Home
+        home = Home(log=lambda line: print(line, file=sys.stderr))
     print("Captain Jack is listening. Ctrl+D to quit.")
     while True:
         try:
@@ -457,7 +540,7 @@ def main():
             continue
 
         try:
-            turn = take_turn(client, history, user_input)
+            turn = take_turn(client, history, user_input, home=home)
         except anthropic.APIConnectionError:
             print("[error] network problem reaching the API", file=sys.stderr)
             continue
