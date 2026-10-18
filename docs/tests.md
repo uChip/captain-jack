@@ -634,7 +634,9 @@ when it was last confirmed passing.
   watching, every step correct and each device restored afterwards:
   Office Light off/"turn it back on"; Pendant Lights 20%/100%/66%+off;
   Office Fan speed 1/4/2+off; Office Strip Lights on/red/blue at 30%/
-  white+off). Irrigation and the fountain pump not yet tried live.
+  white+off; Courtyard zone started for 3 min, "stop the watering" at
+  2 min - stopped). The fountain pump's ask-first rule not yet tried
+  live.
   Whether Haiku actually asks about the
   fountain's water and only calls again on a real yes - code enforces
   the turn order, Haiku judges the answer.

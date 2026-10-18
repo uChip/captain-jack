@@ -624,9 +624,9 @@ worked in parallel if priorities change.
    confirmation). Govee dual plug mapped by a watched test: Reading Light
    = `socketToggle1`. Irrigation cap 5 min per run (Chip). Dimmer
    (Pendant Lights), fan speed (Office Fan) and Govee color (Office
-   Strip Lights) also confirmed live by Chip the same day. Still open:
-   live checks of irrigation and the fountain pump's ask-first rule
-   (both outside); scenes. ecobee dropped - no new developer keys issued
+   Strip Lights) also confirmed live by Chip the same day, and
+   irrigation (Courtyard 3-min run stopped by voice at 2 min). Still
+   open: a live check of the fountain pump's ask-first rule; scenes. ecobee dropped - no new developer keys issued
    since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely

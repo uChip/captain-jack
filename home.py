@@ -405,7 +405,10 @@ class Home:
         zones = [d for d in self.devices.values() if d.can("zone")]
         if not zones:
             raise _Refused("No irrigation to stop.")
-        return self._each(zones[:1], self.link.stop_watering, "watering stopped")
+        # One stop covers the whole controller, so report it by the
+        # controller's name, not whichever zone happened to be first.
+        text, failed = self._each(zones[:1], self.link.stop_watering, "watering stopped")
+        return text.replace(zones[0].name, f"{zones[0].vendor_name} (all zones)", 1), failed
 
 
 class _Refused(Exception):

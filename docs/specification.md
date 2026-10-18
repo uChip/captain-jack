@@ -933,7 +933,8 @@ offline (`tests/test_home_tools.py`); first live control confirmed the
 same day via the text CLI, Chip watching: plain switch (Office Light),
 dimmer (Pendant Lights 20/100/66%/off), fan speed (Office Fan 1/4/2/off)
 and Govee color + brightness (Office Strip Lights red, blue at 30%,
-white). Irrigation and the fountain pump not yet tried live.
+white), and irrigation (Courtyard started for 3 minutes, stopped by
+voice at 2). The fountain pump's ask-first rule not yet tried live.
 
 **Description**: the fixed, small tool schema Haiku uses to request
 home-automation actions, scoped exactly to
