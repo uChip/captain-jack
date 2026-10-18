@@ -929,7 +929,10 @@ appointment/calendar facts called for by
 History: none yet.
 
 **Status: Implemented, 2026-10-18** (`home.py`, `vendors.py`) - tested
-offline (`tests/test_home_tools.py`); live control not yet confirmed.
+offline (`tests/test_home_tools.py`); first live control confirmed the
+same day (Office Light off/on via the text CLI, Chip watching). Other
+device kinds (dimmers, fans, Govee color, irrigation, pump) not yet
+tried live.
 
 **Description**: the fixed, small tool schema Haiku uses to request
 home-automation actions, scoped exactly to

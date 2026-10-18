@@ -27,7 +27,7 @@ SmartLife,Casita Fan,,fan,Casita,,yes,
 SmartLife,Side Door,,light,Outside,,yes,
 Govee,Rope Light,,rope light,Outside,,yes,
 Govee,Office Strip Lights,,rope light,Office,,yes,
-Govee,Dual Smart Plug,Reading Light,light,Office,,yes,
-Govee,Dual Smart Plug,Office Outlet,outlet,Office,,no,
+Govee,Dual Smart Plug,Reading Light,light,Office,,yes,socketToggle1
+Govee,Dual Smart Plug,Office Outlet,outlet,Office,,no,socketToggle2
 Govee,Cabinet Lights <disconnected>,,rope light,Kitchen,,no,
 Govee,Patio Lights <disconnected>,,rope light,Patio,,no,

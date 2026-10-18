@@ -630,6 +630,8 @@ when it was last confirmed passing.
 - **Last confirmed passing**: 2026-10-18.
 - **Not covered**: the real vendor APIs (`vendors.py`) - see
   `list_devices.py` for a read-only check that all three answer; live
-  control is confirmed by hand. Whether Haiku actually asks about the
+  control is confirmed by hand (2026-10-18: Office Light off then "turn
+  it back on" via `orchestrate.py`, Chip watching - both correct).
+  Whether Haiku actually asks about the
   fountain's water and only calls again on a real yes - code enforces
   the turn order, Haiku judges the answer.
