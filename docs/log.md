@@ -2604,6 +2604,19 @@ to "do you have a short mystery story for me?" ran well over a hundred
 words and Chip didn't want it shortened - the exception, not the
 baseline, is what should govern a reply like that.
 
+**Persona text crept into code, 2026-10-18.** Chip asked whether the
+in-character lead-in examples written into `home.py` that day ("Aye
+aye!", "Right away, Matey.") broke the earlier statement that character
+lives in the persona file. They did - and an audit found an older leak
+the spec's portability note had missed: `coordinator.py`'s `DIDNT_CATCH`
+("Arr, didn't catch that over the wind..."), spoken without Haiku.
+Decided (Chip): `home.py` keeps only the mechanism (say a short varied
+line before a tool call, never claim it's done), the examples moved to
+`identity.md`'s "Speaking aloud" (text-checked: lines still vary);
+`DIDNT_CATCH` stays in code but is listed, with the clips, fillers, TTS
+voice and gesture catalog, as the non-prompt assets a persona swap must
+also replace (spec 4.4).
+
 ### 4.3 Conversation Orchestrator
 
 **Streamed replies, 2026-10-12**: tackled next on the work list after
@@ -2768,18 +2781,3 @@ confirmation runs); not yet diagnosed, needs a `--save` session.
   switched Jack to Off Watch, twice; it had - the shell's `grep` is
   `ugrep`, which held log lines back despite `--line-buffered`. py-spy
   showed Motion running Off Watch.)
-
-### 4.4 Persona and Identity Prompt (continued)
-
-**Persona text crept into code, 2026-10-18.** Chip asked whether the
-in-character lead-in examples written into `home.py` that day ("Aye
-aye!", "Right away, Matey.") broke the earlier statement that character
-lives in the persona file. They did - and an audit found an older leak
-the spec's portability note had missed: `coordinator.py`'s `DIDNT_CATCH`
-("Arr, didn't catch that over the wind..."), spoken without Haiku.
-Decided (Chip): `home.py` keeps only the mechanism (say a short varied
-line before a tool call, never claim it's done), the examples moved to
-`identity.md`'s "Speaking aloud" (text-checked: lines still vary);
-`DIDNT_CATCH` stays in code but is listed, with the clips, fillers, TTS
-voice and gesture catalog, as the non-prompt assets a persona swap must
-also replace (spec 4.4).
