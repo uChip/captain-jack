@@ -2752,3 +2752,19 @@ confirmation runs); not yet diagnosed, needs a `--save` session.
   before Jack's models load). Not yet re-measured live. Haiku never
   spoke a lead-in before a tool call, so the extra second is silence
   after the filler squawk.
+- **Lead-in line before tool calls, 2026-10-18** (Chip: "puts Jack
+  one-up on Alexa, who also has the pause"). `prompt_section()` now asks
+  for one short, varied in-character line before any tool call, spoken
+  while the tool runs. First wording gave one example and Haiku repeated
+  it verbatim every time; several examples plus "different each time"
+  fixed that. Session21 (voice, `--port`): tool turns reached first word
+  in 2.6-3.9s vs 2.3-3.0s for ordinary turns (session20: 3.4-6.2s), the
+  first tool turn 3.9s with the startup warm-up. Chip also tested an
+  unnamed room on purpose: "put the fan on to one", right after asking
+  for the office strip lights, switched the *Living Room* fan. Chip's
+  call: acceptable - the earlier request could as well have been for
+  lights elsewhere - so no "which room Jack is in" default added.
+  (Side note: the session looked as if "That's all for now" hadn't
+  switched Jack to Off Watch, twice; it had - the shell's `grep` is
+  `ugrep`, which held log lines back despite `--line-buffered`. py-spy
+  showed Motion running Off Watch.)
