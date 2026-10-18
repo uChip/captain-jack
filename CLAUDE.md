@@ -628,7 +628,11 @@ worked in parallel if priorities change.
    irrigation (Courtyard 3-min run stopped by voice at 2 min) and the
    fountain's ask-first rule (first try found Haiku asking on its own
    without calling the tool - tool wording fixed, see log.md 4.6).
-   Every device kind now confirmed live. Still open: scenes. ecobee dropped - no new developer keys issued
+   Every device kind now confirmed live, and by voice the same day
+   (session20: group "office lights" on/off, nook light). Tool turns
+   reach first word in 3.4-4.3s vs ~3s; the first one took 6.2s on cold
+   vendor lookups, now pre-warmed at startup - re-measure next voice
+   session. Still open: scenes. ecobee dropped - no new developer keys issued
    since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely

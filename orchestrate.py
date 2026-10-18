@@ -529,6 +529,7 @@ def main():
     if "--no-home" not in sys.argv[1:]:
         from home import Home
         home = Home(log=lambda line: print(line, file=sys.stderr))
+        home.warm_up()
     print("Captain Jack is listening. Ctrl+D to quit.")
     while True:
         try:

@@ -147,6 +147,21 @@ class VendorLink:
             raise ValueError(f"Rachio has no zone named {d.name!r}")
         return self._rachio[0], zone_id
 
+    def warm(self, devices):
+        """Do the first-use lookups now (read-only), so the first real
+        command doesn't wait on them - a cold Smart Life login + device
+        list + functions added ~2s to the first tool turn live
+        (2026-10-18). Best effort: a failure here just leaves the lookup
+        to the first command, as before."""
+        lookup = {"SmartLife": self._tuya_device, "Govee": self._govee_device,
+                  "Rachio": self._rachio_zone}
+        for d in devices:
+            if d.vendor in lookup and self.available(d.vendor):
+                try:
+                    lookup[d.vendor](d)
+                except VENDOR_ERRORS:
+                    self.forget(d.vendor)
+
     def forget(self, vendor):
         """Drop cached ids after a failure, so the next try looks again."""
         with self._lock:
@@ -233,6 +248,12 @@ class Home:
         self.log = log or (lambda line: None)
         self.turn = 0
         self._pump_asked = {}  # device name -> turn Jack asked about water
+
+    def warm_up(self):
+        """Start the vendor lookups in the background (see VendorLink.warm)."""
+        if hasattr(self.link, "warm"):
+            threading.Thread(target=self.link.warm, args=(list(self.devices.values()),),
+                             name="home-warm", daemon=True).start()
 
     def begin_turn(self):
         self.turn += 1

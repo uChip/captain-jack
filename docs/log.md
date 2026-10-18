@@ -2740,3 +2740,15 @@ confirmation runs); not yet diagnosed, needs a `--save` session.
   controller, so the result names "Waterman (all zones)" rather than the
   first zone (it said "Courtyard" in the first live run - right action,
   misleading line).
+- **First voice conversation with the tools, 2026-10-18** (session20,
+  `--port`, scratch memory): "turn the office lights off" switched all
+  three office lights in one call and "turn them back on" restored them;
+  "it can be better with the nook light off" was taken as a request.
+  Time to first word: 2.8-3.2s for ordinary turns, 3.4-4.3s for tool
+  turns (the second Haiku round trip), and 6.2s for the *first* tool
+  turn - the cold vendor lookups (Smart Life login, device list, each
+  device's functions). Fixed by `Home.warm_up()`: the same read-only
+  lookups run in a background thread at startup (~5s, finished long
+  before Jack's models load). Not yet re-measured live. Haiku never
+  spoke a lead-in before a tool call, so the extra second is silence
+  after the filler squawk.

@@ -972,7 +972,9 @@ turn; text before a tool call is spoken right away
 (`SpeechStreamer.flush()`). Vendor calls (`vendors.py`, stdlib HTTP):
 Govee Platform API, Tuya IoT Platform OpenAPI (Smart Life, signed
 requests), Rachio public API. Vendor ids are looked up by name on first
-use, so starting Jack never depends on a vendor's cloud being up. Keys
+use, so starting Jack never depends on a vendor's cloud being up -
+and warmed in a background thread at startup (`Home.warm_up()`), so the
+first command doesn't wait on them either. Keys
 from the environment (`GOVEE_API_KEY`, `RACHIO_API_KEY`,
 `TUYA_ACCESS_ID`/`TUYA_ACCESS_SECRET`). `coordinator.py`/
 `orchestrate.py` take `--no-home` to leave the tools out.

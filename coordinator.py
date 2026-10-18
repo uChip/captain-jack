@@ -492,6 +492,7 @@ def main():
                         hold="--no-hold" not in args, filler="--no-filler" not in args)
     if "--no-home" not in args:
         coord.home = Home(log=coord.out)
+        coord.home.warm_up()
 
     def keyboard():
         for line in sys.stdin:
