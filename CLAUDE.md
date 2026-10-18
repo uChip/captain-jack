@@ -609,8 +609,13 @@ dependency between them. Nothing here stops home-automation from being
 worked in parallel if priorities change.
 
 1. Wire orchestrate.py's tool calls for the vendors with known APIs (Govee,
-   Tuya/SmartLife, ecobee, Rachio) per the allowlist, and test live against
+   Tuya/SmartLife, Rachio) per the allowlist, and test live against
    the real devices — none of this touches the parrot's own audio hardware.
+   Chip's device inventory with guard-rail marks:
+   `docs/home-automation-device-list.csv`. `list_devices.py` (read-only)
+   lists what each vendor's API sees - Govee and Rachio working
+   2026-10-18, Tuya next (Chip setting up the IoT Platform project).
+   ecobee dropped - no new developer keys issued since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
    unknown.

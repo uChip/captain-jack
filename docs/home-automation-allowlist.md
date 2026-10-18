@@ -53,7 +53,10 @@ out-of-range requests are rejected in code, not trusted from model output.
 - **Allowed**: set target temperature, **clamped in code to a safe range**
   (e.g. 60-80°F — exact bounds TBD when implemented) regardless of what's
   requested; set mode (heat/cool/auto).
-- **Bridge status**: ecobee has a well-documented public API (known).
+- **Bridge status**: ecobee has a well-documented public API, but has not
+  accepted new developer registrations since 2024 and Chip has no existing
+  key - **so the thermostat is off Jack's list for now** (2026-10-18), see
+  "Explicitly excluded" below.
 
 ## Irrigation
 
@@ -77,6 +80,12 @@ out-of-range requests are rejected in code, not trusted from model output.
   other intents at implementation time.
 
 ## Explicitly excluded from v1
+
+- **Thermostats (ecobee)**: no API access - ecobee closed new developer
+  registrations in 2024 and there's no grandfathered key. Also the riskiest
+  device class (wrong settings can harm the furnace/AC), so not a loss to
+  defer. Revisit if ecobee reopens registration or a local route (e.g.
+  HomeKit) becomes worth the extra machinery.
 
 - **Door locks**: no smart lock hardware exists in the house today, so
   there's nothing to control — not a judgment call, just no device. If a
