@@ -635,7 +635,8 @@ worked in parallel if priorities change.
    varied line ("Leave it to me.") before each tool call; session21:
    tool turns 2.6-3.9s, close to ordinary turns. An unnamed-room "the
    fan" picked the living room fan - Chip's call: acceptable, no default
-   room. Still open: scenes. ecobee dropped - no new developer keys issued
+   room. Scenes deferred to a future update (Chip - rarely used; spec
+   section 6). ecobee dropped - no new developer keys issued
    since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely

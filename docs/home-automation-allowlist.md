@@ -104,6 +104,9 @@ mid-action, so prefer it over a Pi-side timer.
 
 ## Scenes
 
+**Deferred to a future update** (Chip, 2026-10-18 - scenes see little use
+in the house). Kept here as the agreed scope for when they're built.
+
 - **Devices**: any vendor's predefined scenes (Tuya/SmartLife scenes, Govee
   scenes, ecobee comfort settings).
 - **Allowed**: activate an existing, already-configured scene by name.

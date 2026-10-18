@@ -219,7 +219,7 @@ per-category bounds, and per-vendor bridge status live in
 [home-automation-allowlist.md](home-automation-allowlist.md); explicitly
 excluded from v1: smart locks (none installed) and any Reolink camera
 control. Wired into `orchestrate.py` as a tool schema, 2026-10-18
-(scenes not yet) — see
+(scenes deferred to a future update) — see
 [Home-Automation Tool Schema](#46-home-automation-tool-schema) and
 [Open Issues](#5-open-issues).
 
@@ -960,7 +960,8 @@ Six tools: `set_power`, `set_brightness`, `set_color`, `set_fan_speed`,
 built from the CSV; which tools a device appears in follows its `Type`
 (what it controls - dimmer, rope light, fan, pump, irrigation valve,
 etc.). Thermostats are excluded (no ecobee API access, see the
-allowlist); scenes are not built yet.
+allowlist); scenes are deferred to a future update (Chip, 2026-10-18 -
+little used in the house; see section 6).
 
 **Intended function**: same enforcement pattern as memory - Haiku
 proposes, code decides. `Home.run_tool()` refuses (with a reason Haiku
@@ -2359,3 +2360,9 @@ gaps or conflicts that need resolving, not optional extras.
    the reply. Needs its own design: the tag vocabulary, the syntax
    (distinct from markdown emphasis), and how a mid-reply gesture lines
    up with sentence-by-sentence TTS.
+7. **Scene activation (home automation).** The allowlist already scopes
+   it - activate an existing vendor scene by name, never create or edit
+   one - but it was deferred 2026-10-18 rather than built with the rest
+   of [4.6](#46-home-automation-tool-schema): Chip rarely uses scenes.
+   Would be one more tool in `home.py`, listing each vendor's scenes
+   (Tuya/Smart Life, Govee) the way devices are listed now.
