@@ -65,8 +65,9 @@ mid-action, so prefer it over a Pi-side timer.
 
 ## Pumps
 
-- **Devices**: the courtyard fountain pump (a Smart Life outdoor-plug
-  switch).
+- **Devices**: the courtyard fountain pump (Smart Life "Outdoor Smart
+  Plug" `switch_3`; `switch_2` is Courtyard Light One, `switch_1` is
+  broken and stuck on - Chip, 2026-10-18).
 - **Allowed**: turn off, any time, no questions. Turn on **only after a
   spoken confirmation that the fountain has water in it** (Chip,
   2026-10-18): a filled fountain can rightly run for hours, so a run-time
@@ -92,7 +93,10 @@ mid-action, so prefer it over a Pi-side timer.
 
 ## Irrigation
 
-- **Devices**: Rachio.
+- **Devices**: Rachio - only the zones listed in the inventory CSV. The
+  controller's other zones (named but disabled in Rachio) aren't wired to
+  anything (Chip, 2026-10-18), so they're left out as useless rather than
+  unsafe.
 - **Allowed**: start a zone for a bounded duration, **capped in code** (e.g.
   15-30 min per request, exact cap TBD) so a request can't run for hours;
   stop or skip a scheduled run.
