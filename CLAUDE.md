@@ -622,8 +622,8 @@ worked in parallel if priorities change.
    confirmed by Chip the same day (text CLI: Office Light off, then
    "turn it back on" - both done, Jack spoke only after each vendor
    confirmation). Govee dual plug mapped by a watched test: Reading Light
-   = `socketToggle1`. Still open: Chip's irrigation cap (provisional 15
-   min); live checks of the other device kinds; scenes. ecobee dropped - no new
+   = `socketToggle1`. Irrigation cap 5 min per run (Chip). Still
+   open: live checks of the other device kinds; scenes. ecobee dropped - no new
    developer keys issued since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely

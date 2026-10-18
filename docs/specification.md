@@ -950,7 +950,7 @@ allowlist); scenes are not built yet.
 proposes, code decides. `Home.run_tool()` refuses (with a reason Haiku
 can relay, and no vendor call) any unknown device, action the device's
 Type doesn't allow, or out-of-range value; irrigation is capped at
-`MAX_ZONE_MINUTES` (provisional 15) and the duration is enforced by the
+`MAX_ZONE_MINUTES` (5, Chip 2026-10-18) and the duration is enforced by the
 Rachio controller itself. The fountain pump switches off freely but on
 only in the turn right after Jack asked whether it has water in it: the
 first request is held and Haiku told to ask; code enforces the turn
@@ -2140,8 +2140,8 @@ and is tagged **[RESOLVED]** in place.
 13. Numeric safety bounds (thermostat clamp range, irrigation max duration)
   are marked TBD in
   [home-automation-allowlist.md](home-automation-allowlist.md).
-  Thermostat is moot for now (excluded, 2026-10-18); irrigation runs on a
-  provisional `MAX_ZONE_MINUTES = 15` in `home.py` pending Chip's number.
+  Thermostat is moot for now (excluded, 2026-10-18); irrigation cap set
+  to 5 minutes per run (Chip, 2026-10-18; `MAX_ZONE_MINUTES` in `home.py`).
 14. Automation authoring — both vendor-executed schedules and Jack-sensed/
   Jack-executed triggers (see [Use Case 2.6](#26-home-automation)) — is
   deferred with no allowlist of its own.

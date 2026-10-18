@@ -33,9 +33,8 @@ import vendors
 
 INVENTORY_PATH = Path(__file__).parent / "docs" / "home-automation-device-list.csv"
 
-# Longest single irrigation run Jack may start (allowlist: "e.g. 15-30 min,
-# exact cap TBD"). Provisional - Chip to confirm.
-MAX_ZONE_MINUTES = 15
+# Longest single irrigation run Jack may start - Chip, 2026-10-18.
+MAX_ZONE_MINUTES = 5
 
 NOTE_RE = re.compile(r"\s*<[^>]*>")  # "<disconnected>" etc. in the CSV
 
