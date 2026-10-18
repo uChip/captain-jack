@@ -2705,3 +2705,38 @@ via `git stash` that they fail on the old code. The same run also
 reported degraded recognition - a separate issue, not caused by this
 bug (no STT/capture/listener code changed since the 2026-10-12
 confirmation runs); not yet diagnosed, needs a `--save` session.
+
+### 4.6 Home-Automation Tool Schema
+
+**Built and live-tested, 2026-10-18.** Choices made along the way:
+
+- **Device capabilities come from the CSV's `Type`, not the vendor's
+  feature list.** Chip lists what a device *controls* (a light on an
+  outlet is a light), which is also what decides what's safe to do with
+  it - and it keeps the tool schema fixed rather than depending on which
+  vendor clouds answered at startup. Vendor ids are looked up by name on
+  first use for the same reason.
+- **Fountain pump: confirmation, not a run-time cap.** First thought was
+  a device-side countdown like irrigation's; Chip pointed out a filled
+  fountain can rightly run for hours while a dry one burns out in
+  minutes, so the guard is a spoken "it has water" instead. Code can't
+  judge a yes, so it enforces the order: the first request is held and
+  Haiku is told what to ask; a call in the very next turn goes through.
+  Side effect accepted: "turn on the fountain, it's full" still gets
+  asked.
+- **First live fountain test exposed tool-description wording.** The
+  `set_power` description said the pump "needs a yes from the person
+  first". Haiku took that as an instruction to ask *before calling the
+  tool* - no tool call, so the code's hold never ran, and it invented
+  its own question ("ready to set those waters splashin'?") with nothing
+  about water. Safe (a yes would only have got a second, held ask) but
+  wrong. Fixed by telling Haiku to call straight away and let the result
+  say what to ask; the rerun called the tool, got held, asked "does it
+  have water in it?", and on "No" made no call (pump switch confirmed
+  off). Lesson: when code owns a rule, the tool description should say
+  "call it", not describe the rule - Haiku will try to follow a rule
+  itself.
+- **Stop watering stops the whole controller.** Rachio's stop is per
+  controller, so the result names "Waterman (all zones)" rather than the
+  first zone (it said "Courtyard" in the first live run - right action,
+  misleading line).

@@ -926,7 +926,7 @@ appointment/calendar facts called for by
 
 ### 4.6 Home-Automation Tool Schema
 
-History: none yet.
+History: [log.md#46-home-automation-tool-schema](log.md#46-home-automation-tool-schema).
 
 **Status: Implemented, 2026-10-18** (`home.py`, `vendors.py`) - tested
 offline (`tests/test_home_tools.py`); first live control confirmed the
@@ -934,7 +934,8 @@ same day via the text CLI, Chip watching: plain switch (Office Light),
 dimmer (Pendant Lights 20/100/66%/off), fan speed (Office Fan 1/4/2/off)
 and Govee color + brightness (Office Strip Lights red, blue at 30%,
 white), and irrigation (Courtyard started for 3 minutes, stopped by
-voice at 2). The fountain pump's ask-first rule not yet tried live.
+voice at 2), and the fountain pump's ask-first rule (held, asked about
+water, "No" left it off).
 
 **Description**: the fixed, small tool schema Haiku uses to request
 home-automation actions, scoped exactly to

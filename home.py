@@ -258,9 +258,10 @@ class Home:
         if names := self._names("power"):
             tools.append({
                 "name": "set_power",
-                "description": "Switch devices on or off. Turning on the fountain "
-                               "pump needs a yes from the person first - the tool will "
-                               "say when to ask.",
+                "description": "Switch devices on or off. For the fountain pump too, "
+                               "just call this straight away - don't ask anything "
+                               "first. The result will tell you if there's a "
+                               "question to put to the person.",
                 "input_schema": {"type": "object", "properties": {
                     "devices": _devices_prop(names, "Devices to switch."),
                     "on": {"type": "boolean"}},

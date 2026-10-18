@@ -635,8 +635,8 @@ when it was last confirmed passing.
   Office Light off/"turn it back on"; Pendant Lights 20%/100%/66%+off;
   Office Fan speed 1/4/2+off; Office Strip Lights on/red/blue at 30%/
   white+off; Courtyard zone started for 3 min, "stop the watering" at
-  2 min - stopped). The fountain pump's ask-first rule not yet tried
-  live.
+  2 min - stopped; "turn on the courtyard fountain" held and asked about
+  water, "No" made no call and the plug's switch read back off).
   Whether Haiku actually asks about the
   fountain's water and only calls again on a real yes - code enforces
   the turn order, Haiku judges the answer.

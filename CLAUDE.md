@@ -625,8 +625,10 @@ worked in parallel if priorities change.
    = `socketToggle1`. Irrigation cap 5 min per run (Chip). Dimmer
    (Pendant Lights), fan speed (Office Fan) and Govee color (Office
    Strip Lights) also confirmed live by Chip the same day, and
-   irrigation (Courtyard 3-min run stopped by voice at 2 min). Still
-   open: a live check of the fountain pump's ask-first rule; scenes. ecobee dropped - no new developer keys issued
+   irrigation (Courtyard 3-min run stopped by voice at 2 min) and the
+   fountain's ask-first rule (first try found Haiku asking on its own
+   without calling the tool - tool wording fixed, see log.md 4.6).
+   Every device kind now confirmed live. Still open: scenes. ecobee dropped - no new developer keys issued
    since 2024 (see allowlist).
 2. Research Minoston's actual integration path (direct API vs. needs a
    hub) — the one bridge status the allowlist doc flags as genuinely
