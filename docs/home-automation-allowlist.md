@@ -16,6 +16,20 @@ this list; orchestration code validates it against the allowlist (including
 any numeric bounds below) before ever calling a vendor API. Malformed or
 out-of-range requests are rejected in code, not trusted from model output.
 
+**Device inventory** (2026-10-18): `docs/home-automation-device-list.csv`,
+maintained by Chip. Its `Type` column records *what a device controls*,
+not what the hardware is - a wall switch or weatherproof outlet powering a
+light is listed as a light - so "turn on all the lights in the courtyard"
+works by `Type` + `Location` without the speaker having to know which
+fixtures hang off outlets. What's plugged into an outlet rarely changes;
+when it does, the CSV gets updated. Its `Jack controls` column is the
+per-device allowlist: `no` rows are never touched.
+
+**Guard rails live in the device where possible** (2026-10-18): a limit
+the device enforces itself (Tuya's per-switch `countdown_*` timers,
+Rachio's fixed zone run duration) holds even if Jack or the Pi crashes
+mid-action, so prefer it over a Pi-side timer.
+
 ## Lights
 
 - **Devices**: Govee Home smart lights; SmartLife/Tuya and Minoston light
@@ -44,8 +58,26 @@ out-of-range requests are rejected in code, not trusted from model output.
   "any outlet" capability. An outlet can be powering anything — a space
   heater, an aquarium pump — so this category needs a real per-outlet
   allowlist maintained separately, not just "outlets in general are in
-  scope."
+  scope." That allowlist is the inventory CSV's `Jack controls` column;
+  an outlet with nothing plugged in is excluded (safest default) until
+  something is and the CSV says what.
 - **Bridge status**: same per-vendor status as Lights above.
+
+## Pumps
+
+- **Devices**: the courtyard fountain pump (a Smart Life outdoor-plug
+  switch).
+- **Allowed**: turn off, any time, no questions. Turn on **only after a
+  spoken confirmation that the fountain has water in it** (Chip,
+  2026-10-18): a filled fountain can rightly run for hours, so a run-time
+  cap would be the wrong guard, but a dry pump burns out in minutes.
+- **Enforcement**: in code, not left to Haiku's judgement - a "pump on"
+  request first comes back as a question, and the pump is switched only
+  if the very next turn is an explicit yes. Anything else drops the
+  pending request. (Exact mechanism decided at implementation time.)
+- **Not covered**: the confirmation is only as good as the person giving
+  it - with no speaker ID, anyone in earshot can say yes. Accepted, same
+  trust model as everything else here.
 
 ## Thermostat
 
