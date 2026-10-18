@@ -630,8 +630,11 @@ when it was last confirmed passing.
 - **Last confirmed passing**: 2026-10-18.
 - **Not covered**: the real vendor APIs (`vendors.py`) - see
   `list_devices.py` for a read-only check that all three answer; live
-  control is confirmed by hand (2026-10-18: Office Light off then "turn
-  it back on" via `orchestrate.py`, Chip watching - both correct).
+  control is confirmed by hand (2026-10-18 via `orchestrate.py`, Chip
+  watching, every step correct and each device restored afterwards:
+  Office Light off/"turn it back on"; Pendant Lights 20%/100%/66%+off;
+  Office Fan speed 1/4/2+off; Office Strip Lights on/red/blue at 30%/
+  white+off). Irrigation and the fountain pump not yet tried live.
   Whether Haiku actually asks about the
   fountain's water and only calls again on a real yes - code enforces
   the turn order, Haiku judges the answer.
