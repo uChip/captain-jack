@@ -270,14 +270,15 @@ class Home:
                  "\"all the courtyard lights\", list every matching device in "
                  "one call. Only say something's done once the tool result "
                  "says so; if it failed, say so plainly.", "",
+                 # The mechanism only - the character of the line (and its
+                 # examples) lives in identity.md's "Speaking aloud" section,
+                 # so all persona text stays in the persona file (spec 4.4).
                  "Before you call a tool, always say one short line first - "
-                 "a few words, in character, and different each time (say, "
-                 "\"Aye aye!\", \"Leave it to me.\", \"Hoisting the signal "
-                 "now.\", \"Right away, Matey.\" - or your own). It's spoken "
-                 "while the tool runs, so the person isn't left "
-                 "in silence. It must not claim the job's done or say what "
-                 "the result was. After the result, give your real reply "
-                 "without repeating that first line.", ""]
+                 "a few words, different each time. It's spoken while the "
+                 "tool runs, so the person isn't left in silence. It must "
+                 "not claim the job's done or say what the result was. "
+                 "After the result, give your real reply without repeating "
+                 "that first line.", ""]
         for d in sorted(self.devices.values(), key=lambda d: (d.location, d.name)):
             lines.append(f"- {d.name} ({d.type}, {d.location})")
         return "\n".join(lines) + "\n"

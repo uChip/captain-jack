@@ -866,16 +866,29 @@ prompt every turn, establishing tone and hard behavioral rules.
 **Interfaces**: read by the [Conversation Orchestrator](#43-conversation-orchestrator)
 every turn.
 
-**Persona portability**: `orchestrate.py` treats
-`identity.md` as an opaque file it reads and injects verbatim
-(`load_system_prompt` in orchestrate.py:34-37); nothing in the orchestration
-code or the `memory.md` schema (household/joke/automation sections) is
-Captain-Jack-specific. Swapping personas is just replacing `identity.md`'s
-content. The one loose end: `orchestrate.py`'s CLI banner and docstring
-hardcode the literal strings "Captain Jack" and "Jack" (e.g. the
-`print("Captain Jack is listening...")` startup line and the `Jack:` reply
-prefix) — cosmetic only, doesn't affect behavior, but would show a
-mismatched label if the persona were actually swapped.
+**Persona portability** (rule restated 2026-10-18): **everything Haiku is
+told about the character lives in `identity.md`.** `orchestrate.py`
+treats it as an opaque file it reads and injects verbatim
+(`load_system_prompt()`); code-generated prompt text (e.g. `home.py`'s
+"Devices you control" section) states mechanisms only - what to do, never
+how Jack sounds - and any in-character examples for it go in
+`identity.md` instead (the tool lead-in lines, moved there 2026-10-18
+after first being written into `home.py`). Nothing in the `memory.md`
+schema is Captain-Jack-specific either.
+
+A persona swap is therefore replacing `identity.md` **plus** the
+persona's non-prompt assets, which by nature live elsewhere:
+- `coordinator.py`'s `DIDNT_CATCH` - the one spoken line that bypasses
+  Haiku (said when STT rejects an utterance);
+- the idle/ambient clips in `wavFiles/` and their `manifest.yaml`
+  (spec 4.10);
+- the filler squawks in `wavFiles/fillers/`;
+- the TTS voice (`tts.py`, `am_santa`, spec 4.7);
+- the gesture catalog (`gesture-catalog.yaml`, spec 4.12).
+
+Cosmetic only: `orchestrate.py`/`coordinator.py` print "Captain Jack"/
+"Jack:" labels, and `tts.py`'s audition lines are pirate test phrases
+- neither affects behavior.
 
 ### 4.5 Memory Subsystem
 
