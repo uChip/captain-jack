@@ -21,6 +21,7 @@ SmartLife,Office Light,,light,Office,,yes,
 SmartLife,Outdoor Smart Plug,"Switch 1 <broken, wont turn off>",outlet,Courtyard,,no,switch_1
 SmartLife,Outdoor Smart Plug,Courtyard Light One,light,Courtyard,,yes,switch_2
 SmartLife,Outdoor Smart Plug,Courtyard Fountain,pump,Courtyard,yes,yes,switch_3
+SmartLife,Patio Fountain,,pump,Patio,yes,yes,
 SmartLife,Kitchen Lights ,,dimmer,Kitchen,,yes,
 SmartLife,Casita Light Dimmer,,dimmer,Casita,,yes,
 SmartLife,Casita Fan,,fan,Casita,,yes,

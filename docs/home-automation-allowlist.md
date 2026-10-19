@@ -65,7 +65,9 @@ mid-action, so prefer it over a Pi-side timer.
 
 - **Devices**: the courtyard fountain pump (Smart Life "Outdoor Smart
   Plug" `switch_3`; `switch_2` is Courtyard Light One, `switch_1` is
-  broken and stuck on - Chip, 2026-10-18).
+  broken and stuck on - Chip, 2026-10-18), and the patio fountain pump
+  (Smart Life "Patio Fountain", its own plug - moved over from Minoston,
+  2026-10-19).
 - **Allowed**: turn off, any time, no questions. Turn on **only after a
   spoken confirmation that the fountain has water in it** (Chip,
   2026-10-18): a filled fountain can rightly run for hours, so a run-time
