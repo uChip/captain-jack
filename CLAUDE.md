@@ -778,7 +778,9 @@ worked in parallel if priorities change.
       misbehaves at startup.
     - Shutdown: no SIGTERM handling yet. Only Ctrl+C runs the clean
       stop (head to rest). The Pi 5's power button already does a clean
-      poweroff (logind default), if it's reachable in the enclosure. What
+      poweroff (logind default), but it isn't reachable in the enclosure,
+      and Chip is wary of an external button that can be pressed by
+      accident (2026-10-19) - open. What
       the servos do once the Pi is off still needs checking.
     - No terminal: the Enter/`sleep` keyboard stand-ins go away, so the
       wake phrase is the only way in. Output goes to journald.
