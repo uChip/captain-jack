@@ -765,3 +765,42 @@ worked in parallel if priorities change.
 10. AEC validation against the bird's own speaker — now in its final
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.
+11. Boot straight into Jack (Chip, 2026-10-19 - not started). Requirements:
+    SSH stays available; a way to stop Jack and drop into development
+    mode; a clean Linux shutdown from any Jack state. Implications
+    found so far:
+    - Service: a systemd unit with restart on crash. Restarts must be
+      spaced out: an Arduino reset within seconds of the last one snaps
+      the head (item 45).
+    - Dev mode: stop the service from SSH. Jack holds the audio device
+      and the serial port exclusively, so every dev tool needs it
+      stopped. Also a "boot to dev mode" flag file, for when Jack
+      misbehaves at startup.
+    - Shutdown: no SIGTERM handling yet. Only Ctrl+C runs the clean
+      stop (head to rest). The Pi 5's power button already does a clean
+      poweroff (logind default), if it's reachable in the enclosure. What
+      the servos do once the Pi is off still needs checking.
+    - No terminal: the Enter/`sleep` keyboard stand-ins go away, so the
+      wake phrase is the only way in. Output goes to journald.
+    - Secrets: the API keys live in `~/.bashrc`, which a service doesn't
+      read. They'd move to a 600-permission environment file.
+    - Start-up order: wait for the XVF3800 and Arduino to appear, for the
+      network, and for the clock to sync. Tuya signs requests with a
+      timestamp, and the Pi 5's RTC keeps time across power-off only
+      with a battery fitted.
+    - Internet down at boot or later: Jack should still run and say so
+      in character, not crash-loop.
+    - State at boot: start Asleep, not Off Watch? (A 3 a.m. restart after
+      a power cut shouldn't start the jokes.) Maybe a squawk on startup,
+      so you know he's up.
+    - Live memory: `memory/memory.md` is tracked in git, so Jack's own
+      saves would show as uncommitted changes in the dev tree. Either
+      move live memory out of the repo or commit it periodically. Write
+      it atomically (temp file + rename) to survive power cuts.
+    - Code updates: Jack runs from the working tree, so a half-finished
+      edit goes live on the next restart. Either accept that, or run
+      from a separate checkout or tag.
+    - Logs: journald would hold household conversation transcripts, so
+      decide how long to keep them (the brief's privacy note). Cap the
+      journal size and keep SD-card writes down.
+    - The Pi boots a desktop (lightdm, graphical.target) it doesn't need.
