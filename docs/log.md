@@ -2775,7 +2775,7 @@ each as a first paragraph before the reply ("Kath is noted as
 so no tool call needed."), and still called `water_zone` twice for ten
 minutes and reported "two runs of five minutes each".
 
-Recommendation (Chip to decide): stay on 4.5 for now.
+**Decided (Chip, 2026-10-19): stay on Haiku 4.5.**
 5.5 with thinking off is the only viable variant - same speed, about an
 eighth the cost - but needs identity.md retuned for it and a rerun.
 
