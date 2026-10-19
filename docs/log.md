@@ -2719,6 +2719,49 @@ reported degraded recognition - a separate issue, not caused by this
 bug (no STT/capture/listener code changed since the 2026-10-12
 confirmation runs); not yet diagnosed, needs a `--save` session.
 
+**Haiku 4.5 vs Haiku 5.5, 2026-10-19** (`compare_models.py`, one pass,
+20 scripted turns per config, fake vendor link). Haiku 5.5 is listed at
+$0.10/$0.50 per MTok against 4.5's $1/$5 (its tokenizer counts about
+30% more tokens for the same text). It thinks by default, so it was
+tried three ways.
+
+| config | checks | first sentence (median / max) | tool turn | words | $/turn |
+|---|---|---|---|---|---|
+| 4.5 (current) | 20/20 | 1.00 / 1.68s | 1.98s | 22 | 0.0075 |
+| 5.5, thinking off | 20/20 | 1.01 / 1.62s | 2.05s | 29 | 0.0010 |
+| 5.5, effort low | 19/20 | 1.58 / 2.51s | 2.14s | 22 | 0.0010 |
+| 5.5, effort medium | 14/14 | 1.40 / 3.28s | 2.47s | 20 | 0.0012 |
+
+- Speed: 5.5 with thinking off matches 4.5. With thinking on it's
+  slower, and the lead-in line before a tool call mostly disappears:
+  the first sentence comes only after the tool runs.
+- Thinking on breaks Jack's conversations: once a memory is saved, the
+  system prompt (which includes memory.md) changes, and the next call
+  is rejected with 400 "thinking block bound to a different
+  conversation" (the whole medium-effort chat run failed). Thinking
+  would need memory moved out of the system prompt, or the
+  `drop_block` beta. Not worth it here.
+- "Water the courtyard for ten minutes": 4.5 ran five minutes and
+  offered another five. 5.5 (thinking off and low) called `water_zone`
+  twice in one turn and told the person "ten minutes, in two runs". In
+  reality the second call just restarts the same 5-minute run, so the
+  device cap held but Jack misreported it. The thinking-off run also
+  spoke its own reasoning aloud first ("The water_zone tool caps at five
+  minutes per run... The request came from someone not in my memory, so
+  I'll address them as Matey.").
+- Persona: 5.5 is plainer - "Sorry, Matey, I've no hand on the
+  thermostat. I can only work...", "Hello there, Mistress Kath! Good to
+  hear from you." - more "you" than "ye", and recites the
+  capabilities list. 4.5 stays in character on the same turns.
+- Garbled input ("My whole old jack."): 4.5 and 5.5-low asked again; 5.5
+  with thinking off answered it as if it were wordplay.
+- 5.5-low tagged "Goodnight, Jack. Time for bed." END_SESSION instead of
+  NAP.
+
+Recommendation (Chip to decide): stay on 4.5 for now.
+5.5 with thinking off is the only viable variant - same speed, about an
+eighth the cost - but needs identity.md retuned for it and a rerun.
+
 ### 4.6 Home-Automation Tool Schema
 
 **Built and live-tested, 2026-10-18.** Choices made along the way:
