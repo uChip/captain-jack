@@ -12,11 +12,15 @@ first speakable sentence, which is what TTS waits on; "total" is the
 whole turn, tool rounds included.
 
     venv/bin/python compare_models.py [--repeat N] [--only CONFIG,...] [--show]
+                                      [--identity FILE]
 
 --show prints every reply; otherwise only the summary and failed checks.
+--identity runs with FILE in place of identity.md, to try a persona
+wording change without touching the real one.
 """
 
 import argparse
+import shutil
 import statistics
 import sys
 import time
@@ -179,9 +183,11 @@ class _Recorder:
         return msg
 
 
-def run_conversation(client, config, turns):
+def run_conversation(client, config, turns, identity=None):
     """One scripted conversation from a fresh memory; one result per turn."""
     memory_dir = scratch_memory_copy()
+    if identity:
+        shutil.copy(identity, memory_dir / "identity.md")
     link = DryLink()
     home = Home(link=link)
     wrapped = OverrideClient(client, CONFIGS[config])
@@ -215,6 +221,7 @@ def main():
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--only", help="comma-separated configs: " + ", ".join(CONFIGS))
     parser.add_argument("--show", action="store_true", help="print every reply")
+    parser.add_argument("--identity", help="use this file in place of identity.md")
     args = parser.parse_args()
     configs = args.only.split(",") if args.only else list(CONFIGS)
     client = anthropic.Anthropic()
@@ -226,7 +233,7 @@ def main():
             for config in configs:
                 print(f"[run {rep + 1}] {config:8} {name}", file=sys.stderr)
                 try:
-                    rs = run_conversation(client, config, turns)
+                    rs = run_conversation(client, config, turns, args.identity)
                 except anthropic.APIError as e:
                     print(f"  API error: {e}", file=sys.stderr)
                     continue

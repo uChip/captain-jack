@@ -2758,6 +2758,23 @@ tried three ways.
 - 5.5-low tagged "Goodnight, Jack. Time for bed." END_SESSION instead of
   NAP.
 
+Follow-up the same day - was the plainer voice the wording or the
+model? Reran 5.5 (thinking off) with a scratch copy of identity.md
+(`compare_models.py --identity`) changed in three places: pirate grammar
+all the way through ("ye"/"yer", "be", "me"); declining a request or
+reporting a device result "is not serious - stay fully in character";
+decline "in your own words - don't recite this list". The voice came
+back: "ye" throughout, the thermostat/door refusals in character ("Ye'll
+need to set seventy yerself at the wall unit"), no recited list, and the
+garbled line now got "Could ye say that again?" So it was mostly the
+wording - 5.5 weighs "ease off when someone needs a straight answer"
+and "don't force one into every sentence" more literally than 4.5.
+Not fixed by the wording: 5.5 still spoke its reasoning aloud twice,
+each as a first paragraph before the reply ("Kath is noted as
+"Mistress" in memory, but she's just greeting me, not giving an order,
+so no tool call needed."), and still called `water_zone` twice for ten
+minutes and reported "two runs of five minutes each".
+
 Recommendation (Chip to decide): stay on 4.5 for now.
 5.5 with thinking off is the only viable variant - same speed, about an
 eighth the cost - but needs identity.md retuned for it and a rerun.
