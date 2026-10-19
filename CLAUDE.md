@@ -604,7 +604,7 @@ physically mounted (construction completed 2026-10-06).
 
 ### Doable now
 
-Everything below is hardware-unblocked, but items 1/2/4 (home-automation)
+Everything below is hardware-unblocked, but items 1/4 (home-automation)
 are being deliberately sequenced *after* items 3/6/7/8 (the core audio
 conversation loop) — Chip's own priority call, not a technical
 dependency between them. Nothing here stops home-automation from being
@@ -638,9 +638,9 @@ worked in parallel if priorities change.
    room. Scenes deferred to a future update (Chip - rarely used; spec
    section 6). ecobee dropped - no new developer keys issued
    since 2024 (see allowlist).
-2. Research Minoston's actual integration path (direct API vs. needs a
-   hub) — the one bridge status the allowlist doc flags as genuinely
-   unknown.
+2. Dropped 2026-10-19: Minoston. Its one device was removed from the
+   Minoston app; Chip will add it to Smart Life or replace it with a
+   device Smart Life recognizes.
 3. Build speaker-ID: engine (ECAPA-TDNN) and enrollment flow (standalone
    script, ~5 utterances averaged, closed to existing household names,
    embeddings stored separately from `memory.md`) are both designed —

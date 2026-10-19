@@ -212,7 +212,7 @@ Jack can act on a small, explicit allowlist of home-automation intents —
 lights, fans, switched outlets, irrigation, and firing
 already-configured scenes — against the real device inventory (Govee
 Home, SmartLife/Tuya, Rachio; ecobee thermostats excluded for lack of API
-access, Minoston's one device left off, Reolink excluded). The devices
+access, Reolink excluded; Minoston dropped 2026-10-19). The devices
 themselves are listed, with what Jack may control, in
 [home-automation-device-list.csv](home-automation-device-list.csv). Full detail,
 per-category bounds, and per-vendor bridge status live in
@@ -2151,9 +2151,8 @@ and is tagged **[RESOLVED]** in place.
   worst-case transmission time. History: [log.md#issue-9](log.md#issue-9).
 10. **[RESOLVED 2026-10-18]** [Home-Automation Tool Schema](#46-home-automation-tool-schema)
   is wired into `orchestrate.py` (`home.py`).
-11. Minoston's integration path (direct API vs. hub requirement) is
-  unresearched — flagged as unknown in
-  [home-automation-allowlist.md](home-automation-allowlist.md) itself.
+11. **[RESOLVED 2026-10-19]** Minoston's integration path - moot: Minoston
+  dropped from the project. History: [log.md#issue-11](log.md#issue-11).
 12. **[RESOLVED 2026-10-18]** The per-outlet "automation-safe" allowlist is
   the inventory CSV's `Jack controls` column, per
   [home-automation-allowlist.md](home-automation-allowlist.md#switched-outlets).

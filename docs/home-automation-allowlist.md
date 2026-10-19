@@ -8,8 +8,9 @@ separate future work, tracked per category below.
 
 Real device inventory (as of 2026-09-11): ecobee (thermostat), Govee Home
 (smart lights), SmartLife/Tuya (light switches, fan switches, switched
-outlets), Minoston (light switches, fan switches, switched outlets), Rachio
-(irrigation), Reolink (security cameras). No smart locks currently installed.
+outlets), Rachio (irrigation), Reolink (security cameras). No smart locks
+currently installed. Minoston, which had a single device, was dropped
+2026-10-19 (Chip): that device moves to Smart Life or is replaced.
 
 Same enforcement pattern as the memory ruleset: Haiku proposes an intent from
 this list; orchestration code validates it against the allowlist (including
@@ -32,27 +33,24 @@ mid-action, so prefer it over a Pi-side timer.
 
 ## Lights
 
-- **Devices**: Govee Home smart lights; SmartLife/Tuya and Minoston light
-  switches.
+- **Devices**: Govee Home smart lights; SmartLife/Tuya light switches.
 - **Allowed**: turn on, turn off, set brightness (dimmable fixtures only),
   set color (Govee color-capable fixtures only).
 - **Not allowed**: adding/removing/renaming devices or groups, any
   network/firmware configuration.
 - **Bridge status**: Govee has a public developer API (known). Tuya/SmartLife
   has a cloud API via the Tuya IoT Platform (known, needs a developer
-  account). Minoston — unclear whether it exposes a direct API or requires a
-  Z-Wave/Zigbee hub; genuinely don't know, flagging as an unbuilt
-  bridge to research at implementation time rather than guessing.
+  account).
 
 ## Fans (fan switches)
 
-- **Devices**: SmartLife/Tuya and Minoston fan switches.
+- **Devices**: SmartLife/Tuya fan switches.
 - **Allowed**: turn on, turn off, set speed (multi-speed switches only).
 - **Bridge status**: same per-vendor status as Lights above.
 
 ## Switched outlets
 
-- **Devices**: SmartLife/Tuya and Minoston smart outlets.
+- **Devices**: SmartLife/Tuya smart outlets.
 - **Allowed**: turn on, turn off — **only for outlets explicitly named/
   labeled as automation-safe** (e.g. "patio string lights"), not a blanket
   "any outlet" capability. An outlet can be powering anything — a space

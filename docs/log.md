@@ -215,6 +215,15 @@ too: pitch/roll 0–50 not 0–60, yaw 0–130 not 0–90). The firmware itself
 was never wrong, only the prose describing it. Fixed by reading the
 constants directly rather than trusting the existing text.
 
+### Issue 11
+
+Minoston's integration path (direct API vs. a Z-Wave/Zigbee hub) was
+flagged as unknown in the allowlist from the start, and its one device
+was left off Jack's list on 2026-10-18. **Resolved 2026-10-19 as moot**:
+Chip removed that device from the Minoston app and will either add it
+to Smart Life directly or replace it with a device Smart Life
+recognizes, so Minoston is dropped from the project.
+
 ### Issue 15
 
 No `tests.md` existed, despite the goals document requiring at least one
