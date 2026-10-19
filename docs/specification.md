@@ -968,7 +968,8 @@ proposes, code decides. `Home.run_tool()` refuses (with a reason Haiku
 can relay, and no vendor call) any unknown device, action the device's
 Type doesn't allow, or out-of-range value; irrigation is capped at
 `MAX_ZONE_MINUTES` (5, Chip 2026-10-18) and the duration is enforced by the
-Rachio controller itself. The fountain pump switches off freely but on
+Rachio controller itself, with one watering run per turn (a second call
+is refused - it would only restart or replace the first). The fountain pump switches off freely but on
 only in the turn right after Jack asked whether it has water in it: the
 first request is held and Haiku told to ask; code enforces the turn
 order, Haiku judges whether the answer was yes. A group request ("all

@@ -248,6 +248,7 @@ class Home:
         self.log = log or (lambda line: None)
         self.turn = 0
         self._pump_asked = {}  # device name -> turn Jack asked about water
+        self._watered_turn = None  # turn a watering run last started
 
     def warm_up(self):
         """Start the vendor lookups in the background (see VendorLink.warm)."""
@@ -327,7 +328,9 @@ class Home:
             tools.append({
                 "name": "water_zone",
                 "description": f"Run one irrigation zone for a set time, at most "
-                               f"{MAX_ZONE_MINUTES} minutes. It stops by itself.",
+                               f"{MAX_ZONE_MINUTES} minutes. It stops by itself. "
+                               f"One run per request, and it can't be queued "
+                               f"for later.",
                 "input_schema": {"type": "object", "properties": {
                     "zone": {"type": "string", "enum": names},
                     "minutes": {"type": "integer", "minimum": 1,
@@ -429,8 +432,20 @@ class Home:
     def _tool_water_zone(self, args):
         [zone] = self._pick([args.get("zone")], "zone")
         minutes = self._int(args, "minutes", 1, MAX_ZONE_MINUTES)
-        return self._each([zone], lambda d: self.link.start_zone(d, minutes),
-                          f"watering for {minutes} minutes")
+        # One run per turn: the controller runs one zone at a time, so a
+        # second call only restarts or replaces the first - seen live
+        # (compare_models.py, 2026-10-19) as two 5-minute calls reported
+        # to the person as "ten minutes".
+        if self._watered_turn == self.turn:
+            raise _Refused(f"{zone.name}: NOT started - one watering run per request, "
+                           f"at most {MAX_ZONE_MINUTES} minutes; another call would only "
+                           f"replace the run already going, and a later run can't be queued. "
+                           f"Tell them what is running.")
+        text, failed = self._each([zone], lambda d: self.link.start_zone(d, minutes),
+                                  f"watering for {minutes} minutes")
+        if not failed:
+            self._watered_turn = self.turn
+        return text, failed
 
     def _tool_stop_watering(self, args):
         zones = [d for d in self.devices.values() if d.can("zone")]

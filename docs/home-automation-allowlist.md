@@ -98,7 +98,9 @@ mid-action, so prefer it over a Pi-side timer.
   anything (Chip, 2026-10-18), so they're left out as useless rather than
   unsafe.
 - **Allowed**: start a zone for a bounded duration, **capped in code at 5
-  minutes per request** (Chip, 2026-10-18) so a request can't run for hours;
+  minutes per request** (Chip, 2026-10-18) so a request can't run for hours,
+  and **one run per request** (2026-10-19) - Haiku was seen turning "ten
+  minutes" into two 5-minute calls, which only restart the same run;
   stop or skip a scheduled run.
 - **Bridge status**: Rachio has a public API (known).
 

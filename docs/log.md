@@ -2776,6 +2776,12 @@ so no tool call needed."), and still called `water_zone` twice for ten
 minutes and reported "two runs of five minutes each".
 
 **Decided (Chip, 2026-10-19): stay on Haiku 4.5.**
+
+The same three wording changes tried on Haiku 4.5 (same day): little
+change in voice (4.5 was already in character), and 6 of 10 double
+watering calls against 3 of 10 with the real wording - so not adopted;
+identity.md unchanged. The double call itself is now refused in code
+(see 4.6).
 5.5 with thinking off is the only viable variant - same speed, about an
 eighth the cost - but needs identity.md retuned for it and a rerun.
 
@@ -2841,3 +2847,19 @@ eighth the cost - but needs identity.md retuned for it and a rerun.
   switched Jack to Off Watch, twice; it had - the shell's `grep` is
   `ugrep`, which held log lines back despite `--line-buffered`. py-spy
   showed Motion running Off Watch.)
+
+**One watering run per turn, 2026-10-19.** `compare_models.py` showed
+"water the courtyard for ten minutes" sometimes became two 5-minute
+`water_zone` calls in one turn, reported as "ten minutes" - 3 of 10 runs
+on Haiku 4.5 with the real identity.md (6 of 10 with a reworded
+scratch copy). Rachio runs one zone at a time, so the second call only
+restarted the same 5-minute run: the device cap held, but Jack's report
+was false. `home.py` now refuses a second run in the same turn (a
+failed run doesn't count), and the tool description says "One run per
+request, and it can't be queued for later". Rerun 10x after the fix:
+every reply honest about five minutes; the first version of the fix
+still drew one "I'll give ye another five once this round's done" (Jack
+has no scheduler), which the "can't be queued" wording removed. A few
+replies still offer "want me to run it again when this one finishes?",
+which works if the person comes back and asks. Regression check:
+`check_watering_once` in `tests/test_home_tools.py` (fails without the fix).

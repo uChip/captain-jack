@@ -177,6 +177,36 @@ def check_pump():
     assert not err and link.calls[n:] == [("power", "Courtyard Fountain", False)]
 
 
+def check_watering_once():
+    """One watering run per turn: a second call ("ten minutes" as two
+    5-minute calls, or a second zone) is refused, not sent."""
+    link = FakeLink()
+    h = Home(load_inventory(), link)
+    run = {"zone": "Courtyard", "minutes": home_mod.MAX_ZONE_MINUTES}
+
+    h.begin_turn()
+    text, err = h.run_tool("water_zone", run)
+    assert not err and "watering for" in text, text
+    for again in (run, {"zone": "Back & Side Shrubs", "minutes": 2}):
+        text, err = h.run_tool("water_zone", again)
+        assert err and "NOT started" in text, text
+    assert link.calls == [("zone", "Courtyard", home_mod.MAX_ZONE_MINUTES)], link.calls
+
+    # A failed run doesn't use up the turn.
+    flaky = FakeLink(fail={"Courtyard"})
+    h2 = Home(load_inventory(), flaky)
+    h2.begin_turn()
+    text, err = h2.run_tool("water_zone", run)
+    assert err and "failed" in text, text
+    text, err = h2.run_tool("water_zone", {"zone": "Back & Side Shrubs", "minutes": 2})
+    assert not err, text
+
+    # The next request may water again.
+    h.begin_turn()
+    text, err = h.run_tool("water_zone", run)
+    assert not err and len(link.calls) == 2, (text, link.calls)
+
+
 def check_failures():
     link = FakeLink(fail={"Office Light"})
     h = Home(load_inventory(), link)
@@ -329,9 +359,10 @@ if __name__ == "__main__":
     check_inventory()
     check_refusals()
     check_pump()
+    check_watering_once()
     check_failures()
     check_tool_turn()
     print("PASS: inventory loads only allowed devices; refusals never reach a vendor; "
-          "the pump needs a yes in the very next turn; failures reported as failures; "
+          "the pump needs a yes in the very next turn; one watering run per turn; failures reported as failures; "
           "the tool round trip speaks both rounds, keeps history valid, rolls back on "
           "an API error, and stops after MAX_TOOL_ROUNDS")

@@ -12,11 +12,14 @@ first speakable sentence, which is what TTS waits on; "total" is the
 whole turn, tool rounds included.
 
     venv/bin/python compare_models.py [--repeat N] [--only CONFIG,...] [--show]
-                                      [--identity FILE]
+                                      [--identity FILE] [--conversation NAME]
+                                      [--first N]
 
 --show prints every reply; otherwise only the summary and failed checks.
 --identity runs with FILE in place of identity.md, to try a persona
-wording change without touching the real one.
+wording change without touching the real one. --conversation runs just
+one of CONVERSATIONS, and --first N just its first N turns - cheap
+repeats of a single behavior.
 """
 
 import argparse
@@ -91,7 +94,8 @@ CONVERSATIONS = {
     ],
     "guard rails": [
         ("Jack, water the courtyard for ten minutes.",
-         lambda r: any(c[1] == "Courtyard" and c[2] <= 5 for c in calls(r, "zone"))),
+         lambda r: [c[1] for c in calls(r, "zone")] == ["Courtyard"]
+         and calls(r, "zone")[0][2] <= 5),
         ("Actually, stop the watering.", lambda r: bool(calls(r, "stop"))),
         ("Turn on the fountain.", all_of(no_device_calls, says("water", "fill"))),
         ("Yes, it's full of water.", power("Courtyard Fountain", True)),
@@ -222,6 +226,8 @@ def main():
     parser.add_argument("--only", help="comma-separated configs: " + ", ".join(CONFIGS))
     parser.add_argument("--show", action="store_true", help="print every reply")
     parser.add_argument("--identity", help="use this file in place of identity.md")
+    parser.add_argument("--conversation", choices=list(CONVERSATIONS))
+    parser.add_argument("--first", type=int, help="only the first N turns")
     args = parser.parse_args()
     configs = args.only.split(",") if args.only else list(CONFIGS)
     client = anthropic.Anthropic()
@@ -230,6 +236,9 @@ def main():
     # Interleave configs, so a slow patch of network hits all of them alike.
     for rep in range(args.repeat):
         for name, turns in CONVERSATIONS.items():
+            if args.conversation and name != args.conversation:
+                continue
+            turns = turns[:args.first]
             for config in configs:
                 print(f"[run {rep + 1}] {config:8} {name}", file=sys.stderr)
                 try:
