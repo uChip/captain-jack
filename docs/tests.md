@@ -640,3 +640,23 @@ when it was last confirmed passing.
   Whether Haiku actually asks about the
   fountain's water and only calls again on a real yes - code enforces
   the turn order, Haiku judges the answer.
+
+### Haiku model comparison (manual, diagnostic)
+
+- **Covers**: which Haiku model/settings Jack runs on
+  ([spec 4.3](specification.md)) — `compare_models.py`, not part of the
+  automatic suite (costs real API calls; persona quality needs a human
+  read).
+- **Script**: [`../compare_models.py`](../compare_models.py)
+- **Run**: `venv/bin/python compare_models.py [--repeat N] [--only
+  4.5,5.5-off] [--show]` (needs `ANTHROPIC_API_KEY`). Three scripted
+  conversations (office devices, guard rails, chat/memory), 20 turns,
+  through the real prompt, tools and allowlist with a fake vendor link -
+  no device is switched. Fresh scratch memory per run. One full pass of
+  all four configs costs about ten cents.
+- **Expected**: per-turn checks (right device calls, MODE tag, memory
+  saved) and a summary table: checks passed, median/max time to first
+  sentence, median tool-turn time, mean words, $ per turn.
+- **Last run**: 2026-10-19 — see `docs/log.md` 4.3 for results.
+- **Not covered**: STT/TTS time, real vendor latency, and judging the
+  pirate voice - that's done by reading `--show`'s replies.
