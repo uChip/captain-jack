@@ -672,11 +672,15 @@ worked in parallel if priorities change.
    for both still pending this testing).
 7. DoA: calibrate and wire in. Reading works since 2026-10-15
    (`doa.py`, via Seeed's own Python control script - see "Done so far"
-   item 46); a first walk-around was inconclusive. After the bird's
-   permanent mount: rerun `tests/doa_walkaround.py` in a quiet house,
-   find the board-to-Jack offset, then fill in `motion.py`'s
-   `read_doa_azimuth()` - first use is the squawk head cock leaning
-   toward the speaker (Chip's request), then spec 4.9's yaw tracking.
+   item 46); a first walk-around was inconclusive. The permanent mount
+   is done (Sorbothane, 2026-10-21) and `tests/doa_walkaround.py` is
+   ready for the rerun (2026-10-21: added a "behind" position, `--laps`,
+   a lead-in). Chip is moving Jack to where he can walk all the way
+   round him first. Next: `venv/bin/python tests/doa_walkaround.py
+   --laps 2` in a quiet house, find the board-to-Jack offset and which
+   way is left, then fill in `motion.py`'s `read_doa_azimuth()` - first
+   use is the squawk head cock leaning toward the speaker (Chip's
+   request), then spec 4.9's yaw tracking.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — steps 1-7 are now done and fully live-validated (see
    "Done so far" items 24/26/28/29/30): the full thread set
