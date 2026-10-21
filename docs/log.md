@@ -1044,6 +1044,14 @@ Side notes from the same run: several replies ran 40-60 words against
 identity.md's thirty, and one held a markdown `*you've*` (TTS's
 `clean_text()` strips it, so not heard).
 
+The disks come out of the bag tacky all through (no peel-off backing),
+so the bird was stuck in place for both checks above - these are the
+final mount's numbers, not a loose-pad trial. Repeat measurement the
+same day (`stt_samples/servo_noise_sorbothane2`), in a slightly noisier
+room: still -56.3/-57.0, Off Watch -54.7 (p90 -51.6), On Watch -54.1
+(p90 -50.1) - moving only ~2-3dB above the room, consistent with the
+first run.
+
 Decided by Chip, same day: stay on tiny.en for now. Recognition is
 better on base.en, but processing time is already noticeable (first
 audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en
