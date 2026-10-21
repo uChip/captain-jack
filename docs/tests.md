@@ -645,6 +645,25 @@ when it was last confirmed passing.
   other than an enrolled name or `other` (e.g. `music`, for clips judged
   unfit) are scored the same way as `other`, just listed separately.
 
+### Voice notes with live Haiku
+
+- **Covers**: [4.15](specification.md#415-speaker-recognition-voice-id)'s
+  runtime wiring - `memory/identity.md`'s "Knowing who's talking"
+  guidance for the `[voice: Name]` / `[voice: unknown]` notes.
+- **Script**: [`../tests/test_voice_notes_live.py`](../tests/test_voice_notes_live.py)
+- **Run**: `venv/bin/python tests/test_voice_notes_live.py [--repeat N]`
+  (real Haiku API, scratch memory, no home tools; a few cents). Re-run
+  after any `identity.md` change touching names, honorifics or memory.
+- **Expected**: one `ok` line per run, then `PASS: 15 runs - ...`. Checks
+  Kath's note gets "Mistress" and her memory, Chip's gets "Captain",
+  and a `[voice: unknown]` line is never filed under anyone - even right
+  after Chip spoke - until they say who they are ("It's Liz" files under
+  Liz); the note is never spoken.
+- **Last confirmed passing**: 2026-10-21 (15/15).
+- **Not covered**: memory *tag* choice (a `[joke]` for a household fact
+  was seen in an earlier run), and soft "I'll keep that in mind" replies
+  that save nothing.
+
 ## Home Automation
 
 ### Home-automation tools
