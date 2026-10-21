@@ -652,8 +652,11 @@ worked in parallel if priorities change.
    conversational lines, 2026-10-21 (`tests/speaker_lines.py`: no wrong
    names across Chip, Kath and TV voices). Wired into `coordinator.py`
    the same day: each line to Haiku carries `[voice: Name]` or `[voice:
-   unknown]` (`--no-speaker-id` to leave out). Next: confirm in a live
-   voice conversation.
+   unknown]` (`--no-speaker-id` to leave out). First live conversation
+   with Chip and Kath the same day: recognized well, honorific switched
+   with the speaker. Still open: memory filing by voice in real use;
+   re-enroll Chip with conversational lines if his near-threshold scores
+   (0.45-0.47 on some lines) start missing.
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.

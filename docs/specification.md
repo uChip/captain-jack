@@ -1823,8 +1823,8 @@ History: [log.md#issue-1](log.md#issue-1), [log.md#415-speaker-recognition-voice
 
 **Status: Engine chosen and enrollment built (2026-10-21); Chip and
 Kath enrolled; threshold calibrated (0.40 / 0.10); wired into
-`coordinator.py` 2026-10-21. Not yet confirmed in a live voice
-conversation.**
+`coordinator.py` and confirmed in a live conversation with Chip and
+Kath, 2026-10-21.**
 
 **Description**: the software half of tier 1 in [Use Case
 2.7](#27-personalized-memory)'s speaker-resolution priority (see [Open

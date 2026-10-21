@@ -1228,6 +1228,19 @@ instruction. Marking every line fixed it without a code guard. Never
 mentioned the note aloud in any run. Not voice-ID: Kath's "remember I
 love gardening on Sundays" was tagged `[joke]` rather than
 `[household:Kath]` in 2 of 3 runs - a separate tag-choice issue.
+
+**First live conversation, same day** (Chip and Kath, `--port`,
+scratch memory, 11 lines): Chip judged recognition worked well. Chip's
+6 lines scored 0.45-0.67 (two close to the threshold, at 0.45 and
+0.47), Kath's 4 lines 0.62-0.77; the honorific switched between Captain
+and Mistress on the very next reply each time the speaker changed. The
+closing "That's all for now, Jack" (heard as "...Namo Jack", 2.4s) came
+back unknown (Chip 0.36) - Jack signed off without an honorific and
+ended the session normally. First audio 2.1-3.5s, the same as before
+speaker-ID. Whisper misheard "raisin bread toast" twice ("raisin red
+toast", "Basin Red posted"); Jack asked what was meant rather than
+answering literally, per identity.md. No memories were proposed, so
+filing wasn't exercised live.
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
