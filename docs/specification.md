@@ -511,7 +511,8 @@ session15 script, and an Off Watch wake check.
 diameter, 0.25in thick, no lead shot) passed both steps: moving phases
 -59.9/-56.5 dBFS median (Off/On Watch), and by voice (session22) a 32.7
 dB speech margin, the same as the mat, with wake 4/4 and sleep 1/1 over
-Off Watch motion. Not yet glued. History:
+Off Watch motion. Mounted the same day: the disks are self-adhesive,
+and the bird is stuck to them in place. History:
 [log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt).
 
 ### 3.7 Removed and Legacy Hardware
