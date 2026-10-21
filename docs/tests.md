@@ -346,10 +346,12 @@ when it was last confirmed passing.
   wavs) reopens the mic and spotter too, and a streamed reply's own last
   sentence finishing before it's known to be last still reopens the
   mic/fires reply_done correctly, and the head holds still exactly while
-  the mic is open` (plus `, live Haiku replied`) and
+  the mic is open, ... and Haiku gets a [voice: Name] note for a
+  confident voice match, [voice: unknown] otherwise` (plus `, live
+  Haiku replied`) and
   exits 0. Everything runs on a scratch copy of `memory/`; the test
   fails if the real `memory.md` changes.
-- **Last confirmed passing**: 2026-10-14.
+- **Last confirmed passing**: 2026-10-21 (speaker-ID check added).
 - **Not covered**: the keyboard wake and the timeouts firing in real
   time (logic checked directly, not the timer); beak-sync/motion
   together with a live reply (checked live by hand against the real

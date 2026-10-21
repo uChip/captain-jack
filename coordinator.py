@@ -29,7 +29,7 @@ Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
-                                   [--hold] [--no-filler] [--no-home]
+                                   [--hold] [--no-filler] [--no-home] [--no-speaker-id]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -43,6 +43,11 @@ default until the bird was soft-mounted, which removed the servo noise
 it was for (docs/log.md's 4.2 history, 2026-10-21); kept for now in case
 that noise ever comes back. --no-filler skips the squawk played the
 moment an utterance ends (see FILLER_DIR), e.g. for comparing the two.
+--no-speaker-id turns off voice recognition (speaker_id.py, spec 4.15):
+by default each utterance is scored against the enrolled voiceprints
+while Whisper transcribes it, and Haiku gets a "[voice: Name]" or
+"[voice: unknown]" note ahead of the transcript (see voice_note()). It's
+off anyway if nobody is enrolled or the model file is missing.
 --no-home leaves out the home-automation tools (home.py), so nothing in
 the house can be switched - by default Jack can control the devices
 marked in docs/home-automation-device-list.csv.
@@ -50,6 +55,7 @@ marked in docs/home-automation-device-list.csv.
 
 import queue
 import random
+from concurrent.futures import ThreadPoolExecutor
 import shutil
 import sys
 import tempfile
@@ -68,6 +74,7 @@ from motion import Motion
 from home import Home
 from orchestrate import MEMORY_DIR, household_names, stream_turn
 from playback import RATE, Playback, load_wav
+from speaker_id import MODEL_PATH as SPEAKER_MODEL, SpeakerID
 from stt import STT, names_prompt
 from tts import TTS, split_first_sentence, split_sentences
 from wakeword import SLEEP_NAME, WAKE_NAME, WakeSpotter
@@ -97,6 +104,30 @@ FILLER_DIR = Path(__file__).parent / "wavFiles" / "fillers"
 FILLER_DELAY_S = 0.6
 
 
+def voice_note(text, match) -> str:
+    """What Haiku is sent for an utterance: the transcript, with a
+    "[voice: Name]" note ahead of it when speaker-ID is confident who's
+    speaking, "[voice: unknown]" when it isn't - never a guess. Every line
+    gets its own note: with unrecognized lines left bare, Haiku carried
+    the last name forward and filed a new speaker's memory under it
+    (2026-10-21, docs/log.md 4.15). memory/identity.md says how to use
+    them. No note at all when speaker-ID is off (match is None)."""
+    if match is None:
+        return text
+    return f"[voice: {match.name or 'unknown'}] {text}"
+
+
+def describe_voice(match) -> str:
+    """Console stats for speaker-ID, e.g. 'voice Kath 0.74' or
+    'voice - (too close to call: Chip 0.40 Kath 0.34)'."""
+    if match is None:
+        return ""
+    if match.name:
+        return f", voice {match.name} {match.score:.2f}"
+    scores = " ".join(f"{n} {s:.2f}" for n, s in sorted(match.scores.items()))
+    return f", voice - ({match.reason}{': ' + scores if scores else ''})"
+
+
 def beep() -> np.ndarray:
     t = np.arange(int(0.15 * RATE)) / RATE
     return (np.sin(2 * np.pi * 880 * t) * 16000).astype(np.int16)
@@ -104,9 +135,14 @@ def beep() -> np.ndarray:
 
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
-                 save_dir=None, port=None, dry_run=False, hold=False, filler=True, home=None):
+                 save_dir=None, port=None, dry_run=False, hold=False, filler=True, home=None,
+                 speaker_id=None):
         self.memory_dir = Path(memory_dir)
         self.home = home
+        # A speaker_id.SpeakerID, or None for no voice recognition (tests, and
+        # --no-speaker-id). Runs on its own worker thread, alongside STT.
+        self.speaker_id = speaker_id
+        self._voice_pool = ThreadPoolExecutor(1, thread_name_prefix="speaker-id")
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
@@ -432,8 +468,11 @@ class Coordinator:
         self._heard_at = time.monotonic()
         self.play_filler()
         saved = self.save_utterance(samples) if self.save_dir else ""
+        voice = self._voice_pool.submit(self.speaker_id.identify, samples) if self.speaker_id else None
         heard = self.stt.transcribe(samples)
-        stats = f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}{saved}"
+        match = voice.result() if voice else None
+        stats = (f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}"
+                 f"{describe_voice(match)}{saved}")
         if not heard.accepted:
             self.out(f"  (rejected - {heard.reject}: {heard.raw!r})   [{stats}]")
             self.out(f"Jack: {DIDNT_CATCH}")
@@ -455,8 +494,8 @@ class Coordinator:
 
         start = time.monotonic()
         try:
-            turn = stream_turn(self.client, self.history, heard.text, on_sentence, self.memory_dir,
-                               home=self.home)
+            turn = stream_turn(self.client, self.history, voice_note(heard.text, match), on_sentence,
+                               self.memory_dir, home=self.home)
         except anthropic.APIError as e:
             self.out(f"  [error reaching Haiku: {e}]")
             self._finish_reply(reply, n)
@@ -489,8 +528,19 @@ def main():
         memory_dir = scratch_memory_copy()
         print(f"Using a scratch copy of memory: {memory_dir}")
 
+    speaker = None
+    if "--no-speaker-id" not in args:
+        if not SPEAKER_MODEL.exists():
+            print(f"Speaker-ID off: no {SPEAKER_MODEL} (see speaker_id.py to download it)")
+        else:
+            speaker = SpeakerID()
+            if speaker.voiceprints:
+                print(f"Speaker-ID: {', '.join(speaker.voiceprints)} enrolled")
+            else:
+                print("Speaker-ID off: nobody enrolled (enroll_speaker.py)")
+                speaker = None
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
-                        hold="--hold" in args, filler="--no-filler" not in args)
+                        hold="--hold" in args, filler="--no-filler" not in args, speaker_id=speaker)
     if "--no-home" not in args:
         coord.home = Home(log=coord.out)
         coord.home.warm_up()

@@ -244,10 +244,10 @@ memory file the model itself never writes directly. Full design in
 [Memory Subsystem](#45-memory-subsystem) /
 [captain-jack-memory-design.md](captain-jack-memory-design.md). Voice ID
 is the *preferred* mechanism for resolving which household member is
-speaking — engine chosen, not yet implemented, see [Speaker
-Recognition](#415-speaker-recognition-voice-id) and [Open
-Issues](#5-open-issues) issue 1; explicit self-identification is today's
-working fallback, not the intended end state.
+speaking — working since 2026-10-21 for enrolled voices (Chip, Kath),
+see [Speaker Recognition](#415-speaker-recognition-voice-id) and [Open
+Issues](#5-open-issues) issue 1; explicit self-identification is the
+fallback when a voice isn't recognized.
 
 Appointment/reminder recall ("Jack remembers appointments he's been told
 about and can be asked about later") is a related use case named in the
@@ -1822,8 +1822,9 @@ validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 History: [log.md#issue-1](log.md#issue-1), [log.md#415-speaker-recognition-voice-id](log.md#415-speaker-recognition-voice-id).
 
 **Status: Engine chosen and enrollment built (2026-10-21); Chip and
-Kath enrolled; threshold calibrated (0.40 / 0.10); not yet wired into
-the conversation loop.**
+Kath enrolled; threshold calibrated (0.40 / 0.10); wired into
+`coordinator.py` 2026-10-21. Not yet confirmed in a live voice
+conversation.**
 
 **Description**: the software half of tier 1 in [Use Case
 2.7](#27-personalized-memory)'s speaker-resolution priority (see [Open
@@ -1905,6 +1906,18 @@ Jack's mic with the head swaying (`tests/speaker_lines.py`): 11 of
 Chip's, 11 of Kath's, 13 of two men on a TV clip - no wrong names; one
 of Chip's lines unsure. Re-run `score` after any re-enrollment or model
 change. Liz isn't enrolled, so she's treated like any other voice.
+
+**Runtime wiring — 2026-10-21**: `coordinator.py` scores each
+utterance on a worker thread while Whisper transcribes it (about 0.1s
+against STT's 0.5-0.8s, so no added wait), and every line sent to Haiku
+starts with `[voice: Name]` or `[voice: unknown]`. Unrecognized lines
+are marked, not left bare: bare lines let Haiku carry the last name
+forward and file a new speaker's memory under it. `identity.md` tells
+Jack to use the name for the honorific, never mention the note, and on
+`[voice: unknown]` ask who's speaking before promising to remember
+anything about them. `--no-speaker-id` turns it off (no notes at all);
+it's also off if nobody is enrolled. Memory filing is still Haiku's
+call, guided by the note - not enforced in code.
 
 **Interfaces**: reads VAD-segmented audio alongside
 [STT](#42-speech-to-text-stt) — the XVF3800's mic array is already
@@ -2120,12 +2133,9 @@ once and never reused or renumbered; a resolved issue keeps its number
 and is tagged **[RESOLVED]** in place.
 
 1. Resolving who's speaking uses a three-tier priority: (1) voice ID —
-  preferred; software engine chosen (ECAPA-TDNN speaker embeddings, see
-  [4.15](#415-speaker-recognition-voice-id)), not yet implemented, with
-  final accuracy still pending the XVF3800's scheduled accuracy test —
-  though prototyping itself isn't hardware-blocked, since the board's mic
-  array is already electrically functional (only its physical mounting is
-  outstanding); (2) explicit self-identification — today's working
+  preferred; implemented and wired into `coordinator.py` 2026-10-21
+  (TitaNet-small, calibrated on Chip's and Kath's conversational lines,
+  see [4.15](#415-speaker-recognition-voice-id)); (2) explicit self-identification — today's working
   fallback, fail-closed by design, workable but untested against real
   conversation at length; (3) contextual inference — not implemented, in
   tension with the project's fail-closed memory principle, the riskiest

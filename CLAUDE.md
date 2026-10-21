@@ -650,9 +650,10 @@ worked in parallel if priorities change.
    (voiceprints 0.34 apart). Match rule decided (threshold + margin over
    the runner-up, biased strict) and calibrated at 0.40 / 0.10 on
    conversational lines, 2026-10-21 (`tests/speaker_lines.py`: no wrong
-   names across Chip, Kath and TV voices). Next: wire into
-   `coordinator.py` (score alongside STT, tell Haiku who's speaking when
-   confident).
+   names across Chip, Kath and TV voices). Wired into `coordinator.py`
+   the same day: each line to Haiku carries `[voice: Name]` or `[voice:
+   unknown]` (`--no-speaker-id` to leave out). Next: confirm in a live
+   voice conversation.
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.

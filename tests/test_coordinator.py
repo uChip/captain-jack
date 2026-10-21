@@ -477,6 +477,51 @@ def check_first_sentence_split():
     return errors
 
 
+class FakeSpeakerID:
+    """Stands in for speaker_id.SpeakerID: returns canned Matches in turn."""
+
+    def __init__(self, *matches):
+        self.matches = list(matches)
+        self.heard = []
+
+    def identify(self, samples):
+        self.heard.append(len(samples))
+        return self.matches.pop(0)
+
+
+def check_speaker_id():
+    """A confident voice match reaches Haiku as a "[voice: Name]" note
+    ahead of the transcript, an unsure one as "[voice: unknown]" (never
+    a guess), and both show in the console stats."""
+    from speaker_id import Match
+    errors = []
+    client = FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE")
+    out = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client, out=out.append,
+                                     filler=False,
+                                     speaker_id=FakeSpeakerID(
+                                         Match("Kath", 0.74, 0.16, {"Chip": 0.16, "Kath": 0.74}),
+                                         Match(None, 0.40, 0.34, {"Chip": 0.40, "Kath": 0.34},
+                                               "too close to call")))
+    coord.start_session()
+    clip = load_clip()
+    for _ in range(2):
+        coord.handle_utterance(clip)
+    sent = [m["content"] for m in coord.history if m["role"] == "user"]
+    if len(sent) != 2:
+        return [f"expected 2 Haiku calls, got {len(sent)}"]
+    if not sent[0].startswith("[voice: Kath] ") or "lazy dog" not in sent[0].lower():
+        errors.append(f"confident match not sent as a voice note: {sent[0]!r}")
+    if not sent[1].startswith("[voice: unknown] "):
+        errors.append(f"unsure match not sent as [voice: unknown]: {sent[1]!r}")
+    if coord.speaker_id.heard != [len(clip)] * 2:
+        errors.append(f"speaker-ID wasn't given each utterance: {coord.speaker_id.heard}")
+    you = [line for line in out if line.startswith("You:")]
+    if len(you) != 2 or "voice Kath 0.74" not in you[0] or "too close to call" not in you[1]:
+        errors.append(f"voice result missing from console stats: {you!r}")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -494,7 +539,8 @@ if __name__ == "__main__":
     errors = (check_offline() + check_state_machine() + check_asleep_entry_context()
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
-              + check_no_hold() + check_filler() + check_first_sentence_split())
+              + check_no_hold() + check_filler() + check_first_sentence_split()
+              + check_speaker_id())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -509,5 +555,6 @@ if __name__ == "__main__":
           "clip (Motion's idle/excursion/settle-in wavs) reopens the mic and spotter too, and a "
           "streamed reply's own last sentence finishing before it's known to be last still "
           "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
-          "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two"
+          "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
+          "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise"
           + (", live Haiku replied" if live else ""))

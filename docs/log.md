@@ -1206,6 +1206,28 @@ re-enrolling him with conversational lines is the first thing to try.
 Caveats: small samples; the strangers were two men through a TV
 speaker, not people in the room, and no unknown female voice was
 tested.
+
+**Wired into coordinator.py, same day**: speaker-ID runs on its own
+worker thread alongside Whisper; the result goes to Haiku as a note
+ahead of the transcript, and to the console stats (`voice Kath 0.74`,
+or `voice - (below threshold: Chip 0.40 Kath 0.34)`). The `identity.md`
+wording was checked against live Haiku 4.5 on scratch memory, 3 runs
+per case:
+
+| Case | First wording (bare unrecognized lines) | Final (`[voice: unknown]`) |
+|---|---|---|
+| Kath's note: "remember I'm allergic to shellfish" | 3/3 "Mistress", filed under Kath | same |
+| Chip's note: an order | 3/3 "Aye, aye, Captain!" | same |
+| Unrecognized: "remember I can't stand cilantro" | 3/3 promised to remember, saved nothing | 3/3 asked who's speaking first |
+| Chip's note, then unrecognized: "remember I'm training for a marathon" | 3/3 called them Captain and **filed it under Chip** | 0/3 filed; 1 asked, 2 a soft "I'll keep that in mind" |
+| Unrecognized, then "It's Liz" | - | 3/3 filed under Liz |
+
+The middle wording (bare lines, plus "don't carry a name over from
+earlier") still filed under Chip 3/3 - the earlier note outweighed the
+instruction. Marking every line fixed it without a code guard. Never
+mentioned the note aloud in any run. Not voice-ID: Kath's "remember I
+love gardening on Sundays" was tagged `[joke]` rather than
+`[household:Kath]` in 2 of 3 runs - a separate tag-choice issue.
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
