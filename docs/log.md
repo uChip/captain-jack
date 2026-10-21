@@ -1110,6 +1110,47 @@ own file I/O already being orchestration-owned. Re-enrollment needs no
 separate design: re-running the script for a name just overwrites their
 stored embedding.
 
+
+**Engine changed, 2026-10-21: TitaNet-small via sherpa-onnx, not
+SpeechBrain ECAPA.** SpeechBrain needs PyTorch (not installed, roughly 1GB
+on the Pi, slow to import). `sherpa-onnx` (a 4MB aarch64 wheel on the
+ONNX runtime Jack already uses) ships a set of pretrained speaker
+models, but no ECAPA. Chip first picked its CAM++ (reported to match or
+beat ECAPA at lower compute). Measured before building on it, though:
+Chip's saved session clips (6 enrolled, 146 scored), 15 of Jack's own
+TTS clips and 18 movie-line clips from `wavFiles/`, plus sherpa-onnx's
+own sample speakers:
+
+| Model | Chip, median | Jack's TTS, max | Movie clips, max | ms per s of audio |
+|---|---|---|---|---|
+| CAM++ (WeSpeaker) | 0.72 | 0.79 | 0.79 | 31 |
+| CAM++ (3D-Speaker) | 0.87 | 0.67 | 0.81 | 31 |
+| ResNet34 (WeSpeaker) | 0.93 | 0.67 | 0.88 | 86 |
+| ERes2Net (3D-Speaker) | 0.63 | -0.05 | 0.15 | 93 |
+| TitaNet-small (NeMo) | 0.64 | 0.02 | 0.21 | 28 |
+
+Both CAM++ exports, and ResNet34, scored other voices as high as Chip.
+(Checked it wasn't input scaling: feeding int16-scale samples made every
+pair score ~0.93.) TitaNet-small and ERes2Net separate clearly;
+TitaNet is three times faster. Chip chose TitaNet-small. Caveats: the
+"Chip" set is every saved utterance, so it likely includes some of Kath,
+a background-talk session and noise; and the other voices are clean
+recordings, not people in the room - the real test is Chip vs. Kath
+through Jack's mic.
+
+**Enrollment built, same day**: `enroll_speaker.py Name` (closed to
+memory.md's household names) prints eight varied sentences, beeps, and
+records each through Capture + Listener with the servos not driven;
+clips under 1.5s are asked again; then any clip scoring under 0.35
+against the average of the others is redone (up to two rounds), so a
+wrong speaker or a noise burst can't get into the voiceprint. The
+voiceprint (`voiceprints/<Name>.npz`, the mean embedding, tagged with
+the model's filename) and the clips themselves (`voiceprints/<Name>/`,
+so a model change is a re-run, not a re-recording) are git-ignored
+biometric data. `speaker_id.py`'s `identify()` returns a name only if
+the best score reaches `MATCH_THRESHOLD` and beats the runner-up by
+`MATCH_MARGIN` (provisional 0.45 / 0.10, to be calibrated on real
+audio), and never for utterances under 1s.
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,

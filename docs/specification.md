@@ -1821,14 +1821,21 @@ validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 
 History: [log.md#issue-1](log.md#issue-1), [log.md#415-speaker-recognition-voice-id](log.md#415-speaker-recognition-voice-id).
 
-**Status: Engine chosen, not implemented.**
+**Status: Engine chosen and enrollment built (2026-10-21); not yet
+wired into the conversation loop, threshold not yet calibrated.**
 
 **Description**: the software half of tier 1 in [Use Case
 2.7](#27-personalized-memory)'s speaker-resolution priority (see [Open
 Issues](#5-open-issues) issue 1) — a local speaker-embedding model
 identifying which enrolled household member (Chip, Kath, or Liz) is
-currently speaking, without requiring self-identification. Engine:
-**ECAPA-TDNN**, the standard speaker-verification architecture since 2020
+currently speaking, without requiring self-identification. Engine
+(**changed 2026-10-21**): **NVIDIA NeMo's TitaNet-small**, run through
+`sherpa-onnx` on the same ONNX runtime as wake word and TTS - no
+PyTorch. Picked by measurement over CAM++ (the first replacement pick),
+ResNet34 and ERes2Net: it alone scored Chip's recordings well above
+every other voice while also being the fastest (about 0.1s per
+utterance). Implemented in `speaker_id.py`; enrollment is
+`enroll_speaker.py`. The original pick, below, was **ECAPA-TDNN**, the standard speaker-verification architecture since 2020
 and still current; start with a mainstream pretrained implementation
 (e.g. SpeechBrain's `spkrec-ecapa-voxceleb`) for the prototype, moving to
 a purpose-trained tiny variant (ECAPA-TDNNLite/TinyECAPA-class, roughly

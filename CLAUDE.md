@@ -55,6 +55,7 @@ venv/bin/python playback.py [clip.wav ...]             # play clips through the 
 venv/bin/python listener.py [--model base.en]          # print transcripts of speech to the bird
 venv/bin/python coordinator.py --scratch-memory        # voice loop; own terminal (reads Enter)
 venv/bin/python list_devices.py                        # read-only: what each smart-home vendor sees
+venv/bin/python enroll_speaker.py Kath                 # enroll a voice for speaker-ID; own terminal
 ```
 
 Model files live in `models/` (git-ignored — download once):
@@ -65,6 +66,8 @@ curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en
 curl -fLO https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin
 curl -fL -o silero_vad.onnx https://github.com/snakers4/silero-vad/raw/v5.1.2/src/silero_vad/data/silero_vad.onnx
 sha1sum ggml-*.bin   # tiny.en c78c86eb..., base.en 137c4040... (whisper.cpp's published hashes)
+curl -fLO https://github.com/k2-fsa/sherpa-onnx/releases/download/speaker-recongition-models/nemo_en_titanet_small.onnx
+sha256sum nemo_en_titanet_small.onnx   # ad4a1802... (speaker-ID; full hash in speaker_id.py)
 cd .. && venv/bin/kokoro-pi build --models models/kokoro-pi   # TTS: downloads + builds, ~4 min on the Pi 5
 ```
 

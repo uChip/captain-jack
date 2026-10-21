@@ -602,6 +602,23 @@ when it was last confirmed passing.
   log.md's 4.16 history for the full story (closes out build step 7's
   wake-word piece).
 
+## Speaker Recognition
+
+### Speaker recognition (`speaker_id.py`)
+
+- **Covers**: [4.15](specification.md#415-speaker-recognition-voice-id) -
+  enrolling and reloading a voiceprint, matching, and the three ways
+  `identify()` declines (below threshold, too close to call, too short),
+  plus ignoring a voiceprint made with a different model.
+- **Script**: [`../tests/test_speaker_id.py`](../tests/test_speaker_id.py)
+- **Run**: `venv/bin/python tests/test_speaker_id.py` (needs
+  `models/nemo_en_titanet_small.onnx`). No hardware; no household
+  voices - a stand-in is enrolled from Jack's own TTS clips.
+- **Expected**: `PASS: ...` with the held-out and other-voice scores.
+- **Last confirmed passing**: 2026-10-21 (held-out 0.95, other voice 0.06).
+- **Not covered**: accuracy on real household voices through Jack's mic,
+  and the threshold numbers themselves - that's live calibration.
+
 ## Home Automation
 
 ### Home-automation tools

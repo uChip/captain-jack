@@ -225,5 +225,9 @@ models/
 # base analysis.
 stt_samples/
 
+# Enrolled voiceprints + enrollment clips (enroll_speaker.py) - biometric
+# data, never committed.
+voiceprints/
+
 # xeno-canto recordings downloaded by generate_fillers.py (re-fetchable by ID)
 xc_cache/
