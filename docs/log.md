@@ -1916,6 +1916,32 @@ edge once mounted. Agreed to redo it after the remount, with
 of each). The head cock only needs left vs. right, so it may work even
 if fine angles stay rough.
 
+**Second walk-around, 2026-10-21 - on the permanent mount, two laps.**
+Chip moved Jack to open floor; front, front-left, left, front-right,
+right, behind, quiet, twice (`--laps 2`, about 4ft). The laps disagreed
+on the settled `DOA_VALUE` (right 189 vs 50, behind 231 vs 90). Per-second
+readings show why: `DOA_VALUE` is sticky - it holds one value for
+several seconds, then jumps, and the same few values (18, 29, 90, 147,
+182) recur in unrelated positions. Beam 2 of `AEC_AZIMUTH_VALUES`
+(believed to be the free-running beam - not yet confirmed from Seeed's
+docs) moves continuously but scatters widely (±35-100 per position).
+Fitting a front angle and direction over the last 5s of every
+position, both laps (speech-flagged samples):
+
+| | `DOA_VALUE` | beam 2 |
+|---|---|---|
+| Jack's front, board degrees | 124 | 110 |
+| Direction | angle increases toward Jack's right | same |
+| Median error | 23 | 37 |
+| Left / front-left read as left | 100% / 100% | 94% / 87% |
+| Right / front-right read as right | 55% / 76% | 70% / 84% |
+
+So: fine angles aren't usable as read (median error 23-37), and left
+vs. right is reliable on Jack's left but only fair on his right. The
+front angle (110-124) isn't the multiple of 90 the board's layout
+suggested - either the board's 0 isn't on a mic axis, or the bird and
+board aren't squared to each other the way assumed.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
