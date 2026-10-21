@@ -34,14 +34,15 @@ MODEL_PATH = ROOT / "models" / "nemo_en_titanet_small.onnx"
 VOICEPRINTS_DIR = ROOT / "voiceprints"
 RATE = 16000
 
-# Provisional starting values, not calibrated (spec 4.15: the numbers come
-# from real household audio, the same treatment as 4.1/4.2). Biased
+# Calibrated 2026-10-21 on conversational lines through Jack's mic, head
+# swaying (tests/speaker_lines.py; spec 4.15, docs/log.md 4.15). Biased
 # strict: filing a memory under the wrong person is worse than not
 # knowing who's talking. On first measurement TitaNet scored Chip's own
 # clips around 0.64 and other voices at 0.21 or below. Lowered from 0.45
 # after Chip and Kath enrolled (2026-10-21): Kath's clips scored at most
 # 0.36 against Chip's voiceprint, while 0.45 left a third of Chip's past
-# session clips unrecognized (docs/log.md 4.15).
+# session clips unrecognized. Confirmed by calibration lines: no wrong
+# names; the closest stranger reached 0.30, Chip's lowest line 0.40.
 MATCH_THRESHOLD = 0.40   # best score must reach this...
 MATCH_MARGIN = 0.10      # ...and beat the runner-up by this much
 MIN_SCORE_S = 1.0        # shorter utterances ("yes") aren't scored at all

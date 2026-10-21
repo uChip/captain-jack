@@ -648,9 +648,9 @@ worked in parallel if priorities change.
    (measured over CAM++/ResNet34/ERes2Net, 2026-10-21), `speaker_id.py`
    + `enroll_speaker.py` built; Chip and Kath enrolled 2026-10-21
    (voiceprints 0.34 apart). Match rule decided (threshold + margin over
-   the runner-up, biased strict); numbers provisional at 0.40 / 0.10.
-   Next: conversational calibration lines (`tests/speaker_lines.py` -
-   Chip, Kath, and `other` from a video), then wire into
+   the runner-up, biased strict) and calibrated at 0.40 / 0.10 on
+   conversational lines, 2026-10-21 (`tests/speaker_lines.py`: no wrong
+   names across Chip, Kath and TV voices). Next: wire into
    `coordinator.py` (score alongside STT, tell Haiku who's speaking when
    confident).
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off

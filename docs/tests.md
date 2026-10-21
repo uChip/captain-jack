@@ -637,10 +637,11 @@ when it was last confirmed passing.
   right / WRONG / unsure table for thresholds 0.30-0.50 and margins
   0.05-0.15, the current pair marked `<`. Want: no WRONG at the chosen
   pair, and as few unsure as that allows.
-- **Last run**: 2026-10-21, `score` only, on a stand-in set (session22
-  as Chip, Kath's enrollment clips, the committed other-voice fixture):
-  12/0/0, 8/0/0, 0/0/1 at 0.40/0.10. Real calibration lines not yet
-  recorded.
+- **Last run**: 2026-10-21, real calibration lines (11 Chip, 11 Kath, 13
+  other from a TV clip, all `--port`): at 0.40/0.10, Chip 10/0/1, Kath
+  11/0/0, other 0/0/13 - no WRONG at any threshold 0.35-0.50. Labels
+  other than an enrolled name or `other` (e.g. `music`, for clips judged
+  unfit) are scored the same way as `other`, just listed separately.
 
 ## Home Automation
 

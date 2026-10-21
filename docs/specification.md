@@ -1822,8 +1822,8 @@ validated, see [Arduino Servo Controller](#34-arduino-servo-controller).
 History: [log.md#issue-1](log.md#issue-1), [log.md#415-speaker-recognition-voice-id](log.md#415-speaker-recognition-voice-id).
 
 **Status: Engine chosen and enrollment built (2026-10-21); Chip and
-Kath enrolled; not yet wired into the conversation loop, threshold
-provisional (calibration lines next).**
+Kath enrolled; threshold calibrated (0.40 / 0.10); not yet wired into
+the conversation loop.**
 
 **Description**: the software half of tier 1 in [Use Case
 2.7](#27-personalized-memory)'s speaker-resolution priority (see [Open
@@ -1895,15 +1895,16 @@ established in the speaker-verification literature.
 - **Explicitly out of scope here**: the runtime match-confidence
   threshold, decided separately below.
 
-**Runtime match rule — mechanism decided 2026-10-21, numbers
-provisional**: a name is returned only when the best cosine score
+**Runtime match rule — decided and calibrated 2026-10-21**: a name is returned only when the best cosine score
 reaches `MATCH_THRESHOLD` *and* beats the runner-up by `MATCH_MARGIN`;
 utterances under `MIN_SCORE_S` (1s) aren't scored. Biased strict, the
 same as [4.1](#41-wake-word-spotter)/[4.2](#42-speech-to-text-stt):
 filing a memory under the wrong person is worse than falling through to
-tier 2. Currently 0.40 / 0.10, set from the two enrollments and old
-session clips; the numbers come from conversational calibration lines
-(`tests/speaker_lines.py`: Chip, Kath, and other voices from a video).
+tier 2. **0.40 / 0.10**, calibrated on conversational lines through
+Jack's mic with the head swaying (`tests/speaker_lines.py`): 11 of
+Chip's, 11 of Kath's, 13 of two men on a TV clip - no wrong names; one
+of Chip's lines unsure. Re-run `score` after any re-enrollment or model
+change. Liz isn't enrolled, so she's treated like any other voice.
 
 **Interfaces**: reads VAD-segmented audio alongside
 [STT](#42-speech-to-text-stt) — the XVF3800's mic array is already

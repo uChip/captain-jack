@@ -1178,6 +1178,34 @@ conversation scores lower than reading. `tests/speaker_lines.py` built
 to record labeled conversational lines (with the head swaying, as in a
 real On Watch) and tabulate right/wrong/unsure for a grid of thresholds
 and margins.
+
+**Calibration lines, same day - 0.40 / 0.10 confirmed**: Chip and Kath
+each spoke 11 ordinary lines to Jack with `--port` (head swaying); the
+"other" voices were a TV-show clip on YouTube played near the bird -
+two adult men. Chip judged the first and last clips too musical to
+count; they were relabeled `music_01/02` (scored separately, also never
+named).
+
+| Lines | vs Chip's print | vs Kath's print |
+|---|---|---|
+| Chip, 11 | 0.58 (0.40-0.67) | 0.25 (0.14-0.34) |
+| Kath, 11 | 0.16 (0.08-0.22) | 0.74 (0.68-0.83) |
+| other (2 men, TV), 13 | 0.11 (0.06-0.30) | 0.16 (0.07-0.22) |
+
+No threshold from 0.35 to 0.50 named anyone wrongly; at 0.30 one TV
+line (0.30) became "Chip". At 0.40 / 0.10: Chip 10 right, 1 unsure
+(Chip_07: 0.40 vs Kath 0.34 - also inside the margin, so lowering the
+threshold wouldn't name it); Kath 11/11; strangers all unsure. 0.45
+would miss 2 of Chip's, 0.50 four. Kept 0.40 (strict side of the safe
+0.35-0.40 window) and margin 0.10 (no setting changed the result).
+Asymmetry worth knowing: Chip's voice leans toward Kath's print (up to
+0.34) more than hers toward his (0.22), and his conversation scores
+well below his enrollment reading (0.58 vs 0.85) while hers barely
+drops (0.74 vs 0.84) - if Chip misses become a nuisance in use,
+re-enrolling him with conversational lines is the first thing to try.
+Caveats: small samples; the strangers were two men through a TV
+speaker, not people in the room, and no unknown female voice was
+tested.
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
