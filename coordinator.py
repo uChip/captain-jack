@@ -36,7 +36,9 @@ conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
 keyboard (e.g. launched in the background). --save writes every
 utterance heard to DIR as a numbered .wav, for diagnosing mishearings (with
-DoA on, also uttNN_doa.csv: the direction readings leading up to it).
+DoA on, also uttNN_doa.csv: the direction readings leading up to it), and
+with --port/--dry-run, serial.log: every head command sent to the Arduino,
+timestamped, with the conversation's events between them.
 --port opens the Arduino for beak-sync + ambient motion (omit to run
 voice-only, as before); --dry-run drives the same Motion/Serial wiring
 without a real port, for testing it when no Arduino is attached.
@@ -187,12 +189,23 @@ class Coordinator:
         # Motion & the Serial writer are only stood up when asked to (tests and
         # a bare --scratch-memory run skip them entirely) - see --port/--dry-run.
         self.serial_writer = None
+        self._serial_log = None
         self.motion = None
         if port is not None or dry_run:
+            self._serial_log = (open(self.save_dir / "serial.log", "a", buffering=1)
+                                if self.save_dir else None)
             self.serial_writer = serial_link.SerialWriter(
-                now_fn=self.player.now, port=port or serial_link.PORT, dry_run=dry_run)
+                now_fn=self.player.now, port=port or serial_link.PORT, dry_run=dry_run,
+                on_send=self._log_serial if self._serial_log else None)
             self.player.serial_writer = self.serial_writer
             self.motion = Motion(self.serial_writer, player=self.player)
+
+    def _log_serial(self, line):
+        """--save's serial.log: a sent command (beak values are left out -
+        50 a second) or a "#" note from handle_utterance()."""
+        if line.startswith("b") and "p" not in line:
+            return
+        self._serial_log.write(f"{time.monotonic():.2f} {line}\n")
 
     # --- event sources (other threads) ---
 
@@ -372,6 +385,8 @@ class Coordinator:
         self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
 
     def end_session(self, why):
+        if self._serial_log:
+            self._log_serial(f"# off_watch ({why})")
         self.mode = "off_watch"
         if self.motion:
             self.motion.set_mode("off_watch")
@@ -497,6 +512,9 @@ class Coordinator:
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
         angle = self.face_speaker(samples)
+        if self._serial_log:
+            self._log_serial(f"# utt{self._saved + 1:02d} doa {angle} baseline yaw "
+                             f"{self.motion.baseline.yaw if self.motion else '-'}")
         self.play_filler(angle)
         saved = self.save_utterance(samples) if self.save_dir else ""
         voice = self._voice_pool.submit(self.speaker_id.identify, samples) if self.speaker_id else None
