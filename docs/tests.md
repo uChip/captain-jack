@@ -137,8 +137,11 @@ when it was last confirmed passing.
   `set_mode()` releases it (On Watch's listening hold, 2026-10-14). And
   that `squawk_tilt()` waits out its delay, moves even while held, holds
   for the squawk's length, returns to baseline, and skips a second call
-  while one is running (2026-10-15).
-- **Last confirmed passing**: 2026-10-15.
+  while one is running (2026-10-15). And that `turn_toward()` moves the
+  baseline yaw toward the speaker, capped at `MAX_TURN_DEG`, in one
+  `TURN_MS` move even while held; the squawk then cocks toward a speaker
+  on the left; leaving On Watch faces front again (2026-10-21).
+- **Last confirmed passing**: 2026-10-21.
 - **First live watch, 2026-10-07** (`motion.py --mode off_watch
   --dry-run --seconds 15` against the real bird, Chip watching): clean
   output, no crash, correct asymmetric breathing swing from
@@ -348,7 +351,8 @@ when it was last confirmed passing.
   mic/fires reply_done correctly, and the head holds still exactly while
   the mic is open, ... and Haiku gets a [voice: Name] note for a
   confident voice match, [voice: unknown] otherwise` (plus `, live
-  Haiku replied`) and
+  Haiku replied`; it also checks the head turns toward each
+  utterance's speaker before the squawk, from a fake DoA) and
   exits 0. Everything runs on a scratch copy of `memory/`; the test
   fails if the real `memory.md` changes.
 - **Last confirmed passing**: 2026-10-21 (speaker-ID check added).
@@ -541,19 +545,39 @@ when it was last confirmed passing.
   calibration - which `doa.py` angle is Jack's front, and which way is
   his left.
 - **Script**: [`../tests/doa_walkaround.py`](../tests/doa_walkaround.py)
-- **Run**: `venv/bin/python tests/doa_walkaround.py [--out doa.csv]
-  [--window 12]`. **Needs the real bird, mounted, and as quiet a house
-  as possible.** Jack speaks each position aloud; count aloud there
+- **Run**: `venv/bin/python tests/doa_walkaround.py --laps 2 [--out
+  stt_samples/doa_walkaround.csv] [--window 12]`; `--analyze CSV` re-fits
+  an earlier recording. **Needs the real bird, mounted, and as quiet a
+  house as possible.** Jack speaks each position aloud (front,
+  front-left, left, front-right, right, behind, quiet); count aloud there
   until he speaks again.
 - **Expected**: per position, the circular mean and spread of the
-  speech-flagged readings from the last 5s of its window; the raw
-  readings saved as CSV. No pass/fail - a good run steps steadily round
-  the circle (front, front-left, left one way; front-right, right the
-  other) with small spreads, and holds still while Jack talks.
-- **Last run**: 2026-10-15 (an earlier ad hoc version, 10s windows):
-  inconclusive - bird loosely placed, household noise; see log.md 4.9.
-- **Not covered**: positions behind the bird, distance, and wiring into
-  `motion.py`.
+  speech-flagged readings from the last 5s of its window; then, for
+  `DOA_VALUE` and beam 2, the fitted front angle and direction and how
+  often each position read as left/right of front. No pass/fail - a good
+  run has the laps agreeing, the front near a multiple of 90 (the
+  board's layout), and sides reading on the correct side.
+- **Last run**: 2026-10-21, bird at the rear of the enclosure: `DOA_VALUE`
+  front 84, median error 17, left/front-left 94%/87% correct,
+  right/front-right 100%/100% (centered, it was 124 and 55%/76% - the
+  bird blocked a mic). Became `doa.py`'s `JACK_FRONT_DEG`. See log.md 4.9.
+- **Not covered**: distance, more than one person, and how the turn
+  looks on the bird (that's a live watch).
+
+### DoA per-utterance direction
+
+- **Covers**: [4.9](specification.md#49-direction-of-arrival-doa-reader) -
+  `doa.py`'s `DoaTracker`: board-to-Jack angle mapping, and the one
+  direction it reports after an utterance.
+- **Script**: [`../tests/test_doa.py`](../tests/test_doa.py)
+- **Run**: `venv/bin/python tests/test_doa.py` (automatic, no hardware -
+  fake readings and a fake clock).
+- **Expected**: `PASS: board-to-Jack angle mapping, newest steady readings
+  give the direction, too few / disagreeing / stale readings give None`.
+- **Last confirmed passing**: 2026-10-21.
+- **Not covered**: the real board (polling was checked by hand: ~10
+  readings/s, clean stop), and the coordinator wiring (that's
+  `test_coordinator.py`'s face-speaker check).
 
 ## Wake Word Spotter
 

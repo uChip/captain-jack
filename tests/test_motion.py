@@ -242,6 +242,44 @@ def check_squawk_tilt():
     return errors
 
 
+def check_turn_toward():
+    """turn_toward() moves the baseline yaw toward the speaker (yaw + =
+    turned left, so a speaker on Jack's right lowers it), capped at
+    MAX_TURN_DEG, sending one TURN_MS move even while held; the squawk
+    tilt then cocks toward a speaker on the left, and leaving On Watch
+    faces front again."""
+    errors = []
+    writer = FakeWriter()
+    m = motion.Motion(writer, catalog=TEST_CATALOG)
+    m.set_mode("on_watch")
+    m.hold(True)
+    m.turn_toward(30)
+    if writer.sent != [f"p35r30y40t{motion.TURN_MS}s"]:
+        errors.append(f"turn_toward(30) should face 30 to the right, sent {writer.sent!r}")
+    m.turn_toward(-120)
+    want_yaw = 70 + motion.MAX_TURN_DEG
+    if m.baseline.yaw != want_yaw:
+        errors.append(f"turn_toward(-120) should cap at yaw {want_yaw}, got {m.baseline.yaw}")
+
+    writer.sent.clear()
+    m.squawk_tilt(0.0, 0.0, toward=-120)
+    while m._one_shot.locked():
+        time.sleep(0.01)
+    if writer.sent[:1] != [f"p43r15y{want_yaw}t10s"]:
+        errors.append(f"squawk toward the left should cock left and keep the heading, sent {writer.sent!r}")
+    writer.sent.clear()
+    m.squawk_tilt(0.0, 0.0, toward=10)   # nearly straight ahead - the catalog's own way
+    while m._one_shot.locked():
+        time.sleep(0.01)
+    if writer.sent[:1] != [f"p43r45y{want_yaw}t10s"]:
+        errors.append(f"squawk near front should cock the catalog's way, sent {writer.sent!r}")
+
+    m.set_mode("off_watch")
+    if m.baseline.yaw != 70:
+        errors.append(f"leaving On Watch should face front again, yaw {m.baseline.yaw}")
+    return errors
+
+
 def check_stop_returns_to_rest():
     """stop() sends head and beak to the catalog's resting pose (not the
     drifted baseline), and SerialWriter.stop() sends whatever head
@@ -277,11 +315,14 @@ if __name__ == "__main__":
         errors = (check_resolve_move() + check_find_gesture_anywhere()
                   + check_off_watch_step() + check_asleep_wav_pairing()
                   + check_fall_asleep() + check_on_watch_uses_its_own_ambient()
-                  + check_hold() + check_squawk_tilt() + check_stop_returns_to_rest())
+                  + check_hold() + check_squawk_tilt() + check_turn_toward()
+                  + check_stop_returns_to_rest())
 
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
     print("PASS: resolve_move clamping, cross-library gesture lookup, and "
-          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold and squawk tilt correct, and stopping returns the head to rest")
+          "ambient/excursion/wav scheduling, Asleep settle-in, and the listening hold and squawk tilt correct, "
+          "turning toward the speaker moves the baseline (capped, cocks the squawk their way, faces front "
+          "after On Watch), and stopping returns the head to rest")

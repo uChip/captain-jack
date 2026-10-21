@@ -1969,6 +1969,27 @@ apart for a cock, which doesn't matter; and a stray +120 (board ~204)
 shows up mostly in the first second of a window, right after Jack's
 own instruction - possibly his own voice through the enclosure.
 
+**How bad is losing yaw tracking? - scored the same day.** Chip's
+concern: turning toward the speaker matters a lot to interaction.
+Scoring every speech-flagged `DOA_VALUE` reading of the rear run against
+where Chip actually stood (both clamped to the head's ~65 reach,
+behind left out): 52% within 20, 60% within 30. The sides did best
+(64-100%), diagonals worst (12-90%), and one whole front window read
+"hard right" then "behind". Driven continuously, the head would wander
+and sometimes swing the wrong way. But the settled end of each window
+was good (median error 17, sides within ~10), so a turn once per
+utterance, held through the reply, is achievable now. Chip chose that,
+over finishing the blockage removal (needs an enclosure redesign - he
+rates it easier than new mic-array software, so it stays an option) or
+the raw-mic firmware route (computing direction ourselves).
+
+**Once-per-utterance turn built, same day**: `doa.py` `DoaTracker` +
+`Motion.turn_toward()` + the squawk cocking toward a speaker on the
+left; `motion.py`'s never-used `read_doa_azimuth()` stub and
+`nudge_yaw_toward_doa()` removed. Values (spec 4.9) are starting guesses
+for Chip to judge on the bird: 50 max turn, 600ms, 20 for the cock's
+side.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

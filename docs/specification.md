@@ -1206,10 +1206,8 @@ capacity — see [4.16](#416-runtime-integration-end-to-end-turn)(f)).
 
 History: [log.md#49-direction-of-arrival-doa-reader](log.md#49-direction-of-arrival-doa-reader).
 
-**Status: Reader built and calibrated (2026-10-21), not wired in.**
-`doa.py` reads the board directly over USB; calibrated by
-`tests/doa_walkaround.py` on the permanent mount. `motion.py`'s
-`read_doa_azimuth()` is still a stub.
+**Status: Reader built, calibrated and wired in (2026-10-21)** - Jack
+turns toward each utterance's speaker. Not yet watched live.
 
 **Description**: Pi-side code reading direction from the XVF3800 with
 USB vendor control requests on endpoint 0 (`doa.py`; parameter ids from
@@ -1228,10 +1226,24 @@ matching the layout's 90°, with the angle increasing toward Jack's
 right. Settled readings tell left from right 87-100% of the time
 (median error 17°). Behind reads as left or front. The reading lags a
 new talker by 2-6s. Beam 2 of `AEC_AZIMUTH_VALUES` is worse and isn't
-used. Good enough for the squawk cock's left/right; not yet for yaw
-tracking.
+used. Good enough for the squawk cock's left/right and a once-per-
+utterance turn; not for continuous yaw tracking.
 
-**Intended function**: supply a continuous sound-direction cue that pulls
+**Once-per-utterance turn - built 2026-10-21** (instead of the
+continuous tracking below, which the board's reading can't support):
+`doa.py`'s `DoaTracker` polls at 10Hz; when an utterance ends, it
+reports Jack's angle to the speaker from the newest speech-flagged
+readings of the last 3s (8 at most, at least 5, agreeing within a 25°
+spread), or nothing. `coordinator.py` then calls `Motion.turn_toward()`,
+which moves the baseline yaw that way (capped at 50°, one 600ms move -
+the squawk's lead-in silence) so every later gesture plays facing them,
+and the squawk cocks toward them when they're 20° or more to his left
+(the catalog cocks right otherwise). An unsure direction leaves the head
+where it is; leaving On Watch faces front again. All starting values,
+to judge by eye. `--no-doa` turns it off; it needs `--port`.
+
+**Intended function (original design; continuous tracking not built -
+see above)**: supply a continuous sound-direction cue that pulls
 On Watch's and Off Watch's baseline yaw toward whoever's currently
 talking or making noise — not a one-shot "turn to face" gesture. Asleep
 deliberately doesn't use it (see

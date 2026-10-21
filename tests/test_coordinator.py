@@ -211,8 +211,11 @@ class FakeMotion:
     def hold(self, on):
         self.calls.append(("hold", on))
 
-    def squawk_tilt(self, delay_s, squawk_s):
-        self.calls.append(("squawk_tilt", delay_s, squawk_s))
+    def squawk_tilt(self, delay_s, squawk_s, toward=None):
+        self.calls.append(("squawk_tilt", delay_s, squawk_s, toward))
+
+    def turn_toward(self, angle):
+        self.calls.append(("turn_toward", angle))
 
 
 def check_asleep_entry_context():
@@ -433,7 +436,7 @@ def check_filler():
     coord.motion = FakeMotion()
     coord.play_filler()
     tag, _samples = coord.player._queue.get_nowait()
-    want = ("squawk_tilt", coordinator.FILLER_DELAY_S, len(coord.fillers[tag]) / coordinator.RATE)
+    want = ("squawk_tilt", coordinator.FILLER_DELAY_S, len(coord.fillers[tag]) / coordinator.RATE, None)
     if coord.motion.calls != [want]:
         errors.append(f"filler should ask Motion for {want!r}, got {coord.motion.calls!r}")
     coord.motion = None
@@ -522,6 +525,41 @@ def check_speaker_id():
     return errors
 
 
+class FakeDoa:
+    """Stands in for doa.DoaTracker: canned directions in turn."""
+
+    def __init__(self, *angles):
+        self.angles = list(angles)
+
+    def direction(self):
+        return self.angles.pop(0)
+
+
+def check_face_speaker():
+    """Each utterance turns the head toward its speaker before the squawk,
+    which cocks their way; an unsure direction leaves the head alone. The
+    angle shows in the console stats."""
+    errors = []
+    out = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=out.append, doa=FakeDoa(-40, None))
+    coord.motion = FakeMotion()
+    coord.start_session()
+    for _ in range(2):
+        coord.handle_utterance(load_clip())
+    calls = [c for c in coord.motion.calls if c[0] in ("turn_toward", "squawk_tilt")]
+    if [c[0] for c in calls] != ["turn_toward", "squawk_tilt", "squawk_tilt"]:
+        errors.append(f"expected a turn then a squawk, then just a squawk: {calls!r}")
+    else:
+        if calls[0] != ("turn_toward", -40) or calls[1][3] != -40 or calls[2][3] is not None:
+            errors.append(f"turn/squawk not aimed at the speaker: {calls!r}")
+    you = [line for line in out if line.startswith("You:")]
+    if len(you) != 2 or "doa -40" not in you[0] or "doa -" not in you[1]:
+        errors.append(f"DoA angle missing from console stats: {you!r}")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -540,7 +578,7 @@ if __name__ == "__main__":
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
-              + check_speaker_id())
+              + check_speaker_id() + check_face_speaker())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -556,5 +594,6 @@ if __name__ == "__main__":
           "streamed reply's own last sentence finishing before it's known to be last still "
           "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
-          "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise"
+          "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
+          "and the head turns toward each utterance's speaker (DoA) before the squawk"
           + (", live Haiku replied" if live else ""))

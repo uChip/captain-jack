@@ -16,9 +16,13 @@ root-only by default. Installed on this Pi 2026-10-15:
 `sudo udevadm trigger --action=add --subsystem-match=usb --attr-match=idVendor=2886`;
 a plain `udevadm trigger` didn't).
 
-Not yet calibrated to the bird - first walk-around (2026-10-15) was
-inconclusive with the bird loosely placed and household noise; redo after
-the remount (docs/log.md's 4.9 history, tests/doa_walkaround.py).
+Calibrated 2026-10-21 (tests/doa_walkaround.py, bird at the rear of the
+enclosure - centered, it blocks a mic): Jack's front is board 84 degrees
+and the angle increases toward his right. Settled readings tell left
+from right reliably, but fine angles are rough and the reading lags a
+new talker by 2-6s, so DoaTracker gives one direction per utterance -
+the head turns once, toward whoever just spoke - not continuous
+tracking (spec 4.9, docs/log.md's 4.9 history).
 
 Run standalone to print readings:
     venv/bin/python doa.py [--seconds 10]
@@ -26,7 +30,9 @@ Run standalone to print readings:
 
 import math
 import struct
+import threading
 import time
+from collections import deque
 
 import usb.core
 import usb.util
@@ -39,6 +45,28 @@ TIMEOUT_MS = 1000
 VERSION = (48, 0, 3)
 DOA_VALUE = (20, 18, 4)            # uint16 degrees, then a speech-detected flag
 AEC_AZIMUTH_VALUES = (33, 75, 16)  # 4 x float32 radians, one per beam
+
+JACK_FRONT_DEG = 84     # board angle of Jack's front, measured 2026-10-21
+
+# DoaTracker's per-utterance direction - starting values, judged by eye.
+POLL_HZ = 10
+LOOKBACK_S = 3.0        # utterance end is detected ~0.7s after speech stops
+LAST_READINGS = 8       # the newest speech-flagged readings in the lookback...
+MIN_READINGS = 5        # ...need at least this many...
+MAX_SPREAD_DEG = 25     # ...agreeing this closely (circular std dev), or no answer
+
+
+def to_jack(board_deg) -> float:
+    """Board azimuth -> Jack's own angle, -180..180, + = to his right."""
+    return (board_deg - JACK_FRONT_DEG + 180) % 360 - 180
+
+
+def circular_mean(degs) -> tuple[float, float]:
+    """(mean, spread) of angles in degrees; spread is the circular std dev."""
+    a = [math.radians(d) for d in degs]
+    c, s = sum(map(math.cos, a)) / len(a), sum(map(math.sin, a)) / len(a)
+    r = max(math.hypot(c, s), 1e-9)
+    return math.degrees(math.atan2(s, c)) % 360, math.degrees(math.sqrt(-2 * math.log(min(r, 1.0))))
 
 
 class DoA:
@@ -68,6 +96,60 @@ class DoA:
 
     def close(self):
         usb.util.dispose_resources(self.dev)
+
+
+class DoaTracker:
+    """Polls the board on its own thread and answers "where did that
+    utterance come from?" once it has ended. read is any function
+    returning (board azimuth, speech flag) - DoA().read by default; tests
+    pass a fake."""
+
+    def __init__(self, read=None, now=time.monotonic):
+        self._read = read
+        self._now = now
+        self._readings = deque(maxlen=int(POLL_HZ * LOOKBACK_S * 2))
+        self._lock = threading.Lock()
+        self._stop = threading.Event()
+        self._thread = None
+        self._doa = None
+
+    def start(self):
+        if self._read is None:
+            self._doa = DoA()
+            self._read = self._doa.read
+        self._thread = threading.Thread(target=self._run, name="doa", daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+        if self._thread:
+            self._thread.join()
+        if self._doa:
+            self._doa.close()
+
+    def _run(self):
+        while not self._stop.wait(1 / POLL_HZ):
+            try:
+                az, speech = self._read()
+            except Exception:   # a USB hiccup - skip this reading, keep polling
+                continue
+            self.add(az, speech)
+
+    def add(self, board_deg, speech):
+        with self._lock:
+            self._readings.append((self._now(), board_deg, speech))
+
+    def direction(self):
+        """Jack's angle to whoever just finished speaking (+ = his right),
+        or None if the recent speech readings are too few or disagree."""
+        cutoff = self._now() - LOOKBACK_S
+        with self._lock:
+            recent = [az for t, az, speech in self._readings if speech and t >= cutoff]
+        recent = recent[-LAST_READINGS:]
+        if len(recent) < MIN_READINGS:
+            return None
+        mean, spread = circular_mean(recent)
+        return round(to_jack(mean)) if spread <= MAX_SPREAD_DEG else None
 
 
 def main():

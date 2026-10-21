@@ -672,15 +672,17 @@ worked in parallel if priorities change.
    for both still pending this testing).
 7. DoA: calibrate and wire in. Reading works since 2026-10-15
    (`doa.py`, via Seeed's own Python control script - see "Done so far"
-   item 46); a first walk-around was inconclusive. The permanent mount
-   is done (Sorbothane, 2026-10-21) and `tests/doa_walkaround.py` is
-   ready for the rerun (2026-10-21: added a "behind" position, `--laps`,
-   a lead-in). Chip is moving Jack to where he can walk all the way
-   round him first. Next: `venv/bin/python tests/doa_walkaround.py
-   --laps 2` in a quiet house, find the board-to-Jack offset and which
-   way is left, then fill in `motion.py`'s `read_doa_azimuth()` - first
-   use is the squawk head cock leaning toward the speaker (Chip's
-   request), then spec 4.9's yaw tracking.
+   item 46). Calibrated 2026-10-21 (`tests/doa_walkaround.py --laps
+   2`): with the bird centered on the enclosure it blocked a mic; moved
+   to the rear, Jack's front is board 84 and left/right reads correctly
+   87-100% of the time, but the reading is too sticky and rough for
+   continuous yaw tracking. Built instead the same day: Jack turns
+   toward each utterance's speaker (`doa.py` `DoaTracker`,
+   `Motion.turn_toward()`, needs `--port`, `--no-doa` to skip) and the
+   squawk cocks their way. Next: watch it live and tune the starting
+   values (50 max turn, 600ms). Still open if that disappoints: an
+   enclosure redesign to clear the blockage fully (Chip rates it easier
+   than new mic-array software), or Seeed's raw-mic firmware.
 8. **Build the audio loop per `docs/specification.md` section 4.16's
    build order** — steps 1-7 are now done and fully live-validated (see
    "Done so far" items 24/26/28/29/30): the full thread set
@@ -756,9 +758,9 @@ worked in parallel if priorities change.
      squawk still ends >=1.1s before Jack's first word. Head tilt added
      the same day (`Motion.squawk_tilt()`, gesture `fx-squawk-tilt`): up
      6deg and cocked 10deg for the squawk's length, then back - 8/15 looked
-     too much on the bench. Still open (Chip): cock toward the speaker
-     once DoA is read (item 7). Confirmed live (session19): smooth,
-     angles about right, no delay to the reply.
+     too much on the bench. Confirmed live (session19): smooth,
+     angles about right, no delay to the reply. Cocks toward the
+     speaker since 2026-10-21 (item 7) - not yet watched live.
    - First-audio latency (2026-10-15): session16 measured 2.0-3.6s from
      end of speech to Jack's first word (streaming helped), the spread
      being mostly the first sentence's synthesis time. A long first

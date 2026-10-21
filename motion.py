@@ -30,7 +30,11 @@ flight finish first - preemption is still undesigned, Open Issues issue
 
 On Watch's excursions are meant to be triggered by conversation content/
 DoA/emotion (spec 4.10), not implemented yet - On Watch currently runs
-ambient motion only. The wav-scheduling heuristic (one random wav per
+ambient motion only. Facing the speaker: the Coordinator calls
+turn_toward() once per utterance with doa.py's direction, which moves
+the baseline yaw - so every later gesture, the squawk tilt included,
+plays facing that way - until the next utterance or the end of the
+conversation (spec 4.9). The wav-scheduling heuristic (one random wav per
 excursion tick, Off Watch only) is a starting point, not measured.
 
 Run standalone against the real Arduino for a quick check (no Playback,
@@ -55,6 +59,11 @@ REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to j
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
 SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
 SQUAWK_TILT_ID = "fx-squawk-tilt"
+
+# turn_toward() - starting values, judged by eye on the bird (2026-10-21).
+MAX_TURN_DEG = 50   # furthest the head turns from center (yaw allows ~60-70)
+TURN_MS = 600       # one smooth move; matches the squawk's lead-in silence
+SIDE_DEG = 20       # the squawk cocks toward a speaker at least this far off center
 
 
 def load_catalog() -> dict:
@@ -81,12 +90,6 @@ def clamp(value, lo, hi):
     return max(lo, min(hi, value))
 
 
-def read_doa_azimuth():
-    """Stub - see CLAUDE.md work list. Always None until the XVF3800
-    control protocol is implemented against real vendor documentation."""
-    return None
-
-
 class Baseline:
     """Tracks the live pitch/roll/yaw center that gesture deltas resolve
     against - spec 4.12's "baseline," not a fixed constant."""
@@ -95,11 +98,6 @@ class Baseline:
         self.pitch = resting["pitch"]
         self.roll = resting["roll"]
         self.yaw = resting["yaw"]
-
-    def nudge_yaw_toward_doa(self):
-        azimuth = read_doa_azimuth()
-        if azimuth is not None:
-            self.yaw = azimuth   # placeholder - no smoothing/rate-limiting designed yet
 
 
 def resolve_move(move, baseline) -> str:
@@ -144,7 +142,21 @@ class Motion:
     def set_mode(self, mode):
         self._settle_pending = False   # a later transition cancels an unplayed settle
         self.holding = False           # a mode change always releases hold()
+        if mode != "on_watch":         # the conversation's over - face front again
+            self.baseline.yaw = self.catalog["resting"]["yaw"]
         self.mode = mode
+
+    def turn_toward(self, angle):
+        """Face whoever just spoke: angle is Jack's own direction to them
+        (doa.py's DoaTracker.direction(), + = to his right), capped at
+        MAX_TURN_DEG. Moves the baseline, so it lasts - ambient motion
+        and every gesture carry on around the new heading - and sends one
+        TURN_MS move there now. Sent even while held, like squawk_tilt():
+        it comes right after an utterance, while the mic is deaf."""
+        turn = clamp(angle, -MAX_TURN_DEG, MAX_TURN_DEG)
+        self.baseline.yaw = clamp(int(round(self.catalog["resting"]["yaw"] - turn)),
+                                  *AXIS_RANGE["y"])   # yaw: + = turned left
+        self._send(resolve_move({"t": TURN_MS}, self.baseline))
 
     def hold(self, on: bool):
         """Hold the head still (on=True) until released or the mode
@@ -154,19 +166,21 @@ class Motion:
         finishes first, since the Arduino has no "stop here" command."""
         self.holding = on
 
-    def squawk_tilt(self, delay_s: float, squawk_s: float):
+    def squawk_tilt(self, delay_s: float, squawk_s: float, toward=None):
         """Tilt the head up and cocked for the filler squawk: starts
         delay_s from now (the squawk's lead-in silence), holds for
         squawk_s, then settles back to the baseline. Runs on its own short
         thread and ignores hold() - the mic is already deaf while the
         squawk plays, so the noise costs nothing - while the main loop
         pauses its own gestures until it's done. Skipped if one is still
-        running. Always cocks the same way for now; Chip would like it
-        toward the speaker once DoA is read (read_doa_azimuth() is still a
-        stub) - flip dr's sign by which side the azimuth falls."""
+        running. Cocks toward the speaker when toward (their angle, as for
+        turn_toward()) is at least SIDE_DEG to his left; otherwise the
+        catalog's own way, to his right."""
         if not self._one_shot.acquire(blocking=False):
             return
         first, back = find_gesture_anywhere(self.catalog, SQUAWK_TILT_ID)["moves"]
+        if toward is not None and toward <= -SIDE_DEG:
+            first = {**first, "dr": -first.get("dr", 0)}   # roll: + = tipped right
 
         def run():
             try:
@@ -259,14 +273,12 @@ class Motion:
 
     def _step_on_watch(self):
         ambient = find_gesture(self.catalog, "on_watch", self.catalog["ambient"]["on_watch"])
-        self.baseline.nudge_yaw_toward_doa()
         self.play_gesture(ambient)
         # Content/DoA/emotion-triggered excursions: not implemented yet (spec 4.10).
 
     def _step_off_watch(self):
         lib = "off_watch"
         ambient = find_gesture(self.catalog, lib, self.catalog["ambient"][lib])
-        self.baseline.nudge_yaw_toward_doa()
         self.play_gesture(ambient)
         if self.mode != lib:
             return

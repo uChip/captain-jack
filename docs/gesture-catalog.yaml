@@ -140,8 +140,12 @@ ambient:
   asleep: sl-idle-breathing-quiet
 
 doa_yaw_tracking:
-  # Whether that mode's baseline yaw is pulled toward the live DoA
-  # azimuth. Asleep deliberately doesn't — a sleeping bird doesn't turn
+  # NOT READ BY CODE (2026-10-21): the board's direction reading is too
+  # sticky and rough for continuous tracking, so instead On Watch turns
+  # once per utterance toward whoever just spoke (Motion.turn_toward(),
+  # spec 4.9); Off Watch doesn't turn at all yet. Kept as the original
+  # design intent. Whether that mode's baseline yaw is pulled toward the
+  # live DoA azimuth. Asleep deliberately doesn't — a sleeping bird doesn't turn
   # to face every household noise; that's a judgment call worth
   # revisiting if it looks wrong in practice, not a hard constraint.
   on_watch: true

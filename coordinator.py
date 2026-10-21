@@ -30,6 +30,7 @@ Run (in its own terminal - it reads the keyboard):
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
                                    [--hold] [--no-filler] [--no-home] [--no-speaker-id]
+                                   [--no-doa]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -48,6 +49,9 @@ by default each utterance is scored against the enrolled voiceprints
 while Whisper transcribes it, and Haiku gets a "[voice: Name]" or
 "[voice: unknown]" note ahead of the transcript (see voice_note()). It's
 off anyway if nobody is enrolled or the model file is missing.
+--no-doa keeps the head facing front: by default, with --port, Jack turns
+toward whoever just spoke, once per utterance (doa.py's DoaTracker,
+Motion.turn_toward(), spec 4.9), and the squawk cocks toward them.
 --no-home leaves out the home-automation tools (home.py), so nothing in
 the house can be switched - by default Jack can control the devices
 marked in docs/home-automation-device-list.csv.
@@ -73,6 +77,7 @@ from listener import HOLDOFF_S, Listener
 from motion import Motion
 from home import Home
 from orchestrate import MEMORY_DIR, household_names, stream_turn
+from doa import DoaTracker
 from playback import RATE, Playback, load_wav
 from speaker_id import MODEL_PATH as SPEAKER_MODEL, SpeakerID
 from stt import STT, names_prompt
@@ -136,13 +141,16 @@ def beep() -> np.ndarray:
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
                  save_dir=None, port=None, dry_run=False, hold=False, filler=True, home=None,
-                 speaker_id=None):
+                 speaker_id=None, doa=None):
         self.memory_dir = Path(memory_dir)
         self.home = home
         # A speaker_id.SpeakerID, or None for no voice recognition (tests, and
         # --no-speaker-id). Runs on its own worker thread, alongside STT.
         self.speaker_id = speaker_id
         self._voice_pool = ThreadPoolExecutor(1, thread_name_prefix="speaker-id")
+        # A doa.DoaTracker, or None (tests, no --port, --no-doa): which way
+        # to turn the head after each utterance. Only used with Motion.
+        self.doa = doa
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
@@ -271,6 +279,8 @@ class Coordinator:
         if self.motion:
             self.motion.set_mode(self.mode)
             self.motion.start()
+        if self.doa:
+            self.doa.start()
         self.tts.start()
         try:
             while True:
@@ -285,6 +295,8 @@ class Coordinator:
                 self._handle_event(kind, data)
         finally:
             self.capture.stop()
+            if self.doa:
+                self.doa.stop()
             self.tts.stop()
             if self.motion:
                 self.motion.stop()
@@ -451,9 +463,10 @@ class Coordinator:
             w.writeframes(samples.tobytes())
         return f", {path.name}"
 
-    def play_filler(self):
+    def play_filler(self, toward=None):
         """Queue a squawk (see FILLER_DIR) after FILLER_DELAY_S of silence,
-        never the same one twice running, with a head tilt to match."""
+        never the same one twice running, with a head tilt to match -
+        cocked toward the speaker's angle if known (see face_speaker())."""
         if not self.fillers:
             return
         names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
@@ -462,17 +475,31 @@ class Coordinator:
         lead = np.zeros(int(FILLER_DELAY_S * RATE), dtype=np.int16)
         self.player.play(np.concatenate([lead, self.fillers[name]]), name)
         if self.motion:
-            self.motion.squawk_tilt(FILLER_DELAY_S, len(self.fillers[name]) / RATE)
+            self.motion.squawk_tilt(FILLER_DELAY_S, len(self.fillers[name]) / RATE, toward)
+
+    def face_speaker(self):
+        """Turn the head toward whoever just finished speaking; returns
+        their angle (+ = Jack's right), or None if DoA isn't sure - then
+        the head stays where it is."""
+        if not (self.doa and self.motion):
+            return None
+        angle = self.doa.direction()
+        if angle is not None:
+            self.motion.turn_toward(angle)
+        return angle
 
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
-        self.play_filler()
+        angle = self.face_speaker()
+        self.play_filler(angle)
         saved = self.save_utterance(samples) if self.save_dir else ""
         voice = self._voice_pool.submit(self.speaker_id.identify, samples) if self.speaker_id else None
         heard = self.stt.transcribe(samples)
         match = voice.result() if voice else None
+        doa = "" if not (self.doa and self.motion) else (
+            f", doa {angle:+d}" if angle is not None else ", doa -")
         stats = (f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}"
-                 f"{describe_voice(match)}{saved}")
+                 f"{describe_voice(match)}{doa}{saved}")
         if not heard.accepted:
             self.out(f"  (rejected - {heard.reject}: {heard.raw!r})   [{stats}]")
             self.out(f"Jack: {DIDNT_CATCH}")
@@ -539,8 +566,10 @@ def main():
             else:
                 print("Speaker-ID off: nobody enrolled (enroll_speaker.py)")
                 speaker = None
+    doa = DoaTracker() if port and "--no-doa" not in args else None
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
-                        hold="--hold" in args, filler="--no-filler" not in args, speaker_id=speaker)
+                        hold="--hold" in args, filler="--no-filler" not in args, speaker_id=speaker,
+                        doa=doa)
     if "--no-home" not in args:
         coord.home = Home(log=coord.out)
         coord.home.warm_up()
