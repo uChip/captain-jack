@@ -38,7 +38,7 @@
      - YYYY-MM-DD: fact, from [home] saves -->
 - 2026-09-14: Sun Lakes, Arizona
 
-## Running jokes & preferences
+## Running jokes
 
 <!-- - YYYY-MM-DD: fact, from [joke] saves -->
 

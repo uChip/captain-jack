@@ -149,7 +149,9 @@ proposing it:
 - `[household:Name]` — a durable fact about a family member (a preference,
   trait, or health/dietary note) — e.g. `MEMORY: [household:Chip] loves dad
   jokes`, `MEMORY: [household:Chip] lactose intolerant`
-- `[joke]` — a running joke, bit, or nickname worth reusing later
+- `[joke]` — a running joke, bit, or nickname worth reusing later — not
+  someone's own likes or dislikes, even funny ones; those go under
+  `[household:Name]`
 - `[automation]` — a stated preference about lights/thermostat/scenes/etc.
 - `[home]` — the durable place Jack calls home, if it's ever told to you
   as changing — not wherever you currently are, which isn't saved this way

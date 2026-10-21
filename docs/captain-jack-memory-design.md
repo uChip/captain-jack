@@ -49,7 +49,7 @@ tuned against a more capable model than Haiku:
 | Tag | Destination | Qualifies |
 |---|---|---|
 | `household:<Name>` | that person's existing `###` subsection under Household | durable fact about a family member |
-| `joke` | Running jokes & preferences | recurring bit, nickname, callback |
+| `joke` | Running jokes | recurring bit, nickname, callback - not a person's own likes/dislikes (those are `household:<Name>`) |
 | `automation` | Home automation preferences | stated preference re: lights/thermostat/scenes/etc |
 | `home` | Home | the durable place Jack calls home, on the rare occasion it changes |
 

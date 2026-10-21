@@ -44,7 +44,7 @@ MODE_LINE_RE = re.compile(r"^MODE:\s*(NONE|END_SESSION|NAP)\s*$", re.IGNORECASE)
 
 SECTION_HEADINGS = {
     "household": "Household",
-    "joke": "Running jokes & preferences",
+    "joke": "Running jokes",
     "automation": "Home automation preferences",
     "home": "Home",
 }

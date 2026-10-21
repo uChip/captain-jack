@@ -901,7 +901,7 @@ Cosmetic only: `orchestrate.py`/`coordinator.py` print "Captain Jack"/
 
 ### 4.5 Memory Subsystem
 
-History: none yet.
+History: [log.md#45-memory-subsystem](log.md#45-memory-subsystem).
 
 **Status: Implemented** — `memory/memory.md` +
 [captain-jack-memory-design.md](captain-jack-memory-design.md) + the

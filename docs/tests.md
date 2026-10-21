@@ -664,6 +664,24 @@ when it was last confirmed passing.
   was seen in an earlier run), and soft "I'll keep that in mind" replies
   that save nothing.
 
+### Memory tag choice with live Haiku
+
+- **Covers**: [4.5](specification.md#45-memory-subsystem) - which
+  `MEMORY:` tag Jack picks: a person's own preference under
+  `[household:Name]`, a running bit or nickname under `[joke]`, a
+  lights/fans preference under `[automation]`.
+- **Script**: [`../tests/test_memory_tags_live.py`](../tests/test_memory_tags_live.py)
+- **Run**: `venv/bin/python tests/test_memory_tags_live.py [--repeat N]`
+  (real Haiku API, scratch memory, no home tools; a few cents). Re-run
+  after any change to `identity.md`'s memory section or `memory.md`'s
+  headings.
+- **Expected**: one `ok` line per run, then `PASS: 21 runs - every memory
+  filed under the expected tag`.
+- **Last confirmed passing**: 2026-10-21 (21/21; 17/21 before the
+  "Running jokes" heading fix).
+- **Not covered**: `[home]` (see `test_home_memory_save.py`), and
+  whether a statement should be saved at all.
+
 ## Home Automation
 
 ### Home-automation tools

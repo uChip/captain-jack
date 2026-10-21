@@ -2985,6 +2985,24 @@ identity.md unchanged. The double call itself is now refused in code
 5.5 with thinking off is the only viable variant - same speed, about an
 eighth the cost - but needs identity.md retuned for it and a rerun.
 
+### 4.5 Memory Subsystem
+
+**`[joke]` taking personal preferences, fixed 2026-10-21**: during the
+speaker-ID wiring checks, Kath's "remember I love gardening on Sundays"
+was saved as `[joke]` rather than `[household:Kath]` in 2 of 3 runs.
+Cause: the `[joke]` section of `memory.md` was headed "Running jokes &
+preferences" - and Haiku sees those headings in its system prompt, so a
+personal like or dislike looked at home there. `tests/test_memory_tags_live.py`
+(7 cases, 3 runs each, every line with a voice note): before, 4/21
+wrong - "I can't stand Mondays" as `[joke]` 3/3, gardening 1/3. Renamed
+the heading to "Running jokes" (`orchestrate.py`'s section map,
+`memory.md`, the design doc) and added to `identity.md`'s `[joke]` line
+that someone's own likes or dislikes, even funny ones, go under
+`[household:Name]`. After: 21/21, with real bits (a nickname for the
+cat, shouting "Where?" at "treasure") still `[joke]` and the office-light
+preference still `[automation]`. The voice-note live test still passes
+15/15.
+
 ### 4.6 Home-Automation Tool Schema
 
 **Built and live-tested, 2026-10-18.** Choices made along the way:
