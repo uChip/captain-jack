@@ -29,7 +29,7 @@ Run (in its own terminal - it reads the keyboard):
     venv/bin/python coordinator.py [--model base.en] [--voice bm_fable]
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
-                                   [--no-hold] [--no-filler] [--no-home]
+                                   [--hold] [--no-filler] [--no-home]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -38,9 +38,10 @@ utterance heard to DIR as a numbered .wav, for diagnosing mishearings.
 --port opens the Arduino for beak-sync + ambient motion (omit to run
 voice-only, as before); --dry-run drives the same Motion/Serial wiring
 without a real port, for testing it when no Arduino is attached.
---no-hold keeps the head moving while the mic is open in On Watch, for
-measuring recognition over servo motion (e.g. with the bird soft-mounted,
-docs/log.md's 4.2 history). --no-filler skips the squawk played the
+--hold holds the head still while the mic is open in On Watch - the
+default until the bird was soft-mounted, which removed the servo noise
+it was for (docs/log.md's 4.2 history, 2026-10-21); kept for now in case
+that noise ever comes back. --no-filler skips the squawk played the
 moment an utterance ends (see FILLER_DIR), e.g. for comparing the two.
 --no-home leaves out the home-automation tools (home.py), so nothing in
 the house can be switched - by default Jack can control the devices
@@ -103,7 +104,7 @@ def beep() -> np.ndarray:
 
 class Coordinator:
     def __init__(self, memory_dir=MEMORY_DIR, model=None, client=None, out=print, voice=None,
-                 save_dir=None, port=None, dry_run=False, hold=True, filler=True, home=None):
+                 save_dir=None, port=None, dry_run=False, hold=False, filler=True, home=None):
         self.memory_dir = Path(memory_dir)
         self.home = home
         self.client = client or anthropic.Anthropic()
@@ -489,7 +490,7 @@ def main():
         print(f"Using a scratch copy of memory: {memory_dir}")
 
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
-                        hold="--no-hold" not in args, filler="--no-filler" not in args)
+                        hold="--hold" in args, filler="--no-filler" not in args)
     if "--no-home" not in args:
         coord.home = Home(log=coord.out)
         coord.home.warm_up()

@@ -718,8 +718,10 @@ worked in parallel if priorities change.
      30 disks passed spec 3.6's acceptance test, 2026-10-21 (measured as
      quiet as the mat; session22 by voice: same 32.7dB margin, wake 4/4,
      sleep 1/1) - tested as the final mount: the disks are tacky all
-     through, so the bird was stuck in place from the start. Then decide whether to retire the hold
-     (session15 says recognition is fine without it). tiny.en stays
+     through, so the bird was stuck in place from the start. The hold is
+     now off by default (`--hold` turns it back on), Chip 2026-10-21: the
+     code goes once a week or so of normal use shows no recognition
+     trouble. tiny.en stays
      the default for now (**Chip's call, 2026-10-14**): base.en is more
      accurate with the noise gone (1/7 vs 3/7 wrong), but its extra
      ~0.5-1s on an already-noticeable ~3s wait outweighs that today. If

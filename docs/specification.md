@@ -504,7 +504,7 @@ a pad for the weight, stays stiff and passes the noise.
 pads of the chosen material and run `tests/measure_servo_noise.py`. It
 passes if the moving phases measure about as quiet as on the mat
 (about −55 dBFS, against −32 bolted). Then confirm by voice with
-`coordinator.py --port /dev/ttyUSB0 --no-hold --save DIR`, using the
+`coordinator.py --port /dev/ttyUSB0 --save DIR` (head moving while listening - the default since 2026-10-21), using the
 session15 script, and an Off Watch wake check.
 
 **Status (2026-10-21)**: four loose Sorbothane 30 disks (1.5in

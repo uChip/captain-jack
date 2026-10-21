@@ -360,7 +360,7 @@ def check_head_held_while_mic_open():
     errors = []
     client = FakeClient("Aye, a fine morning it be, Matey.\nMODE: NONE\nMEMORY: NONE")
     coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
-                                     out=lambda *a: None)
+                                     out=lambda *a: None, hold=True)
     coord.motion = FakeMotion()
 
     def holds():
@@ -389,15 +389,15 @@ def check_head_held_while_mic_open():
 
 
 def check_no_hold():
-    """--no-hold (hold=False) never holds the head, for measuring
-    recognition over servo motion."""
+    """By default (no --hold) the head is never held - the soft mount
+    removed the servo noise the hold was for (2026-10-21)."""
     coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
-                                     out=lambda *a: None, hold=False)
+                                     out=lambda *a: None)
     coord.motion = FakeMotion()
     coord.start_session()
     coord.handle_utterance(load_clip())
     held = [c for c in coord.motion.calls if c[0] == "hold"]
-    return [f"hold=False should never hold the head, got {held!r}"] if held else []
+    return [f"the default should never hold the head, got {held!r}"] if held else []
 
 
 def check_filler():

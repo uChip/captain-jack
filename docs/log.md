@@ -1052,6 +1052,13 @@ louder (Chip): still -56.3/-57.0, Off Watch -54.7 (p90 -51.6), On Watch -54.1
 (p90 -50.1) - moving only ~2-3dB above the room, consistent with the
 first run.
 
+**On Watch hold off by default, 2026-10-21 (Chip)**: both soft-mount voice
+sessions ran without it (session15 margin 32.5dB, session22 32.7dB, vs.
+19.7dB bolted with the hold on), and the hold's frozen head was always
+its weak spot. `coordinator.py`'s default flipped; `--no-hold` became
+`--hold`. The code stays for about a week of normal use, then goes if
+recognition holds up.
+
 Decided by Chip, same day: stay on tiny.en for now. Recognition is
 better on base.en, but processing time is already noticeable (first
 audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en
