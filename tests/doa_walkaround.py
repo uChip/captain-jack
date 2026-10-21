@@ -8,8 +8,13 @@ the last SETTLED_S seconds only - the first seconds of each window are
 walking, and the board's reading takes ~1-2s to swing round (2026-10-15).
 Saves the raw readings as CSV. Written 2026-10-15 for spec 4.9's
 calibration: which board angle is Jack's front, and which way is left.
+2026-10-21, for the rerun on the permanent mount: a "behind" position
+(front/left/right/behind pin down the 90-degree offset and the
+direction), --laps to walk the circle more than once (do the readings
+repeat?), and a lead-in before Jack's first instruction.
 
-Run: venv/bin/python tests/doa_walkaround.py [--out doa.csv] [--window 12]
+Run: venv/bin/python tests/doa_walkaround.py [--out stt_samples/doa_walkaround.csv] [--window 12]
+         [--laps 2] [--lead-in 10]
 """
 
 import argparse
@@ -33,8 +38,10 @@ POSITIONS = [
     ("left", "Now straight off my left side, and keep counting."),
     ("front_right", "Now go round to my front right, and keep counting."),
     ("right", "Now straight off my right side, and keep counting."),
+    ("behind", "Now go right round behind me, and keep counting."),
     ("quiet", "Now stay quiet for a moment."),
 ]
+AGAIN = "Once more round, starting in front of me again. Count until I speak."
 DONE = "That's the lot. Thank ye, matey!"
 
 
@@ -48,13 +55,15 @@ def circ_stats(deg):
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--out", default="doa_walkaround.csv")
+    parser.add_argument("--out", default="stt_samples/doa_walkaround.csv")   # git-ignored
     parser.add_argument("--window", type=float, default=12.0, help="seconds per position")
+    parser.add_argument("--laps", type=int, default=1)
+    parser.add_argument("--lead-in", type=float, default=10.0)
     args = parser.parse_args()
 
     doa = DoA()
     tts = TTS(on_audio=None)
-    audio = {name: tts.synthesize(text) for name, text in POSITIONS + [("done", DONE)]}
+    audio = {name: tts.synthesize(text) for name, text in POSITIONS + [("done", DONE), ("again", AGAIN)]}
     player = Playback()
     player.start()
 
@@ -77,13 +86,18 @@ def main():
         time.sleep(0.2)
         player.wait_idle()
 
+    print(f"Starting in {args.lead_in:g}s...", flush=True)
+    time.sleep(args.lead_in)
     windows = {}
-    for name, _ in POSITIONS:
-        say(name)
-        phase[0] = name
-        start = time.monotonic() - t0
-        time.sleep(args.window if name != "quiet" else 6)
-        windows[name] = (start, time.monotonic() - t0)
+    for lap in range(1, args.laps + 1):
+        for i, (name, _) in enumerate(POSITIONS):
+            say("again" if lap > 1 and i == 0 else name)
+            key = name if args.laps == 1 else f"{name}_{lap}"
+            phase[0] = key
+            start = time.monotonic() - t0
+            print(f"  {key}", flush=True)
+            time.sleep(args.window if name != "quiet" else 6)
+            windows[key] = (start, time.monotonic() - t0)
     say("done")
     stop.set()
     time.sleep(0.3)
@@ -95,14 +109,14 @@ def main():
         w.writerow(["t", "phase", "doa", "speech", "beam0", "beam1", "beam2", "beam3"])
         w.writerows([round(r[0], 2), *r[1:4], *(round(b) for b in r[4:])] for r in rows)
 
-    print(f"{'position':12s} {'n':>3s} {'mean':>5s} {'spread':>6s}   (speech-flagged, last {SETTLED_S:.0f}s)")
+    print(f"{'position':14s} {'n':>3s} {'mean':>5s} {'spread':>6s}   (speech-flagged, last {SETTLED_S:.0f}s)")
     for name, (start, end) in windows.items():
         az = [r[2] for r in rows if r[1] == name and r[3] and r[0] >= end - SETTLED_S]
         if az:
             mean, spread = circ_stats(az)
-            print(f"{name:12s} {len(az):3d} {round(mean) % 360:5d} {spread:6.0f}")
+            print(f"{name:14s} {len(az):3d} {round(mean) % 360:5d} {spread:6.0f}")
         else:
-            print(f"{name:12s}   0     -      -")
+            print(f"{name:14s}   0     -      -")
     print(f"raw readings: {args.out}")
 
 
