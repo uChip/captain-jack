@@ -2031,6 +2031,22 @@ Also reported: after the last exchange the head stayed turned, even
 into Off Watch. In a dry run, Off Watch's first breathing move
 recentres it (yaw 70) about 2.5s after `set_mode`; not yet explained.
 
+**Head stopped moving - hardware, same day.** Chip: in session23's
+second half (he was on Jack's right) the head turned right toward him
+and never moved again - through Kath's turns, the sign-off, Off Watch
+and an idle clip - until Ctrl+C. That full right turn (yaw 20, servo
+50 degrees) was further right than any existing gesture goes. Then
+`check_yaw_direction.py --full`, twice: the first run reset the Arduino
+(the beak's startup move played) and the head still didn't move at all;
+the second, no reset (expected since the HUPCL fix). Servo power off,
+head recentred by hand, power back on: still no movement. A fresh
+firmware start with the beak working and the head dead rules out the
+easing library being stuck - it's the head servos, their power or
+wiring. Chip is disassembling to look. Until it's known what failed,
+treat the full 50-degree turn (`MAX_TURN_DEG`) as suspect.
+`check_yaw_direction.py --axes` moves each head axis alone, for the
+reassembly check.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
