@@ -811,3 +811,11 @@ worked in parallel if priorities change.
       decide how long to keep them (the brief's privacy note). Cap the
       journal size and keep SD-card writes down.
     - The Pi boots a desktop (lightdm, graphical.target) it doesn't need.
+12. Audition every motion definition for fine tuning (Chip, 2026-10-21) -
+    **sequenced last, after all major functionality is working**. Go
+    through `docs/gesture-catalog.yaml` gesture by gesture on the bird,
+    Chip watching. Measure any that grow with `tests/measure_servo_noise.py
+    --catalog` before adopting them. Known candidates: Off Watch breathing
+    "a bit" bigger than +-3 (the original 41deg swing looked exaggerated
+    and measured ~10dB louder; see log.md 4.2), and the small, slow
+    gestures not yet checked for PWM stepping ("Done so far" item 8).
