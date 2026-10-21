@@ -534,16 +534,21 @@ class FakeDoa:
     def direction(self):
         return self.angles.pop(0)
 
+    def recent(self, seconds):
+        return [(1.5, 347, True), (0.2, 347, False)]
+
 
 def check_face_speaker():
     """Each utterance turns the head toward its speaker before the squawk,
     which cocks their way; an unsure direction leaves the head alone. The
-    angle shows in the console stats."""
+    angle shows in the console stats, and --save logs the readings."""
+    import tempfile
     errors = []
     out = []
+    save = Path(tempfile.mkdtemp(prefix="jack-save-"))
     coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
                                      client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
-                                     out=out.append, doa=FakeDoa(-40, None))
+                                     out=out.append, doa=FakeDoa(-40, None), save_dir=save)
     coord.motion = FakeMotion()
     coord.start_session()
     for _ in range(2):
@@ -557,6 +562,9 @@ def check_face_speaker():
     you = [line for line in out if line.startswith("You:")]
     if len(you) != 2 or "doa -40" not in you[0] or "doa -" not in you[1]:
         errors.append(f"DoA angle missing from console stats: {you!r}")
+    log = save / "utt01_doa.csv"
+    if not log.exists() or log.read_text().splitlines()[1:] != ["1.5,347,1", "0.2,347,0"]:
+        errors.append(f"--save didn't log the utterance's DoA readings: {log.read_text() if log.exists() else 'missing'}")
     return errors
 
 

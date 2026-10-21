@@ -35,7 +35,8 @@ Run (in its own terminal - it reads the keyboard):
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
 keyboard (e.g. launched in the background). --save writes every
-utterance heard to DIR as a numbered .wav, for diagnosing mishearings.
+utterance heard to DIR as a numbered .wav, for diagnosing mishearings (with
+DoA on, also uttNN_doa.csv: the direction readings leading up to it).
 --port opens the Arduino for beak-sync + ambient motion (omit to run
 voice-only, as before); --dry-run drives the same Motion/Serial wiring
 without a real port, for testing it when no Arduino is attached.
@@ -456,6 +457,11 @@ class Coordinator:
     def save_utterance(self, samples) -> str:
         self._saved += 1
         path = self.save_dir / f"utt{self._saved:02d}.wav"
+        if self.doa and self.motion:
+            with open(self.save_dir / f"utt{self._saved:02d}_doa.csv", "w") as f:
+                f.write("age_s,board_deg,speech\n")
+                for age, az, speech in self.doa.recent(len(samples) / RATE + 2.0):
+                    f.write(f"{age},{az},{int(speech)}\n")
         with wave.open(str(path), "wb") as w:
             w.setnchannels(1)
             w.setsampwidth(2)

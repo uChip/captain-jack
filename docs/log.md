@@ -1990,6 +1990,26 @@ left; `motion.py`'s never-used `read_doa_azimuth()` stub and
 for Chip to judge on the bird: 50 max turn, 600ms, 20 for the cock's
 side.
 
+**First live watch, same day - turned the wrong way for Kath.** Chip
+spoke from Jack's left: `doa +6`, then unsure - the head barely moved.
+Kath from his right: unsure, then `-97` twice - Jack turned to his
+left; Chip's closing line from the left also read `-97`. Ruled out:
+the head's yaw sign (`tests/check_yaw_direction.py`: the catalog's
+"turned left" really is Jack's left) and a mirrored walk-around (Chip
+stood on Jack's left when told "my left"). So the calibration's sign
+stands and the wrong turn is unexplained so far; `--save` now writes
+each utterance's DoA readings (`uttNN_doa.csv`) to find out.
+Recognition was noticeably worse that run; the room was loud (Chip),
+and two other suspects were checked right after in a quiet room:
+DoA polling doesn't disturb capture (12s off/on/off: no dropouts, level
+within room variation), and `tests/measure_servo_noise.py` at the
+bird's new rear position (new `on_watch_turned`/`still_turned` phases):
+every phase's median -53.0 to -53.8 dBFS against a -53.4 still room -
+the mount still isolates, and holding the head turned 50 doesn't hum.
+The turn move itself is loud (about -33 dBFS for 0.6s), but it happens
+during the squawk, with the mic already shut; swaying while turned had
+slightly louder peaks (p90 -44.7 vs -48.3).
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

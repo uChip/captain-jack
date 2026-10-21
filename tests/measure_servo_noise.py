@@ -26,6 +26,11 @@ Run: venv/bin/python tests/measure_servo_noise.py
 
 --catalog uses FILE in place of docs/gesture-catalog.yaml, to measure a
 gesture change before committing to it.
+
+Two more phase names (2026-10-21, after the head started turning toward
+speakers): on_watch_turned sways with the head turned TURNED_DEG to
+Jack's left, as after facing a speaker; still_turned holds it there
+without moving - a servo holding position under load can hum.
 """
 
 import argparse
@@ -41,9 +46,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import serial_link  # noqa: E402
 from capture import RATE, Capture  # noqa: E402
-from motion import Motion  # noqa: E402
+from motion import Motion, resolve_move  # noqa: E402
 
 MODES = ("on_watch", "off_watch", "asleep")
+TURNED = ("on_watch_turned", "still_turned")
+TURNED_DEG = -50   # Motion.turn_toward() angle: 50 to Jack's left, the furthest it turns
 SETTLE_S = 4.0     # let an in-flight gesture finish before a "still" phase
 BOOT_S = 3.0       # Arduino resets when the serial port opens
 
@@ -66,8 +73,8 @@ def main():
     phases = []
     for item in args.phases.split(","):
         name, secs = item.split(":")
-        if name != "still" and name not in MODES:
-            sys.exit(f"unknown phase {name!r} - use still or one of {MODES}")
+        if name != "still" and name not in MODES + TURNED:
+            sys.exit(f"unknown phase {name!r} - use still or one of {MODES + TURNED}")
         phases.append((name, float(secs)))
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -89,10 +96,14 @@ def main():
     moved = False
     try:
         for i, (name, secs) in enumerate(phases):
-            motion.set_mode(name if name in MODES else "still")
-            if name == "still" and moved:
+            motion.set_mode(name if name in MODES else "on_watch" if name == "on_watch_turned" else "still")
+            if name in TURNED:
+                motion.turn_toward(TURNED_DEG)   # after set_mode, which faces front outside On Watch
+            elif i and phases[i - 1][0] in TURNED:
+                motion._send(resolve_move({"t": 800}, motion.baseline))   # face front again
+            if name.startswith("still") and moved:
                 time.sleep(SETTLE_S)
-            moved = name != "still"
+            moved = not name.startswith("still")
             label[0] = i
             print(f"  phase {i + 1}: {name} {secs:g}s", flush=True)
             time.sleep(secs)
@@ -113,7 +124,7 @@ def main():
         db = frame_db(s.astype(np.float64) / 32768, RATE // 10)
         line = (f"  {i + 1}_{name:10s} p10 {np.percentile(db, 10):6.1f}  median {np.median(db):6.1f}  "
                 f"p90 {np.percentile(db, 90):6.1f}  max {db.max():6.1f}")
-        if name == "still":
+        if name.startswith("still"):
             h = len(db) // 2
             line += f"   (1st half median {np.median(db[:h]):.1f}, 2nd {np.median(db[h:]):.1f})"
         print(line)

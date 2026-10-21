@@ -139,6 +139,14 @@ class DoaTracker:
         with self._lock:
             self._readings.append((self._now(), board_deg, speech))
 
+    def recent(self, seconds):
+        """[(age_s, board_deg, speech)] for the last seconds, oldest first -
+        for coordinator.py --save's per-utterance DoA log."""
+        now = self._now()
+        with self._lock:
+            return [(round(now - t, 2), az, speech) for t, az, speech in self._readings
+                    if t >= now - seconds]
+
     def direction(self):
         """Jack's angle to whoever just finished speaking (+ = his right),
         or None if the recent speech readings are too few or disagree."""
