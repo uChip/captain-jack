@@ -2046,6 +2046,10 @@ wiring. Chip is disassembling to look. Until it's known what failed,
 treat the full 50-degree turn (`MAX_TURN_DEG`) as suspect.
 `check_yaw_direction.py --axes` moves each head axis alone, for the
 reassembly check.
+Partial disassembly: the yaw servo turns freely by hand (no holding
+torque) and doesn't respond to commands - limp, so no power or signal
+reaching it, or its electronics failed, rather than a jam. Further
+disassembly needs the Pi powered down; repairs to follow.
 
 ### 4.10 Idle and Ambient Audio Player
 
