@@ -1010,6 +1010,26 @@ night, sir" (p=0.41) and "Time for a nap, Jack" as "Time for an app
 check" (p=0.33). Haiku still did the right thing with the first; the
 second only reached NAP on a follow-up. Fits session15 favoring base.en.
 
+**Sorbothane pads, 2026-10-21**: towel replaced with four loose Sorbothane
+disks (durometer 30, 1.5in diameter, 0.25in thick) under the bird, no
+lead shot. Chip was concerned they'd be too stiff. `tests/measure_servo_noise.py`, default
+phases (`stt_samples/servo_noise_sorbothane`), 100ms slices, dBFS:
+
+| Run | Still med | Off Watch med / p90 | On Watch med / p90 |
+|---|---|---|---|
+| Bolted (run1) | -47.7 | -31.7 / -23.8 | -31.8 / -24.8 |
+| Mat, no weight (repeat) | -65.2 | -55.2 / -46.7 | -57.5 / -46.7 |
+| Mat + weight | -57.9 | -58.2 / -48.7 | -55.1 / -47.7 |
+| Sorbothane disks | -59.9 | -59.9 / -52.2 | -56.5 / -45.3 |
+
+Passes spec 3.6's first acceptance step: moving phases about as quiet as
+on the mat (-55), 25-28dB below bolted. Off Watch is the quietest yet;
+On Watch's loudest moments are ~1.5-2dB above the mat runs, within the
+spread between the two mat runs themselves. Not too stiff on this
+evidence - no need to halve the disks or add the shot. Next: the voice
+confirmation (session15 script, `--no-hold --save`) and an Off Watch
+wake check.
+
 Decided by Chip, same day: stay on tiny.en for now. Recognition is
 better on base.en, but processing time is already noticeable (first
 audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en
