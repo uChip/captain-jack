@@ -1047,8 +1047,8 @@ identity.md's thirty, and one held a markdown `*you've*` (TTS's
 The disks come out of the bag tacky all through (no peel-off backing),
 so the bird was stuck in place for both checks above - these are the
 final mount's numbers, not a loose-pad trial. Repeat measurement the
-same day (`stt_samples/servo_noise_sorbothane2`), in a slightly noisier
-room: still -56.3/-57.0, Off Watch -54.7 (p90 -51.6), On Watch -54.1
+same day (`stt_samples/servo_noise_sorbothane2`), with the HVAC running
+louder (Chip): still -56.3/-57.0, Off Watch -54.7 (p90 -51.6), On Watch -54.1
 (p90 -50.1) - moving only ~2-3dB above the room, consistent with the
 first run.
 
