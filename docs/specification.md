@@ -513,7 +513,11 @@ diameter, 0.25in thick, no lead shot) passed both steps: moving phases
 dB speech margin, the same as the mat, with wake 4/4 and sleep 1/1 over
 Off Watch motion. The disks are tacky all through (no peel-off backing),
 so those results are already of the final, stuck-in-place mount; a
-repeat measurement the same day agreed. History:
+repeat measurement the same day agreed. **Placement (2026-10-21)**: the
+bird sits at the *rear* of the enclosure top, not centered - centered,
+it partly blocks the array's left-rear mic and skews direction readings
+(see [4.9](#49-direction-of-arrival-doa-reader)). Some blockage remains.
+Servo noise hasn't been re-measured at this position. History:
 [log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt).
 
 ### 3.7 Removed and Legacy Hardware
@@ -1202,11 +1206,10 @@ capacity — see [4.16](#416-runtime-integration-end-to-end-turn)(f)).
 
 History: [log.md#49-direction-of-arrival-doa-reader](log.md#49-direction-of-arrival-doa-reader).
 
-**Status: Reader built, not calibrated or wired in (2026-10-15).**
-`doa.py` reads the board directly over USB; a first walk-around was
-inconclusive (bird loosely placed, household noise) and is to be redone
-after the bird's permanent mount (`tests/doa_walkaround.py`).
-`motion.py`'s `read_doa_azimuth()` is still a stub.
+**Status: Reader built and calibrated (2026-10-21), not wired in.**
+`doa.py` reads the board directly over USB; calibrated by
+`tests/doa_walkaround.py` on the permanent mount. `motion.py`'s
+`read_doa_azimuth()` is still a stub.
 
 **Description**: Pi-side code reading direction from the XVF3800 with
 USB vendor control requests on endpoint 0 (`doa.py`; parameter ids from
@@ -1218,11 +1221,15 @@ rule in `doa.py`'s docstring for non-root access. The board holds its
 last value while nobody's talking, Jack's own speech included, and
 swings round to a new direction over ~1-2s rather than jumping.
 
-**Calibration (pending)**: the board's 0° is not Jack's front. The board
-sits flat with two mics parallel to the enclosure's front edge, and the
-bird, once mounted, faces that edge - so the offset should be a fixed
-multiple of 90°, with direction (which way is left) still to be
-confirmed.
+**Calibration (measured 2026-10-21)**: with the bird at the rear of the
+enclosure (centered, it partly blocks the array's left-rear mic and
+skews every reading), `DOA_VALUE` puts Jack's front at board 84°,
+matching the layout's 90°, with the angle increasing toward Jack's
+right. Settled readings tell left from right 87-100% of the time
+(median error 17°). Behind reads as left or front. The reading lags a
+new talker by 2-6s. Beam 2 of `AEC_AZIMUTH_VALUES` is worse and isn't
+used. Good enough for the squawk cock's left/right; not yet for yaw
+tracking.
 
 **Intended function**: supply a continuous sound-direction cue that pulls
 On Watch's and Off Watch's baseline yaw toward whoever's currently

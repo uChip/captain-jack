@@ -1942,6 +1942,33 @@ front angle (110-124) isn't the multiple of 90 the board's layout
 suggested - either the board's 0 isn't on a mic axis, or the bird and
 board aren't squared to each other the way assumed.
 
+**Third walk-around, same day - bird moved to the rear of the
+enclosure.** Chip found the cause: centered on the enclosure, the bird
+partly blocks the array's left-rear mic. He moved it to the rear edge
+(less blockage, not none); nearest wall 8ft to Jack's left, room open
+15ft to his right. `tests/doa_walkaround.py` now does the fit itself
+(`--analyze` re-runs it; the centered run is kept as
+`stt_samples/doa_walkaround_centered.csv`, this one as `_rear.csv`).
+
+| | centered | rear |
+|---|---|---|
+| `DOA_VALUE` front, board degrees | 124 | **84** |
+| median error | 23 | **17** |
+| left / front-left read as left | 100% / 100% | 94% / 87% |
+| right / front-right read as right | 55% / 76% | **100% / 100%** |
+| beam 2 front / median error | 110 / 37 | 88 / 32 |
+
+The front now matches the board's layout (a multiple of 90, within
+6), and left vs. right is right 87-100% of the time on the settled
+readings. Settled side readings land close to true: left about -100,
+right about +94. Beam 2 got no better (left read as left only 55%), so
+`DOA_VALUE` is the one to use. Limits seen per second: `DOA_VALUE`
+holds the previous direction for 2-6s before snapping to a new talker;
+behind reads as left (-101) or as front - front and back can't be told
+apart for a cock, which doesn't matter; and a stray +120 (board ~204)
+shows up mostly in the first second of a window, right after Jack's
+own instruction - possibly his own voice through the enclosure.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
