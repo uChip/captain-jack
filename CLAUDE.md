@@ -644,15 +644,15 @@ worked in parallel if priorities change.
 2. Dropped 2026-10-19: Minoston. Its one device was removed from the
    Minoston app; Chip will add it to Smart Life or replace it with a
    device Smart Life recognizes.
-3. Build speaker-ID: engine (ECAPA-TDNN) and enrollment flow (standalone
-   script, ~5 utterances averaged, closed to existing household names,
-   embeddings stored separately from `memory.md`) are both designed —
-   see `docs/specification.md` section 4.15. Runtime match-confidence
-   threshold still needs deciding (methodology, not numbers, matching
-   4.1/4.2's treatment). Prototyping and final accuracy validation can
-   both proceed now: the board's mic array is electrically functional
-   and, as of 2026-10-06, mounted in its final acoustic geometry (see
-   Open Issues issue 1).
+3. Build speaker-ID (spec 4.15): engine TitaNet-small via sherpa-onnx
+   (measured over CAM++/ResNet34/ERes2Net, 2026-10-21), `speaker_id.py`
+   + `enroll_speaker.py` built; Chip and Kath enrolled 2026-10-21
+   (voiceprints 0.34 apart). Match rule decided (threshold + margin over
+   the runner-up, biased strict); numbers provisional at 0.40 / 0.10.
+   Next: conversational calibration lines (`tests/speaker_lines.py` -
+   Chip, Kath, and `other` from a video), then wire into
+   `coordinator.py` (score alongside STT, tell Haiku who's speaking when
+   confident).
 4. Flesh out the vendor-executed automation-authoring idea (the "lights off
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.

@@ -619,6 +619,29 @@ when it was last confirmed passing.
 - **Not covered**: accuracy on real household voices through Jack's mic,
   and the threshold numbers themselves - that's live calibration.
 
+### Speaker-ID calibration lines
+
+- **Covers**: [4.15](specification.md#415-speaker-recognition-voice-id)'s
+  runtime match rule - what `MATCH_THRESHOLD`/`MATCH_MARGIN` should be,
+  measured on conversational speech through Jack's mic.
+- **Script**: [`../tests/speaker_lines.py`](../tests/speaker_lines.py)
+- **Run** (manual, real voices; needs Chip and Kath enrolled):
+  `venv/bin/python tests/speaker_lines.py record Chip --port /dev/ttyUSB0`
+  - speak ordinary lines to Jack, Ctrl+C when done; repeat with `Kath`,
+  and with `other` while a video plays near the bird. `--port` sways
+  the head as in On Watch; leave it off for still-head lines. Then
+  `venv/bin/python tests/speaker_lines.py score [--show]`. Clips go to
+  `stt_samples/speaker_lines/<label>_NN.wav` (git-ignored); `score`
+  can be re-run any time, e.g. after a re-enrollment.
+- **Expected**: per label, each voiceprint's median and range, then a
+  right / WRONG / unsure table for thresholds 0.30-0.50 and margins
+  0.05-0.15, the current pair marked `<`. Want: no WRONG at the chosen
+  pair, and as few unsure as that allows.
+- **Last run**: 2026-10-21, `score` only, on a stand-in set (session22
+  as Chip, Kath's enrollment clips, the committed other-voice fixture):
+  12/0/0, 8/0/0, 0/0/1 at 0.40/0.10. Real calibration lines not yet
+  recorded.
+
 ## Home Automation
 
 ### Home-automation tools

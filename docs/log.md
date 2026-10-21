@@ -1151,6 +1151,33 @@ biometric data. `speaker_id.py`'s `identify()` returns a name only if
 the best score reaches `MATCH_THRESHOLD` and beats the runner-up by
 `MATCH_MARGIN` (provisional 0.45 / 0.10, to be calibrated on real
 audio), and never for utterances under 1s.
+
+**Chip and Kath enrolled, threshold lowered to 0.40, same day**: both
+enrollments were consistent (Chip 0.75-0.84, Kath 0.70-0.83, leave-one-
+out), and the two voiceprints scored 0.34 against each other. Cross-
+scoring every clip:
+
+| | vs Chip | vs Kath |
+|---|---|---|
+| Chip's enrollment clips | 0.81-0.88 | 0.23-0.33 |
+| Kath's enrollment clips | 0.21-0.36 | 0.77-0.88 |
+| 161 old session clips (mostly Chip), median | 0.52 | 0.19 |
+
+Chip's old session clips score well below his enrollment clips - read
+sentences vs. conversation, recorded on a different day, and the older
+sessions recorded bolted down with the servos loud (session4 median
+0.36, session12 0.38; sessions 15-22 0.49-0.63). At 0.45, 52 of the 161
+would have been "unsure"; at 0.40, 26, with one named Kath; at 0.35, 17,
+with two named Kath. Every clip scoring nearer Kath than Chip was murky
+(Whisper rejected the highest two, in session4, as low confidence) -
+noise or someone else talking, not a clear line from either. Chose 0.40:
+just above Kath's highest score against Chip's print (0.36), halving the
+misses on Chip; 0.35 gains only on the murky clips. Margin left at 0.10.
+Still provisional: Kath has no conversational clips yet, and
+conversation scores lower than reading. `tests/speaker_lines.py` built
+to record labeled conversational lines (with the head swaying, as in a
+real On Watch) and tabulate right/wrong/unsure for a grid of thresholds
+and margins.
 ### Issue 17
 
 Idle-audio-on-Pi tradeoff: ambient sound depends on the Pi being up,
