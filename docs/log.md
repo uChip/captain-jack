@@ -1059,6 +1059,17 @@ its weak spot. `coordinator.py`'s default flipped; `--no-hold` became
 `--hold`. The code stays for about a week of normal use, then goes if
 recognition holds up.
 
+**Original 41deg Off Watch breathing on the mount, same day** (a data
+point; `measure_servo_noise.py --catalog` with a scratch copy restoring
++13/-28, `stt_samples/servo_noise_sorbothane_breath41`): Off Watch
+median -45.6 dBFS (p90 -39.7), against -54.7 to -59.9 for the +-3
+version on the same mount and -31.7 bolted - the mount still takes ~14dB
+off, but the big swing sits ~10dB above the room (still -55). On Watch
+(unchanged sway) -52.5, matching the earlier runs. Chip's view: the
+reduced motion looks better and the 41deg swing too exaggerated, so +-3
+stays; Off Watch might grow "a bit" - somewhere between, measured the
+same way.
+
 Decided by Chip, same day: stay on tiny.en for now. Recognition is
 better on base.en, but processing time is already noticeable (first
 audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en

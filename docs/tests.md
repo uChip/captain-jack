@@ -162,7 +162,9 @@ when it was last confirmed passing.
 - **Run**: `venv/bin/python tests/measure_servo_noise.py [--port ...]
   [--lead-in 10] [--excursions] [--phases still:15,off_watch:20,on_watch:20,still:15]`.
   **Needs the real bird, a quiet room, and nobody talking.** Off Watch
-  excursions are off unless `--excursions` is given.
+  excursions are off unless `--excursions` is given. `--catalog FILE`
+  measures a scratch copy of `docs/gesture-catalog.yaml` - a gesture
+  change before committing to it.
 - **Expected**: prints per-phase mic levels (median/p10/p90/max of
   100ms slices, dBFS) and saves each phase's audio. No pass/fail - for
   comparison: normal speech at the bird is about −15 to −20 dBFS.

@@ -22,6 +22,10 @@ Run: venv/bin/python tests/measure_servo_noise.py
          [--port /dev/ttyUSB0] [--lead-in 10] [--excursions]
          [--out stt_samples/servo_noise]
          [--phases still:15,off_watch:20,on_watch:20,still:15]
+         [--catalog FILE]
+
+--catalog uses FILE in place of docs/gesture-catalog.yaml, to measure a
+gesture change before committing to it.
 """
 
 import argparse
@@ -31,6 +35,7 @@ import wave
 from pathlib import Path
 
 import numpy as np
+import yaml
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -55,6 +60,7 @@ def main():
     ap.add_argument("--excursions", action="store_true")
     ap.add_argument("--out", default="stt_samples/servo_noise")
     ap.add_argument("--phases", default="still:15,off_watch:20,on_watch:20,still:15")
+    ap.add_argument("--catalog", help="gesture catalog to use in place of the real one")
     args = ap.parse_args()
 
     phases = []
@@ -73,7 +79,8 @@ def main():
     cap = Capture(on_frame=lambda s, t: frames.append((label[0], s)))
     writer = serial_link.SerialWriter(now_fn=time.monotonic, port=args.port)
     writer.start()
-    motion = Motion(writer, on_send=lambda c: None)
+    catalog = yaml.safe_load(Path(args.catalog).read_text()) if args.catalog else None
+    motion = Motion(writer, catalog=catalog, on_send=lambda c: None)
     if not args.excursions:
         motion._next_excursion = float("inf")
     motion.start()
