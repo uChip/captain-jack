@@ -507,6 +507,13 @@ passes if the moving phases measure about as quiet as on the mat
 `coordinator.py --port /dev/ttyUSB0 --no-hold --save DIR`, using the
 session15 script, and an Off Watch wake check.
 
+**Status (2026-10-21)**: four loose Sorbothane 30 disks (1.5in
+diameter, 0.25in thick, no lead shot) passed both steps: moving phases
+-59.9/-56.5 dBFS median (Off/On Watch), and by voice (session22) a 32.7
+dB speech margin, the same as the mat, with wake 4/4 and sleep 1/1 over
+Off Watch motion. Not yet glued. History:
+[log.md#42-speech-to-text-stt](log.md#42-speech-to-text-stt).
+
 ### 3.7 Removed and Legacy Hardware
 
 History: [log.md#37-removed-and-legacy-hardware](log.md#37-removed-and-legacy-hardware).

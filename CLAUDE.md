@@ -714,8 +714,10 @@ worked in parallel if priorities change.
      reserve. Root fix found 2026-10-14 (items 42/43): soft-mounting
      the bird (temporarily on a silicone mat) removes the noise, Off
      Watch included. Next: a permanent soft mount per spec 3.6's
-     design note (physical work, done offline by Chip; test loose pads
-     with `tests/measure_servo_noise.py` before gluing); then decide whether to retire the hold
+     design note (physical work, done offline by Chip). Loose Sorbothane
+     30 disks passed spec 3.6's acceptance test, 2026-10-21 (measured as
+     quiet as the mat; session22 by voice: same 32.7dB margin, wake 4/4,
+     sleep 1/1); gluing is Chip's next step. Then decide whether to retire the hold
      (session15 says recognition is fine without it). tiny.en stays
      the default for now (**Chip's call, 2026-10-14**): base.en is more
      accurate with the noise gone (1/7 vs 3/7 wrong), but its extra

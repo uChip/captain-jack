@@ -1030,6 +1030,20 @@ evidence - no need to halve the disks or add the shot. Next: the voice
 confirmation (session15 script, `--no-hold --save`) and an Off Watch
 wake check.
 
+**Voice check on the Sorbothane disks, same day (session22)**:
+`coordinator.py --port --no-hold --scratch-memory --save`, the session15
+script, then Off Watch wake attempts. Medians per utterance: floor
+-56.4, speech -23.8, margin 32.7 dB (session15 on the mat: -55.5, -23.0,
+32.5). Offline over all 12 utterances: base.en 1 wrong ("How's the
+rest of the curve?" for "crew"); tiny.en 2 (the same line as
+"curtain", and one "That's all for now, Jack" hallucinated into a
+repeat and rejected). Wake fired 4/4 over Off Watch motion (1.00, 0.97,
+1.00, 0.98; threshold 0.65), and "Goodnight, Jack" 1/1 (1.00). Passes
+the second acceptance step - the disks work as well as the mat.
+Side notes from the same run: several replies ran 40-60 words against
+identity.md's thirty, and one held a markdown `*you've*` (TTS's
+`clean_text()` strips it, so not heard).
+
 Decided by Chip, same day: stay on tiny.en for now. Recognition is
 better on base.en, but processing time is already noticeable (first
 audio ~3.0-3.3s after speech ends) and base.en adds ~0.5-1s. If base.en
