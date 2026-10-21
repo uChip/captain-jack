@@ -13,8 +13,16 @@ calibration: which board angle is Jack's front, and which way is left.
 direction), --laps to walk the circle more than once (do the readings
 repeat?), and a lead-in before Jack's first instruction.
 
+After the per-position table it fits Jack's front angle and which way
+the board's angle runs (search over every offset and both directions,
+minimizing the median error) for both the DOA_VALUE reading and beam 2
+of AEC_AZIMUTH_VALUES, and prints how often each position read as left
+or right of front - the 2026-10-21 analysis (docs/log.md 4.9).
+--analyze CSV re-runs just that on an earlier recording.
+
 Run: venv/bin/python tests/doa_walkaround.py [--out stt_samples/doa_walkaround.csv] [--window 12]
          [--laps 2] [--lead-in 10]
+     venv/bin/python tests/doa_walkaround.py --analyze stt_samples/doa_walkaround.csv
 """
 
 import argparse
@@ -52,6 +60,47 @@ def circ_stats(deg):
     return np.degrees(np.arctan2(s, c)) % 360, spread
 
 
+TRUE_DEG = {"front": 0, "front_left": -45, "left": -90, "front_right": 45, "right": 90, "behind": 180}
+
+
+def wrap(x):
+    return (x + 180) % 360 - 180
+
+
+def fit(csv_path):
+    """Fit Jack's front (board degrees) and direction to a recording's
+    settled, speech-flagged readings; print the result per reading."""
+    with open(csv_path) as f:
+        rows = list(csv.DictReader(f))
+    ends = {}
+    for r in rows:
+        ends[r["phase"]] = float(r["t"])
+    for col, label in (("doa", "DOA_VALUE"), ("beam2", "beam 2")):
+        samples = []
+        for r in rows:
+            base = r["phase"] if r["phase"] in TRUE_DEG else r["phase"].rsplit("_", 1)[0]
+            if base in TRUE_DEG and r["speech"] == "1" and float(r["t"]) >= ends[r["phase"]] - SETTLED_S:
+                samples.append((TRUE_DEG[base], float(r[col]), base))
+        if not samples:
+            print(f"{label}: no speech-flagged readings")
+            continue
+        best = None
+        for sign in (1, -1):
+            for off in range(360):
+                err = np.abs([wrap(sign * (m - off) - t) for t, m, _ in samples])
+                if best is None or np.median(err) < best[0]:
+                    best = (np.median(err), sign, off, err)
+        score, sign, off, err = best
+        way = "right" if sign == 1 else "left"
+        print(f"\n{label}: Jack's front = {off}, angle increases toward Jack's {way}; "
+              f"median error {score:.0f}, 75th pct {np.percentile(err, 75):.0f}")
+        for base in TRUE_DEG:
+            rel = np.array([sign * wrap(m - off) for _, m, b in samples if b == base])
+            if len(rel):
+                print(f"  {base:12s} n={len(rel):3d}  median {np.median(rel):5.0f}  "
+                      f"left {np.mean(rel < 0) * 100:3.0f}%  right {np.mean(rel > 0) * 100:3.0f}%")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -59,7 +108,11 @@ def main():
     parser.add_argument("--window", type=float, default=12.0, help="seconds per position")
     parser.add_argument("--laps", type=int, default=1)
     parser.add_argument("--lead-in", type=float, default=10.0)
+    parser.add_argument("--analyze", metavar="CSV", help="only fit an earlier recording")
     args = parser.parse_args()
+    if args.analyze:
+        fit(args.analyze)
+        return
 
     doa = DoA()
     tts = TTS(on_audio=None)
@@ -118,6 +171,7 @@ def main():
         else:
             print(f"{name:14s}   0     -      -")
     print(f"raw readings: {args.out}")
+    fit(args.out)
 
 
 if __name__ == "__main__":
