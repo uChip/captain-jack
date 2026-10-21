@@ -48,12 +48,20 @@ AEC_AZIMUTH_VALUES = (33, 75, 16)  # 4 x float32 radians, one per beam
 
 JACK_FRONT_DEG = 84     # board angle of Jack's front, measured 2026-10-21
 
-# DoaTracker's per-utterance direction - starting values, judged by eye.
+# DoaTracker's per-utterance direction: the value the board held longest
+# while the person spoke. Changed 2026-10-21 from "the newest 8 readings":
+# on session23 the window's start is still stuck on Jack's own reply and
+# its end can swing after the talker stops - 12 right / 4 wrong / 3 unsure
+# became 15 / 2 / 2 (docs/log.md 4.9). Tuned on that one session. If the
+# winner is just what the board already held before they started, it
+# never heard them (twice it was still on Jack's own voice): no answer.
 POLL_HZ = 10
-LOOKBACK_S = 3.0        # utterance end is detected ~0.7s after speech stops
-LAST_READINGS = 8       # the newest speech-flagged readings in the lookback...
-MIN_READINGS = 5        # ...need at least this many...
-MAX_SPREAD_DEG = 25     # ...agreeing this closely (circular std dev), or no answer
+KEEP_S = 35.0           # readings kept - longer than any utterance (Listener caps at 30s)
+SKIP_START_S = 0.5      # the board is still on the previous talker (often Jack)
+SKIP_END_S = 0.5        # ...and can swing after they stop
+MIN_READINGS = 5        # speech-flagged readings needed in between...
+BIN_DEG = 15            # ...grouped into bins this wide...
+MIN_SHARE = 0.4         # ...the biggest bin holding at least this share, or no answer
 
 
 def to_jack(board_deg) -> float:
@@ -107,7 +115,7 @@ class DoaTracker:
     def __init__(self, read=None, now=time.monotonic):
         self._read = read
         self._now = now
-        self._readings = deque(maxlen=int(POLL_HZ * LOOKBACK_S * 2))
+        self._readings = deque(maxlen=int(POLL_HZ * KEEP_S))
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
@@ -147,17 +155,30 @@ class DoaTracker:
             return [(round(now - t, 2), az, speech) for t, az, speech in self._readings
                     if t >= now - seconds]
 
-    def direction(self):
-        """Jack's angle to whoever just finished speaking (+ = his right),
-        or None if the recent speech readings are too few or disagree."""
-        cutoff = self._now() - LOOKBACK_S
+    def direction(self, utterance_s):
+        """Jack's angle to whoever just finished an utterance_s-long
+        utterance (+ = his right): the median of the most common
+        BIN_DEG-wide group of speech-flagged readings taken while they
+        spoke, or None if there are too few, no group dominates, or it's
+        the same direction the board held before they began."""
+        now = self._now()
+        began = now - utterance_s
+        start, end = began + SKIP_START_S, now - SKIP_END_S
         with self._lock:
-            recent = [az for t, az, speech in self._readings if speech and t >= cutoff]
-        recent = recent[-LAST_READINGS:]
-        if len(recent) < MIN_READINGS:
+            angles = [to_jack(az) for t, az, speech in self._readings if speech and start <= t <= end]
+            before = [to_jack(az) for t, az, _ in self._readings if t < began]
+        if len(angles) < MIN_READINGS:
             return None
-        mean, spread = circular_mean(recent)
-        return round(to_jack(mean)) if spread <= MAX_SPREAD_DEG else None
+        groups = {}
+        for a in angles:
+            groups.setdefault(round(a / BIN_DEG), []).append(a)
+        biggest = max(groups.values(), key=len)
+        if len(biggest) < MIN_SHARE * len(angles):
+            return None
+        angle = sorted(biggest)[len(biggest) // 2]
+        if before and abs((angle - before[-1] + 180) % 360 - 180) <= BIN_DEG:
+            return None
+        return round(angle)
 
 
 def main():

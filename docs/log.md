@@ -2010,6 +2010,27 @@ The turn move itself is loud (about -33 dBFS for 0.6s), but it happens
 during the squawk, with the mic already shut; swaying while turned had
 slightly louder peaks (p90 -44.7 vs -48.3).
 
+**Second live watch, session23 (`--save`), same day - "pretty random"
+(Chip).** Protocol: Chip on Jack's left, Kath on his right, two lines
+each in turn (utt01-08), then swapped (utt09-19). Each utterance's
+saved readings showed two patterns. Nearly every window *starts* at
++40 - the board still on Jack's own reply (his speaker), held into the
+next person's speech, even straight after Kath read -45. And the end of
+the window can swing after the talker stops (utt05: -93 for Chip, then
++127, +68 at the very end - no answer). The original rule (newest 8
+speech readings) scored 12 right side / 4 wrong / 3 unsure. Replayed
+offline, "the value the board held longest during the speech, skipping
+the first and last 0.5s" scored 17 / 2 / 0 - but two of those (utt07,
+utt19) were the board still on Jack's own voice, right only by luck.
+Adding "no answer if that's what the board held before they began"
+gives 15 / 2 / 2, with no lucky ones; adopted. The two still wrong
+(utt15/16, Chip on the right) are lines where the board never left
+Kath's earlier -45 at all - no rule on this reading can fix those.
+Tuned on this one session, so the next live run is the real check.
+Also reported: after the last exchange the head stayed turned, even
+into Off Watch. In a dry run, Off Watch's first breathing move
+recentres it (yaw 70) about 2.5s after `set_mode`; not yet explained.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

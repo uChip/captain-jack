@@ -531,7 +531,7 @@ class FakeDoa:
     def __init__(self, *angles):
         self.angles = list(angles)
 
-    def direction(self):
+    def direction(self, utterance_s):
         return self.angles.pop(0)
 
     def recent(self, seconds):

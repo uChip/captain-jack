@@ -483,20 +483,20 @@ class Coordinator:
         if self.motion:
             self.motion.squawk_tilt(FILLER_DELAY_S, len(self.fillers[name]) / RATE, toward)
 
-    def face_speaker(self):
-        """Turn the head toward whoever just finished speaking; returns
-        their angle (+ = Jack's right), or None if DoA isn't sure - then
-        the head stays where it is."""
+    def face_speaker(self, samples):
+        """Turn the head toward whoever just spoke samples; returns their
+        angle (+ = Jack's right), or None if DoA isn't sure - then the
+        head stays where it is."""
         if not (self.doa and self.motion):
             return None
-        angle = self.doa.direction()
+        angle = self.doa.direction(len(samples) / RATE)
         if angle is not None:
             self.motion.turn_toward(angle)
         return angle
 
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
-        angle = self.face_speaker()
+        angle = self.face_speaker(samples)
         self.play_filler(angle)
         saved = self.save_utterance(samples) if self.save_dir else ""
         voice = self._voice_pool.submit(self.speaker_id.identify, samples) if self.speaker_id else None

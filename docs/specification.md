@@ -1232,9 +1232,12 @@ utterance turn; not for continuous yaw tracking.
 **Once-per-utterance turn - built 2026-10-21** (instead of the
 continuous tracking below, which the board's reading can't support):
 `doa.py`'s `DoaTracker` polls at 10Hz; when an utterance ends, it
-reports Jack's angle to the speaker from the newest speech-flagged
-readings of the last 3s (8 at most, at least 5, agreeing within a 25°
-spread), or nothing. `coordinator.py` then calls `Motion.turn_toward()`,
+reports Jack's angle to the speaker as the direction the board held
+longest while they spoke (speech-flagged readings, skipping the first
+and last 0.5s, grouped in 15° bins, the biggest holding at least 40% of
+at least 5), or nothing - including when that's just what the board
+already held before they began (it never heard them). Revised
+2026-10-21 after the first two live runs (log.md 4.9). `coordinator.py` then calls `Motion.turn_toward()`,
 which moves the baseline yaw that way (capped at 50°, one 600ms move -
 the squawk's lead-in silence) so every later gesture plays facing them,
 and the squawk cocks toward them when they're 20° or more to his left
