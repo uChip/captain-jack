@@ -2051,6 +2051,30 @@ torque) and doesn't respond to commands - limp, so no power or signal
 reaching it, or its electronics failed, rather than a jam. Further
 disassembly needs the Pi powered down; repairs to follow.
 
+2026-10-30, repaired (Chip): the old servo didn't respond to a servo
+tester either. Suspected causes: a bad servo, or overload - the yaw
+turntable had no bearing, so the servo shaft carried radial and axial
+load, plus wire drag, at 6V. Fix: replacement B11DLS, a 31.75mm
+NTA1220 thrust bearing between the servo plate and the turntable, servo
+supply lowered to 5.5V, and wires rerouted with slack. (Also since the
+last session: enclosure rebuilt to sit the bird further back from the
+array, an unwired shutdown button added, amp gain up one step (~6dB) at
+Kath's request.) `tests/exercise_yaw.py` swings yaw only, built up in
+steps with Chip watching: +-20/30/40/50 deg, 30 then 100 round trips
+each (1s sweep), all smooth and quiet. Center pointed 3mm right on the
+head's 318mm circumference (~3.4 deg) - `YAW_OFFSET` 30 -> 33 fixed it.
+The 6-8 deg left/right imbalance seen by eye was mostly that offset:
+held at +-30 the ends measured 26mm right / 27mm left (target 26.5),
+at +-50 45mm / 47mm (target 44) - accepted as accurate enough, no
+per-side scaling. No hum held at +-50, so the servo isn't at its stop
+there (the ~120 deg seen on the tester was the tester's limit). Still
+open: a slight mechanical noise at the far left of +-50; with the head
+tipped 10 deg left (`--roll -10`, +-40) a little louder, tipped 10 deg
+right the head visibly caught and jerked free - a wire snagging.
+Stopped there; Chip disassembling to reroute it. Next: repeat both
+tipped runs at +-40, then the roll extremes (`--roll 20`, `--roll -30`)
+at +-40 and +-50.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

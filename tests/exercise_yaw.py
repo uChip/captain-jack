@@ -19,13 +19,18 @@ holding each N seconds, for measuring where the head actually points
 +-30 swing looked to turn 6-8 degrees further right than left, with
 center about 2 degrees right.
 
+--roll N holds the head tipped N degrees (+ = right, - = left, as in
+gesture-catalog.yaml) for the whole run, from the center hold on -
+added 2026-10-30 after a slight mechanical noise at the far left of a
++-50 swing (a wire catching?), to see whether the tip changes it.
+
 Watch and listen for: hesitation or stutter partway through a sweep,
 buzzing or straining at either end, the two ends not matching (one side
 short), drift in where center lands, and the servo case getting warm
 (touch it after a long run).
 
 Run: venv/bin/python tests/exercise_yaw.py [--swing 20] [--sweep-ms 1000]
-     [--dwell-ms 100] [--cycles 30] [--hold SECONDS] [--port /dev/ttyUSB0]
+     [--dwell-ms 100] [--cycles 30] [--hold SECONDS] [--roll N] [--port /dev/ttyUSB0]
      [--lead-in 10] [--dry-run]
 """
 
@@ -39,6 +44,7 @@ import serial_link  # noqa: E402
 from motion import Motion  # noqa: E402
 
 YAW_MIN, YAW_MAX = 0, 130   # nominal yaw range the firmware accepts (spec 4.13)
+ROLL_MIN, ROLL_MAX = 0, 50
 CENTER_HOLD_S = 4.0
 
 
@@ -49,6 +55,7 @@ def main():
     ap.add_argument("--dwell-ms", type=int, default=100, help="pause at each end (default 100)")
     ap.add_argument("--cycles", type=int, default=30, help="left-right-left round trips (default 30)")
     ap.add_argument("--hold", type=float, help="step and hold each position this many seconds instead")
+    ap.add_argument("--roll", type=int, default=0, help="hold the head tipped this much (+ = right)")
     ap.add_argument("--port", default=serial_link.PORT)
     ap.add_argument("--lead-in", type=float, default=10.0)
     ap.add_argument("--dry-run", action="store_true", help="print commands, no serial port")
@@ -58,7 +65,9 @@ def main():
                                       on_send=(lambda c: print(f"    > {c}")) if args.dry_run else None)
     motion = Motion(writer, on_send=lambda c: None)   # not started: no ambient motion
     resting = motion.catalog["resting"]
-    p0, r0, y0 = resting["pitch"], resting["roll"], resting["yaw"]
+    p0, r0, y0 = resting["pitch"], resting["roll"] + args.roll, resting["yaw"]
+    if not ROLL_MIN <= r0 <= ROLL_MAX:
+        sys.exit(f"--roll {args.roll} goes past the roll range: rest {resting['roll']}, allowed {ROLL_MIN}-{ROLL_MAX}")
     left, right = y0 + args.swing, y0 - args.swing
     if left > YAW_MAX or right < YAW_MIN:
         sys.exit(f"--swing {args.swing} goes past the yaw range: center {y0}, "
@@ -73,7 +82,7 @@ def main():
               f"+-{args.swing} deg, {args.hold:g}s each", flush=True)
     else:
         print(f"Starting in {args.lead_in:g}s - swing +-{args.swing} deg (yaw {right}..{left}), "
-              f"{args.sweep_ms}ms per sweep, {args.cycles} cycles", flush=True)
+              f"{args.sweep_ms}ms per sweep, {args.cycles} cycles, roll {args.roll:+d}", flush=True)
     time.sleep(max(args.lead_in, 3.0))   # also covers the Arduino's boot after the port opens
     started = time.monotonic()
     done = 0

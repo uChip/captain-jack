@@ -162,15 +162,23 @@ when it was last confirmed passing.
   2026-10-30). Start small, widen `--swing` once a run is clean.
 - **Script**: [`../tests/exercise_yaw.py`](../tests/exercise_yaw.py)
 - **Run**: `venv/bin/python tests/exercise_yaw.py [--swing 20]
-  [--sweep-ms 1000] [--dwell-ms 100] [--cycles 30] [--port ...]
-  [--lead-in 10] [--dry-run]`. **Needs the real bird, Chip watching.**
-  Holds center 4s first, then swings yaw only (pitch/roll at rest)
-  left/right of center; Ctrl+C stops early, head returns to rest.
+  [--sweep-ms 1000] [--dwell-ms 100] [--cycles 30] [--hold SECONDS]
+  [--roll N] [--port ...] [--lead-in 10] [--dry-run]`. **Needs the real
+  bird, Chip watching.** Holds center 4s first, then swings yaw only
+  (pitch at rest) left/right of center; Ctrl+C stops early, head returns
+  to rest. `--hold N` instead steps center/left/center/right/center, N
+  seconds each, for measuring where the head points. `--roll N` keeps
+  the head tipped N degrees (+ = right) throughout, to check wire
+  clearance.
 - **Expected**: center faces straight ahead; every sweep smooth and
   equal on both sides, no stutter, buzzing or straining at the ends, and
   the servo not hot afterwards. Refuses a swing past the nominal yaw
   range (at most 60 from the resting 70).
-- **Last run**: not yet.
+- **Last run**: 2026-10-30: +-20 to +-50, 30 and 100 round trips each,
+  roll at rest - pass (smooth, quiet; slight noise at far left of +-50).
+  Held ends at +-50: 45mm right / 47mm left on the 318mm circumference
+  (target 44). `--roll -10` +-40 pass; `--roll 10` +-40 **fail** -
+  head caught and jerked free (wire snag), stopped at 14 round trips.
 
 ### Servo motion noise at the mic (manual, measurement)
 
