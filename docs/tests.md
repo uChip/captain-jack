@@ -154,6 +154,24 @@ when it was last confirmed passing.
   (wired 2026-10-07 and checked live by hand, see log.md 4.16 — this
   test only exercises `motion.py` on its own).
 
+### Yaw exercise (manual, watching)
+
+- **Covers**: the yaw mechanism's reliability under repeated motion,
+  after the first yaw servo went limp in session23 and the mechanism was
+  rebuilt (replacement B11DLS, thrust bearing, 5.5V servo supply,
+  2026-10-30). Start small, widen `--swing` once a run is clean.
+- **Script**: [`../tests/exercise_yaw.py`](../tests/exercise_yaw.py)
+- **Run**: `venv/bin/python tests/exercise_yaw.py [--swing 20]
+  [--sweep-ms 1000] [--dwell-ms 100] [--cycles 30] [--port ...]
+  [--lead-in 10] [--dry-run]`. **Needs the real bird, Chip watching.**
+  Holds center 4s first, then swings yaw only (pitch/roll at rest)
+  left/right of center; Ctrl+C stops early, head returns to rest.
+- **Expected**: center faces straight ahead; every sweep smooth and
+  equal on both sides, no stutter, buzzing or straining at the ends, and
+  the servo not hot afterwards. Refuses a swing past the nominal yaw
+  range (at most 60 from the resting 70).
+- **Last run**: not yet.
+
 ### Servo motion noise at the mic (manual, measurement)
 
 - **Covers**: how much the head servos' movement raises the noise heard
