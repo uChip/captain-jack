@@ -13,13 +13,20 @@ center -> left -> right -> left ... with each left<->right sweep taking
 finished before the next starts. Ctrl+C stops early; either way the head
 returns to rest.
 
+--hold N instead visits center, left, center, right, center at --swing,
+holding each N seconds, for measuring where the head actually points
+(e.g. a protractor or a photo from above): written 2026-10-30 when the
++-30 swing looked to turn 6-8 degrees further right than left, with
+center about 2 degrees right.
+
 Watch and listen for: hesitation or stutter partway through a sweep,
 buzzing or straining at either end, the two ends not matching (one side
 short), drift in where center lands, and the servo case getting warm
 (touch it after a long run).
 
 Run: venv/bin/python tests/exercise_yaw.py [--swing 20] [--sweep-ms 1000]
-     [--dwell-ms 100] [--cycles 30] [--port /dev/ttyUSB0] [--lead-in 10] [--dry-run]
+     [--dwell-ms 100] [--cycles 30] [--hold SECONDS] [--port /dev/ttyUSB0]
+     [--lead-in 10] [--dry-run]
 """
 
 import argparse
@@ -41,6 +48,7 @@ def main():
     ap.add_argument("--sweep-ms", type=int, default=1000, help="one left<->right sweep (default 1000)")
     ap.add_argument("--dwell-ms", type=int, default=100, help="pause at each end (default 100)")
     ap.add_argument("--cycles", type=int, default=30, help="left-right-left round trips (default 30)")
+    ap.add_argument("--hold", type=float, help="step and hold each position this many seconds instead")
     ap.add_argument("--port", default=serial_link.PORT)
     ap.add_argument("--lead-in", type=float, default=10.0)
     ap.add_argument("--dry-run", action="store_true", help="print commands, no serial port")
@@ -60,12 +68,23 @@ def main():
         writer.send_head(f"p{p0}r{r0}y{yaw}t{ms}s")
 
     writer.start()
-    print(f"Starting in {args.lead_in:g}s - swing +-{args.swing} deg (yaw {right}..{left}), "
-          f"{args.sweep_ms}ms per sweep, {args.cycles} cycles", flush=True)
+    if args.hold:
+        print(f"Starting in {args.lead_in:g}s - hold center/left/center/right/center at "
+              f"+-{args.swing} deg, {args.hold:g}s each", flush=True)
+    else:
+        print(f"Starting in {args.lead_in:g}s - swing +-{args.swing} deg (yaw {right}..{left}), "
+              f"{args.sweep_ms}ms per sweep, {args.cycles} cycles", flush=True)
     time.sleep(max(args.lead_in, 3.0))   # also covers the Arduino's boot after the port opens
     started = time.monotonic()
     done = 0
     try:
+        if args.hold:
+            for yaw, where in ((y0, "center"), (left, f"LEFT {args.swing}"), (y0, "center"),
+                               (right, f"RIGHT {args.swing}"), (y0, "center")):
+                move(yaw, 1000)
+                print(f"  yaw {yaw} ({where}) - {args.hold:g}s", flush=True)
+                time.sleep(1.0 + args.hold)
+            return
         move(y0, 1000)
         print(f"  center (yaw {y0}) - {CENTER_HOLD_S:g}s: is the head facing straight ahead?", flush=True)
         time.sleep(1.0 + CENTER_HOLD_S)
@@ -86,6 +105,9 @@ def main():
     finally:
         motion.stop()    # back to rest
         writer.stop()
+    if args.hold:
+        print("Back to center.")
+        return
     print(f"Back to center. {max(done, 0)} full cycles in {time.monotonic() - started:.0f}s.")
 
 
