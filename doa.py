@@ -18,7 +18,7 @@ a plain `udevadm trigger` didn't).
 
 Calibrated 2026-10-21 (tests/doa_walkaround.py, bird at the rear of the
 enclosure - centered, it blocks a mic): Jack's front is board 84 degrees
-and the angle increases toward his right. Settled readings tell left
+(190 since the 2026-11-07 enclosure extension - see JACK_FRONT_DEG) and the angle increases toward his right. Settled readings tell left
 from right reliably, but fine angles are rough and the reading lags a
 new talker by 2-6s, so DoaTracker gives one direction per utterance -
 the head turns once, toward whoever just spoke - not continuous
@@ -46,7 +46,11 @@ VERSION = (48, 0, 3)
 DOA_VALUE = (20, 18, 4)            # uint16 degrees, then a speech-detected flag
 AEC_AZIMUTH_VALUES = (33, 75, 16)  # 4 x float32 radians, one per beam
 
-JACK_FRONT_DEG = 84     # board angle of Jack's front, measured 2026-10-21
+# Board angle of Jack's front. 84 on 2026-10-21 (matched the board layout's
+# 90). 190 since 2026-11-07: in the extended enclosure the board reports
+# front near 190 although the array didn't move - provisional, follows what
+# the board reports until the cause is found (docs/log.md 4.9).
+JACK_FRONT_DEG = 190
 
 # DoaTracker's per-utterance direction: the value the board held longest
 # while the person spoke. Changed 2026-10-21 from "the newest 8 readings":

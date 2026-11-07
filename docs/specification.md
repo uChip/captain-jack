@@ -1229,6 +1229,14 @@ new talker by 2-6s. Beam 2 of `AEC_AZIMUTH_VALUES` is worse and isn't
 used. Good enough for the squawk cock's left/right and a once-per-
 utterance turn; not for continuous yaw tracking.
 
+**Recalibrated 2026-11-07 (provisional)**: after the enclosure was
+extended to the rear (array not moved), two walk-arounds put front near
+board 190, about 100° off the layout - the readings are skewed, not the
+board rotated. `JACK_FRONT_DEG` follows the board (190) so the turn picks
+the right side; quilt batting behind the board improved left/right (89-100%)
+but readings stay sticky and front is unreliable. Cause under investigation
+(docs/log.md 4.9).
+
 **Once-per-utterance turn - built 2026-10-21** (instead of the
 continuous tracking below, which the board's reading can't support):
 `doa.py`'s `DoaTracker` polls at 10Hz; when an utterance ends, it
