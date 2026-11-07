@@ -2121,6 +2121,21 @@ only combined with a large left yaw (e.g. after turning toward a speaker).
 `--swing 50 --roll -30` (widest yaw, full left tip) clean - no rubbing or
 sticking. The +-50 swing at full right tip waits for the reprint.
 
+2026-11-07, DoA walk-around baseline in the rebuilt (white PLA) enclosure
+(`doa_walkaround.py --laps 2`, `stt_samples/doa_walkaround_white_enclosure.csv`).
+Chip, watching the array's LED ring through the translucent PLA, found it
+far more chaotic than in the board's small original case and suspects the
+enclosure is reflecting sound back at the array. Fit: front = board 181
+(was 84 on 2026-10-21), median error 4 (was 17). Left/right correct:
+front-left 86%, left 97%, front-right 84%, right 41% (Oct: 87/94/100/100).
+The right miss is one window: right_1 sat at board 88, the same value as
+left, for most of the window. The raw readings latch onto a few values (88,
+~230, 32, 183) and jump between them - front_1 held 32 for ~7s, then 183.
+That fits strong reflections acting as image sources. `JACK_FRONT_DEG`
+(84) not changed: confirm first whether the board was rotated in the new
+enclosure. Next: an A/B with soft material behind the board (towel, felt)
+or the lid off, before buying acoustic foam.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
