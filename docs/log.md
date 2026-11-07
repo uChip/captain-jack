@@ -2118,7 +2118,8 @@ original sculpture isn't symmetrical, hence left/right differ. Fix
 In real use only the right-tilt gestures at full roll (`ex-head-cock`,
 `em-curious-tilt`, `id-preen-motion`, `sl-settle-to-sleep`) reach it, and
 only combined with a large left yaw (e.g. after turning toward a speaker).
-Not yet run: the +-50 swings at the roll extremes.
+`--swing 50 --roll -30` (widest yaw, full left tip) clean - no rubbing or
+sticking. The +-50 swing at full right tip waits for the reprint.
 
 ### 4.10 Idle and Ambient Audio Player
 
