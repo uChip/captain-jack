@@ -49,11 +49,13 @@ from pathlib import Path
 
 import yaml
 
+import serial_link
+
 CATALOG_PATH = Path(__file__).parent / "docs" / "gesture-catalog.yaml"
 WAV_DIR = Path(__file__).parent / "wavFiles"
 
 AXIS_RANGE = {"p": (0, 50), "r": (0, 50), "y": (0, 130)}
-BEAK_RANGE = (0, 60)
+BEAK_RANGE = (0, serial_link.BEAK_RANGE)
 REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to jerk
 
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10

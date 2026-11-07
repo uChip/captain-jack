@@ -48,10 +48,10 @@ HW_VOLUME_MAX = 60
 OUTPUT_GAIN_DB = 0.0
 
 # Beak-sync (spec 4.8): maps the played audio's smoothed RMS envelope to a
-# beak angle (0=open, 60=closed - ServoControl.ino; silence rests closed).
+# beak angle (0=open, BEAK_RANGE=closed - ServoControl.ino; silence rests closed).
 # Starting points, not measured - tune by watching the real bird talk via
 # `venv/bin/python playback.py <clip.wav> --beak`.
-BEAK_RANGE = 60
+from serial_link import BEAK_RANGE   # single Pi-side copy of the firmware constant
 BEAK_FLOOR_DBFS = -40.0   # envelope at or below this: beak fully closed
 BEAK_CEIL_DBFS = -15.0    # envelope at or above this: beak fully open
 BEAK_ATTACK_S = 0.02      # envelope rise time constant - fast, opens promptly

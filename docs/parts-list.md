@@ -26,7 +26,7 @@ start from the real part. Update it whenever a part is swapped or added.
 | Part | Make / model | Qty | Source | Notes |
 |---|---|---|---|---|
 | Head servos (pitch, roll, yaw) | AGFRC B11DLS (metal-gear, digital; 9g class) | 3 | Amazon | Plus 1 spare (used for the 2026-10-14 bench noise test). |
-| Beak servo | GOTECK 2502MG (2g class) | 1 | Amazon | Driven with plain `Servo`, not `ServoEasing` (spec 4.14). |
+| Beak servo | K-Power WK-P0025 (plastic gears) | 1 | | Replaced the GOTECK 2502MG (metal gears) 2026-11-07 for less noise. Powered through a series diode on its own supply line only (5.5V -> 4.9V), also for quieter running. Driven with plain `Servo`, not `ServoEasing` (spec 4.14). |
 | Servo power supply | MP4560 DC-DC Buck Converter Module | 1 | Amazon | On continuously, driven from Arduino VIN pin (12v); servos attached at sketch startup. |
 | Pi-to-Arduino cable | USB A to Micro USB, 6in | 1 | Amazon | USB serial. |
 | Servo controller | SparkFun RedBoard Qwiic (Arduino Uno clone) | 1 | sparkfun.com | USB-serial chip is a CH340 (USB ID 1a86:7523), which shows as `/dev/ttyUSB0`. See spec 3.4. |

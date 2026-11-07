@@ -2075,6 +2075,25 @@ Stopped there; Chip disassembling to reroute it. Next: repeat both
 tipped runs at +-40, then the roll extremes (`--roll 20`, `--roll -30`)
 at +-40 and +-50.
 
+2026-11-07 (Chip): no specific cause of the yaw jerk found. Reprinted the
+head without a couple of protrusions and corners that could snag wires.
+While reprinting, replaced the beak servo: Kath found its noise competing
+with Jack's voice. GOTECK 2502MG (metal gears) -> K-Power WK-P0025
+(plastic gears, expected quieter), and a diode in the beak servo's power
+line only drops it from 5.5V to 4.9V to quiet it further. The new servo's
+size changed the linkage geometry (and the horn likely isn't at the old
+base angle), so Chip retuned by hand: `BEAK_OFFSET` 65 -> 91,
+`BEAK_RANGE` 60 -> 45, `BEAK_OPEN` 0. Pi side followed: `serial_link.py`'s
+`BEAK_RANGE` is now 45 and is the single Pi copy (`playback.py` and
+`motion.py` used to carry their own 60 - the same drift risk spec 4.13
+was corrected for on 2026-10-06). Every `beak:` value in
+`gesture-catalog.yaml` was scaled by 45/60 so each gesture opens the beak
+the same fraction of its travel as before (e.g. Neck Stretch's cracked-open
+20 -> 15, Beak Wipe's nearly-closed 45 -> 34). Not yet checked: beak-sync
+and gestures watched live on the new servo, and whether the quieter servo
+still keeps up with speech at 4.9V. Next: resume yaw testing with the
+tipped `exercise_yaw.py --roll` runs.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

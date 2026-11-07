@@ -86,7 +86,7 @@ when it was last confirmed passing.
   Move's `dp`/`dr`/`dy` against each axis's total travel from
   `arduino/ServoControl/ServoControl.ino` (a loose sanity bound, since
   real validity now depends on the runtime baseline this test can't
-  know), any absolute `beak` value against 0-60, every `t`/`wait_ms` is
+  know), any absolute `beak` value against 0-45, every `t`/`wait_ms` is
   positive, no gesture `id` is duplicated, each mode's `ambient` entry
   actually names a gesture that exists in that mode's list, and every
   Wav's `gesture` reference (e.g. `sl-settle-to-sleep`'s wav pools)

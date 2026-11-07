@@ -63,7 +63,7 @@
 #
 # - Servo baseline constants (arduino/ServoControl/ServoControl.ino):
 #     pitch: resting=35, range=0-50   roll: resting=30, range=0-50
-#     yaw:   resting=70, range=0-130  beak: range=0-60 (0=open, 60=closed)
+#     yaw:   resting=70, range=0-130  beak: range=0-45 (0=open, 45=closed)
 # - Sign convention (still archive/gesture-library-2026-10-10.md never defined one):
 #     pitch: + = up, - = down. roll: + = tipped right, - = tipped left.
 #     yaw: + = turned left, - = turned right.
@@ -130,7 +130,7 @@ resting:
   pitch: 35
   roll: 30
   yaw: 70
-  beak: 60   # closed; fallback baseline before anything else has moved it
+  beak: 45   # closed; fallback baseline before anything else has moved it
 
 ambient:
   # The one gesture per mode the engine defaults to whenever nothing
@@ -318,9 +318,9 @@ on_watch:
   - id: ex-rapid-chatter
     name: "Rapid Chatter — beak pulses + roll"
     moves:
-      - {beak: 3, dr: 10, t: 60, wait_ms: 90}
+      - {beak: 2, dr: 10, t: 60, wait_ms: 90}
       - {beak: 0, dr: 0, t: 60, wait_ms: 90}
-      - {beak: 3, dr: 10, t: 60, wait_ms: 90}
+      - {beak: 2, dr: 10, t: 60, wait_ms: 90}
       - {beak: 0, dr: 0, t: 60, wait_ms: 90}
 
   - id: ex-look-away
@@ -400,8 +400,8 @@ off_watch:
   - id: id-neck-stretch
     name: "Neck Stretch — slow held extension, beak cracked open, then release"
     moves:
-      - {dp: 25, beak: 20, t: 700, wait_ms: 730}
-      - {dp: 0, beak: 60, t: 500, wait_ms: 530}
+      - {dp: 25, beak: 15, t: 700, wait_ms: 730}
+      - {dp: 0, beak: 45, t: 500, wait_ms: 530}
 
   - id: id-alert-perk
     name: "Alert Perk — sharp upward pitch lift, brief hold, settle"
@@ -412,18 +412,18 @@ off_watch:
   - id: id-beak-wipe
     name: "Beak Wipe — miming wiping the beak on a perch"
     moves:
-      - {dp: -8, beak: 15, t: 100, wait_ms: 130}
-      - {beak: 45, t: 100, wait_ms: 130}
-      - {beak: 15, t: 100, wait_ms: 130}
-      - {dp: 0, beak: 60, t: 150, wait_ms: 180}
+      - {dp: -8, beak: 11, t: 100, wait_ms: 130}
+      - {beak: 34, t: 100, wait_ms: 130}
+      - {beak: 11, t: 100, wait_ms: 130}
+      - {dp: 0, beak: 45, t: 150, wait_ms: 180}
 
   - id: id-soft-chatter
     name: "Soft Chatter — quiet beak flutter, minimal head motion, self-talk"
     moves:
-      - {beak: 8, t: 80, wait_ms: 110}
-      - {beak: 12, t: 80, wait_ms: 110}
-      - {beak: 8, t: 80, wait_ms: 110}
-      - {beak: 12, t: 80, wait_ms: 110}
+      - {beak: 6, t: 80, wait_ms: 110}
+      - {beak: 9, t: 80, wait_ms: 110}
+      - {beak: 6, t: 80, wait_ms: 110}
+      - {beak: 9, t: 80, wait_ms: 110}
 
   - id: id-doze-flicker
     name: "Doze Flicker — head droops, catches itself, settles"
@@ -455,28 +455,28 @@ asleep:
   - id: sl-snore
     name: "Snore (Asleep) — slow pitch lift with a bit of beak movement, then settle back"
     moves:
-      - {dp: 8, beak: 20, t: 900, wait_ms: 930}
-      - {dp: 0, beak: 60, t: 600, wait_ms: 630}
+      - {dp: 8, beak: 15, t: 900, wait_ms: 930}
+      - {dp: 0, beak: 45, t: 600, wait_ms: 630}
 
   - id: sl-snort
     name: "Snort (Asleep) — revised 2026-09-20: twitch, jerk pitch up, beak flap, resettle"
     moves:   # replaces the original soft-chatter-derived version; kept the id, not the shape
       - {dy: 2, dr: 2, t: 60, wait_ms: 90}
       - {dp: 10, t: 80, wait_ms: 110}
-      - {dp: 5, beak: 15, t: 100, wait_ms: 130}
-      - {dp: 0, dy: 0, dr: 0, beak: 60, t: 150, wait_ms: 180}
+      - {dp: 5, beak: 11, t: 100, wait_ms: 130}
+      - {dp: 0, dy: 0, dr: 0, beak: 45, t: 150, wait_ms: 180}
 
   - id: sl-waking-up
     name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
     moves:
-      - {beak: 10, dr: 5, dp: 5, dy: 5, t: 200, wait_ms: 230}
-      - {beak: 60, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+      - {beak: 8, dr: 5, dp: 5, dy: 5, t: 200, wait_ms: 230}
+      - {beak: 45, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
 
   - id: sl-settle-to-sleep
     name: "Settle to Sleep — yawn, release the stretch, tuck (head-under-wing stereotype, can't really get there), droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
     moves:   # deliberately doesn't return dp or dr to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
       - {beak: 0, dp: 12, t: 600, wait_ms: 630}
-      - {beak: 60, dp: 5, t: 400, wait_ms: 430}
+      - {beak: 45, dp: 5, t: 400, wait_ms: 430}
       - {dr: 20, dy: -6, dp: 2, t: 600, wait_ms: 630}   # revised 2026-09-20: bigger, more deliberate roll — reads as tucking toward one side
       - {dr: 20, dy: 0, dp: -12, t: 800, wait_ms: 830}   # roll holds at the tuck; only pitch/yaw finish settling
 

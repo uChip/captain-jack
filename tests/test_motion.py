@@ -22,7 +22,7 @@ import motion  # noqa: E402
 import serial_link  # noqa: E402
 
 TEST_CATALOG = {
-    "resting": {"pitch": 35, "roll": 30, "yaw": 70, "beak": 60},
+    "resting": {"pitch": 35, "roll": 30, "yaw": 70, "beak": 45},
     "ambient": {"on_watch": "ow-amb", "off_watch": "amb", "asleep": "sl-amb"},
     "doa_yaw_tracking": {"on_watch": True, "off_watch": True, "asleep": False},
     "excursion_interval_seconds": {"off_watch": [0, 0]},   # always due - deterministic
@@ -77,10 +77,10 @@ def check_resolve_move():
     if "p50" not in cmd:
         errors.append(f"pitch delta should clamp to range max, got {cmd}")
 
-    # beak is absolute (0-60), not baseline-relative, and clamps too.
+    # beak is absolute (0-BEAK_RANGE), not baseline-relative, and clamps too.
     cmd = motion.resolve_move({"beak": 999, "t": 10, "wait_ms": 10}, baseline)
-    if not cmd.startswith("b60p"):
-        errors.append(f"beak should clamp to 60 and lead the command, got {cmd}")
+    if not cmd.startswith(f"b{motion.BEAK_RANGE[1]}p"):
+        errors.append(f"beak should clamp to {motion.BEAK_RANGE[1]} and lead the command, got {cmd}")
 
     # Omitting beak must not emit a b<N> token at all.
     cmd = motion.resolve_move({"t": 10, "wait_ms": 10}, baseline)
@@ -291,7 +291,7 @@ def check_stop_returns_to_rest():
     m = motion.Motion(writer, catalog=TEST_CATALOG)
     m.baseline.pitch = 10   # drifted away from resting
     m.stop()
-    want = f"b60p35r30y70t{motion.REST_ON_STOP_MS}s"
+    want = f"b{motion.BEAK_RANGE[1]}p35r30y70t{motion.REST_ON_STOP_MS}s"
     if writer.sent[-1:] != [want]:
         errors.append(f"stop() should end with {want!r}, sent {writer.sent!r}")
 

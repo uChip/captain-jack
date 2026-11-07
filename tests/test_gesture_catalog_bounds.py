@@ -15,13 +15,16 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+import serial_link  # noqa: E402
+
 CATALOG = Path(__file__).parent.parent / "docs" / "gesture-catalog.yaml"
 
 # Total travel per axis, from arduino/ServoControl/ServoControl.ino as
 # tuned 2026-09-20 - a delta can't exceed this even before baseline is
 # known, since baseline itself is always within [0, range].
 AXIS_SPAN = {"dp": 50, "dr": 50, "dy": 130}
-BEAK_RANGE = (0, 60)
+BEAK_RANGE = (0, serial_link.BEAK_RANGE)
 LIBS = ("on_watch", "off_watch", "asleep")
 
 
