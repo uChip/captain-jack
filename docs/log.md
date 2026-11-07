@@ -2151,7 +2151,23 @@ left read as right nearly every time (left 0% in both new runs), so the
 turn-toward-speaker feature would currently turn the wrong way. Cause of
 the ~100 deg shift unknown (the enclosure extension and the bird moved
 back are the only changes). Pi at 53.8C, never throttled, with the
-batting in. Next: an A/B with soft material behind the board (towel, felt)
+batting in. `JACK_FRONT_DEG` set to 190 provisionally so the turn
+picks the right side.
+
+Same day, looking for the cause. The enclosure is upside down from a
+normal box: the Pi, Arduino and XVF3800 mount to the underside of the top
+face, with the array's mics facing up through 2mm holes in it, as in
+Seeed's original case. The bird sits on that top face on the Sorbothane
+disks. The removable face is the bottom (amp and downward-facing speaker),
+so taking it off doesn't expose the mics. The October readings matched the
+board layout in the gray enclosure; what's new is the reprinted top face
+(gray case since discarded) and the bird further back. Check: a 0.1mm
+sheet of paper slides between a mic's foam ring and the top face, so the
+rings don't seal and every hole may open into one shared gap over the
+board - a likely cause of the skewed, sticky readings. Fix planned
+(Chip, power off): take the board out and file its mounts down so the
+rings are compressed against the top face, then rerun
+`doa_walkaround.py --laps 2`, expecting front back near 84. Next: an A/B with soft material behind the board (towel, felt)
 or the lid off, before buying acoustic foam.
 
 ### 4.10 Idle and Ambient Audio Player
