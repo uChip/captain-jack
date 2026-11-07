@@ -2105,6 +2105,21 @@ the original 0-60 values by 48/60 (Neck Stretch 20 -> 16, Beak Wipe 45 ->
 36, closed 60 -> 48). Uploaded; closed fully after a reset and after the
 wiggle (ending on `b48` from open), Chip watching.
 
+Same day, yaw retested on the reprinted head (`exercise_yaw.py --swing
+40`, 30 round trips each, Chip watching): `--roll -10` clean (the slight
+far-left noise from 2026-10-30 gone), `--roll 10` clean (the 2026-10-30
+snag gone), `--roll -30` (full left tip) clean. `--roll 20` (full right
+tip, roll 50) rubs: the neck rubs the body through the last quarter of the
+turn to the left (a half-speed rerun, `--sweep-ms 2000`, pinned it there),
+minor; and coming back upright it sticks, because the bottom of the neck
+has risen above the collar and catches on it on the way down. Chip: the
+original sculpture isn't symmetrical, hence left/right differ. Fix
+(deferred, Chip): another head reprint with more clearance on that side.
+In real use only the right-tilt gestures at full roll (`ex-head-cock`,
+`em-curious-tilt`, `id-preen-motion`, `sl-settle-to-sleep`) reach it, and
+only combined with a large left yaw (e.g. after turning toward a speaker).
+Not yet run: the +-50 swings at the roll extremes.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

@@ -832,3 +832,10 @@ worked in parallel if priorities change.
     "a bit" bigger than +-3 (the original 41deg swing looked exaggerated
     and measured ~10dB louder; see log.md 4.2), and the small, slow
     gestures not yet checked for PWM stepping ("Done so far" item 8).
+13. Head reprint for right-tilt clearance (Chip, 2026-11-07 - deferred).
+    With the head tipped fully right (roll 50) and turned well left, the
+    neck rubs the body, and the bottom of the neck rises above the collar
+    and catches on it coming back upright. Left side clean (the sculpture
+    isn't symmetrical). Reprint the head with more clearance on that side,
+    then rerun `tests/exercise_yaw.py --swing 40 --roll 20`. See
+    `docs/log.md`'s 4.9 history (2026-11-07).
