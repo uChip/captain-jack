@@ -2135,7 +2135,23 @@ That fits strong reflections acting as image sources. Chip: the array
 wasn't moved or rotated (the enclosure was only extended to the rear), so
 the front shift from 84 to 181 isn't real - the enclosure change or the
 latching is skewing the fit. `JACK_FRONT_DEG` stays 84. The enclosure has
-2mm holes over each mic, modeled on the original case. Next: an A/B with soft material behind the board (towel, felt)
+2mm holes over each mic, modeled on the original case.
+
+Same day, rerun with four layers of Kath's quilt batting taped over the
+back of the board (the board's own foam ring around each mic against the
+case top, gap not measured; `stt_samples/doa_walkaround_batting.csv`).
+Left/right correct against its own fit (front = 194): front-left 100%,
+left 100%, front-right 89%, right 100% - no mirrored window this time,
+better than the baseline. Still sticky (holds one value for seconds), with
+little resolution (left and front-left both read 132), and front itself is
+unreliable (front_1 sat at 91-121, front_2 at 228). Important: both new
+runs fit a front near 190, not the October 84, although the array didn't
+move. Scored against the shipped `JACK_FRONT_DEG = 84`, speakers on Jack's
+left read as right nearly every time (left 0% in both new runs), so the
+turn-toward-speaker feature would currently turn the wrong way. Cause of
+the ~100 deg shift unknown (the enclosure extension and the bird moved
+back are the only changes). Pi at 53.8C, never throttled, with the
+batting in. Next: an A/B with soft material behind the board (towel, felt)
 or the lid off, before buying acoustic foam.
 
 ### 4.10 Idle and Ambient Audio Player
