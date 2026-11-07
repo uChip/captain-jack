@@ -2131,9 +2131,11 @@ front-left 86%, left 97%, front-right 84%, right 41% (Oct: 87/94/100/100).
 The right miss is one window: right_1 sat at board 88, the same value as
 left, for most of the window. The raw readings latch onto a few values (88,
 ~230, 32, 183) and jump between them - front_1 held 32 for ~7s, then 183.
-That fits strong reflections acting as image sources. `JACK_FRONT_DEG`
-(84) not changed: confirm first whether the board was rotated in the new
-enclosure. Next: an A/B with soft material behind the board (towel, felt)
+That fits strong reflections acting as image sources. Chip: the array
+wasn't moved or rotated (the enclosure was only extended to the rear), so
+the front shift from 84 to 181 isn't real - the enclosure change or the
+latching is skewing the fit. `JACK_FRONT_DEG` stays 84. The enclosure has
+2mm holes over each mic, modeled on the original case. Next: an A/B with soft material behind the board (towel, felt)
 or the lid off, before buying acoustic foam.
 
 ### 4.10 Idle and Ambient Audio Player
