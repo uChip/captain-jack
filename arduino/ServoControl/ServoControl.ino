@@ -17,7 +17,7 @@
   Servos are not powered up or moved unless SERVO is defined.
 
   Extracts key characters followed by integers (variable length integer strings terminated by any non-numeric character):
-    b<BB>  BB = integer angles in the range of 0 = beak open to 45 = beak fully closed
+    b<BB>  BB = integer angles in the range of 0 = beak open to 48 = beak fully closed
     p<PP>  PP = integer angles in the range of 0 = head tipped down to 50 = head tipped up
     r<RR>  RR = integer angles in the range of 0 = head tipped to left to 50 = head tipped to right
     y<YY>  YY = integer angles in the range of 0 = head turned to right to 130 = head turned to left
@@ -48,7 +48,7 @@
     p50s\n
 
   Examples of range adjustments (showing b but p, r and y work the same)
-    b75 - parsed as b45
+    b75 - parsed as b48
     bX - where X is any non-numeric char except '-' - parsed as b0
     b1025 - parsed as b1
     b-7 - parsed as b7
@@ -82,7 +82,7 @@ const uint8_t SERVO_BEAK_PIN = 11;
 
 // --- BEAK SERVO CONFIGURATION ---
 const unsigned int BEAK_OPEN = 0;
-const unsigned int BEAK_RANGE = 45;
+const unsigned int BEAK_RANGE = 48;
 const unsigned int BEAK_OFFSET = 91;
 
 // --- HEAD SERVOS CONFIGURATION ---

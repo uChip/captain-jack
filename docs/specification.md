@@ -1100,7 +1100,7 @@ notion of where that audio came from.
 
 **Intended function**: produce a live beak-position value from audio
 amplitude and stream it to the Arduino as `b<BB>` commands (nominal
-0–45, 0 = open / 45 = closed — rest is closed — see
+0–48, 0 = open / 48 = closed — rest is closed — see
 [4.13](#413-pi-to-arduino-serial-link)). Each 20ms block's dBFS level
 feeds a one-pole attack/release envelope follower (fast attack, ~20ms,
 so the beak opens promptly; slower release, ~100ms, so it doesn't
@@ -1618,7 +1618,7 @@ single opaque `GESTURE <id>`.
   - **Move**: signed per-axis deltas (`dp`/`dr`/`dy`, each relative to a
     live **baseline** pose, not a fixed resting position — see below;
     omitted = 0, i.e. matches baseline on that axis), an optional
-    absolute `beak` value (0-45; omitted = don't touch the beak, which is
+    absolute `beak` value (0-48; omitted = don't touch the beak, which is
     normally RMS-driven, not gesture-driven), a duration `t` (ms), and a
     `wait_ms` before advancing to the next Move or exiting the gesture.
     Not a literal Arduino command string — see "Baseline and
@@ -1742,7 +1742,7 @@ upstream sensor relay in the new design):
   as the superseded fixed-width design, just without the fixed width:
   - **Beak position**: `b<BB>` — moves the beak servo immediately on
     receipt, no easing (per [Open Issues](#5-open-issues) issue 8). `BB`
-    is a nominal 0–45 value (0 = open, 45 = fully closed; rest is
+    is a nominal 0–48 value (0 = open, 48 = fully closed; rest is
     closed), clamped, then offset in firmware onto the physical PWM
     range.
   - **Head motion axes**: `p<PP>` (nominal 0–50), `r<RR>` (nominal 0–50),
@@ -1764,7 +1764,7 @@ upstream sensor relay in the new design):
     sync, unlike the fixed-width proposal it replaced.
   - Per-axis nominal ranges and their offsets onto the physical PWM range
     are pinned by the constants in
-    `arduino/ServoControl/ServoControl.ino`: beak 0–45 → 91–136, pitch
+    `arduino/ServoControl/ServoControl.ino`: beak 0–48 → 91–139, pitch
     0–50 → 70–120, roll 0–50 → 55–105, yaw 0–130 → 33–163. (Corrected
     2026-10-06 — this text had drifted from the shipped firmware's actual
     constants; the firmware itself was never wrong. Updated 2026-11-07 for

@@ -22,7 +22,7 @@ import motion  # noqa: E402
 import serial_link  # noqa: E402
 
 TEST_CATALOG = {
-    "resting": {"pitch": 35, "roll": 30, "yaw": 70, "beak": 45},
+    "resting": {"pitch": 35, "roll": 30, "yaw": 70, "beak": 48},
     "ambient": {"on_watch": "ow-amb", "off_watch": "amb", "asleep": "sl-amb"},
     "doa_yaw_tracking": {"on_watch": True, "off_watch": True, "asleep": False},
     "excursion_interval_seconds": {"off_watch": [0, 0]},   # always due - deterministic

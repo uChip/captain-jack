@@ -69,9 +69,9 @@ ARDUINO_BOOT_DELAY_S = 5.0
 # arduino-cli pulses DTR itself. With no reset on later opens the
 # ARDUINO_BOOT_DELAY_S wait is usually unneeded; harmless, so kept.
 
-# ServoControl.ino: 0 = beak open, 45 = beak fully closed (rest). The one
+# ServoControl.ino: 0 = beak open, 48 = beak fully closed (rest). The one
 # Pi-side copy - playback.py, motion.py and tests import it from here.
-BEAK_RANGE = 45
+BEAK_RANGE = 48
 
 # Sent once, right after boot, before any real beak/head command: `t100`
 # only stages a move duration (see spec 4.13) - it never triggers a move

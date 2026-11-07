@@ -2094,6 +2094,17 @@ and gestures watched live on the new servo, and whether the quieter servo
 still keeps up with speech at 4.9V. Next: resume yaw testing with the
 tipped `exercise_yaw.py --roll` runs.
 
+Same day, watched live (`playback.py --beak`, two `am_santa` clips): in
+sync, opening tracks volume, servo audibly quieter. But the beak rested
+slightly open at the end although the last commands were `b45`. The
+`serial_link.py` wiggle (ending on `b45` from fully open) and a fresh
+`setup()` after reset both left the same small gap, so 45 was just short
+of closed, not deadband from approaching the open side. `BEAK_RANGE` 45 ->
+48 (Chip, firmware; Pi side matched). Catalog `beak:` values re-scaled from
+the original 0-60 values by 48/60 (Neck Stretch 20 -> 16, Beak Wipe 45 ->
+36, closed 60 -> 48). Uploaded; closed fully after a reset and after the
+wiggle (ending on `b48` from open), Chip watching.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
