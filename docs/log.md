@@ -2295,6 +2295,30 @@ turn until he starts to speak." The turn is computed only after the
 utterance ends (Listener end-pointing), then made during the squawk's
 lead-in silence.
 
+**Early turn, offline, same day.** Prototype rule replayed on session25's
+stream: partway through the line, turn once the board has moved off its
+value at the start of the line and held one direction (all readings
+within 15 deg) for N readings, unless that's where Jack's sound left it;
+the end-of-line rule then corrects by more than 15 deg if needed. N=5
+(0.5s): 8 of 8 scored lines right, none wrong, fired 0.6-2.0s into the
+line (3.7s on utt06, just after Chip moved - the board's lag). Today's
+turn comes 2.5-8s after the line starts. utt07 (Chip moving while
+talking) turned early to his new spot (-31) and was then pulled back to
+front by the end-of-line rule; utt08 turned -31 early, then on to -50.
+N=8 also 8/0, slower; N=10 7/0; N=15 5/0. One session, scored on itself.
+
+**Turn noise, same day** (`tests/record_turn_noise.py`, quiet room
+-55.8 dBFS): turns peak at -24 to -33 dBFS (first second -29 to -38), gone
+within ~1s; the 1200ms turn is only 2-3dB quieter than 600ms. Mixed into
+session25's lines 1.2s in (`tests/turn_noise_stt.py`, tiny.en, compared
+with each line's own clean transcript): 30 and 50 deg turns changed 2 of
+118 words, both on lines that were already garbled ("Captain Chew" ->
+"Captain Jack", "right jet" -> "right chest"), no new rejects, no voice
+lost, voice scores down 0.01-0.05. The 100 deg side-to-side swing changed
+9 of 118 at 600ms ("in front of you" -> "in trouble for you", "on your
+right" -> "on your side") and 10 at 1200ms - a slower turn doesn't help;
+how far the head travels does. One voice match lost at 600ms.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

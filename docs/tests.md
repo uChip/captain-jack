@@ -633,6 +633,39 @@ when it was last confirmed passing.
 - **Not covered**: how a turn looks on the bird (a live watch), and
   sessions from before 2026-11-08 (no stream logged).
 
+### Head-turn noise at the mic
+
+- **Covers**: [4.9](specification.md#49-direction-of-arrival-doa-reader) -
+  how loud Jack's turn toward a speaker is at the mic, for turning while
+  they're still talking.
+- **Script**: [`../tests/record_turn_noise.py`](../tests/record_turn_noise.py)
+- **Run**: `venv/bin/python tests/record_turn_noise.py [--port /dev/ttyUSB0]
+  [--turn-ms 600,1200]` (manual: real bird, quiet room, nobody talking;
+  10s lead-in; the head moves).
+- **Expected**: a quiet-room level, then per turn the loudest 100ms and
+  the first/last second's median; one wav per turn in
+  `stt_samples/turn_noise/`. 2026-11-08: quiet -55.8 dBFS; turns peak
+  -24 to -33, gone within ~1s; 1200ms only 2-3dB quieter than 600ms.
+- **Last confirmed**: 2026-11-08.
+- **Not covered**: what the noise does to recognition (next entry).
+
+### Head-turn noise vs recognition
+
+- **Covers**: [4.9](specification.md#49-direction-of-arrival-doa-reader),
+  [4.2](specification.md#42-speech-to-text-stt), [4.15](specification.md#415-speaker-recognition) -
+  whether a turn during a line hurts STT or speaker-ID.
+- **Script**: [`../tests/turn_noise_stt.py`](../tests/turn_noise_stt.py)
+- **Run**: `venv/bin/python tests/turn_noise_stt.py stt_samples/session25
+  [--turns WAV,...] [--at 1.2]` (no hardware; needs a `--save` session
+  and `record_turn_noise.py`'s wavs).
+- **Expected**: each line clean and with each turn mixed in, marked where
+  the transcript, rejection or voice match changed, then a summary.
+  2026-11-08 (session25, turn at 1.2s, tiny.en): 30 and 50 degree turns
+  2/118 word changes (both on already-garbled lines), the 100 degree
+  side-to-side swing 9/118 at 600ms and 10/118 at 1200ms, no new rejects.
+- **Last confirmed**: 2026-11-08.
+- **Not covered**: base.en; a turn at other points in the line.
+
 ## Wake Word Spotter
 
 ### Spotter mechanism (`WakeSpotter`)
