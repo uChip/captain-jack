@@ -1281,7 +1281,13 @@ own sound disarms it. When the line ends, the end-of-line direction
 above finishes or corrects the turn during the squawk, and the squawk
 cocks toward the early direction if the end-of-line one is unsure.
 Replayed on session25: early turns 8 of 8 right, 0.5-1.7s into the line
-(about 3s just after the person moved). log.md 4.9.
+(about 3s just after the person moved). Live (session26) Chip found it
+"more life-like"; a stray noise turning the head is lifelike too, as long
+as the next line recovers. Since then: no early direction more than 4s
+into the speech, and "Jack's sound moved the board" means it moved off
+both its value when that sound started and the person's last spot, so
+someone speaking up between the squawk and the reply still gets turned
+toward. log.md 4.9.
 
 **Intended function (original design; continuous tracking not built -
 see above)**: supply a continuous sound-direction cue that pulls

@@ -2358,6 +2358,20 @@ moving) turned early to front, then -32 at the end. Problems:
 Jack's own sound read +128, +166, +104, -169 and +47 at different mic
 reopens - still all over the place.
 
+Chip: "This run felt more life-like. A random noise causing a turn even in
+conversation is also life-like, but should recover." Two fixes, same day:
+`EARLY_WINDOW_S` 4.0 - no early direction more than 4s into the speech
+(utt01's came at 14s); and `jack_done()` now counts the board as moved by
+Jack's sound only if it moved off both its value at `jack_started()` and
+the person's last spot (utt02: Chip's own move between the squawk and the
+reply had been taken for Jack's sound). Comparing with the start alone
+lost utt09 (the reply moved the board back to Chip's spot), hence both.
+Replay: session26 utt01 no early turn, utt02 +1 (was none), nothing else
+changed; session25 unchanged. session26's stream committed as
+`tests/data/doa_session26_stream.csv` and replayed by `test_doa.py`.
+Recovery after a noise turn is the next line's turn; reverting the head
+when STT rejects a line as noise was considered and not built.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

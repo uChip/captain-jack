@@ -606,8 +606,12 @@ when it was last confirmed passing.
   found where they are now; any place Jack's sound moved the board since
   the last line is refused; stream log; session25 replay 8 right / 0
   wrong / 1 none, end-of-line and early; early direction only after
-  speech starts, once settled, once per line, never for Jack's own
-  sound`. Includes the patterns seen live in session23, 24 and
+  speech starts, once settled, once per line, within EARLY_WINDOW_S,
+  never for Jack's own sound; someone speaking between Jack's sounds
+  isn't his sound; session26 replay`. session26's stream
+  (`tests/data/doa_session26_stream.csv`) is replayed too: end-of-line 8
+  right / 1 wrong, early 5 / 1 / 3 none (the wrong one is the board
+  reading -26 for "in front"). Includes the patterns seen live in session23, 24 and
   25, and replays session25's logged stream
   (`tests/data/doa_session25_stream.csv`) through `doa_replay.py`.
 - **Last confirmed passing**: 2026-11-08.

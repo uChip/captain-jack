@@ -168,6 +168,21 @@ def main():
     if counts != {"right": 8, "wrong": 0, "none": 1}:
         errors.append(f"session25 replay, early turns: {counts}, per line {marks}")
 
+    # session26 (the first live early turns): Chip's spots where he said
+    # them. utt07 is the board itself reading -26/-30 for "in front". The two
+    # fixes that followed it: no early turn 14s into utt01's 16s non-speech
+    # sound (EARLY_WINDOW_S), and utt02 turns to Chip (+1) although he spoke
+    # between the squawk and Jack's reply (jack_done vs jack_started).
+    results = doa_replay.replay(Path(__file__).parent / "data" / "doa_session26_stream.csv")
+    expect = doa_replay.parse_expect("-,front,left,left,left,front_right,front,front,front,-,-,-,-,front,-")
+    end = doa_replay.score(results, expect)[0]
+    early = doa_replay.score(results, expect, which="early")[0]
+    if end != {"right": 8, "wrong": 1, "none": 0} or early != {"right": 5, "wrong": 1, "none": 3}:
+        errors.append(f"session26 replay: end {end}, early {early}")
+    if results[0].early is not None or results[1].end != 1:
+        errors.append(f"session26 utt01 should have no early turn ({results[0].early}) "
+                      f"and utt02 should turn to +1 ({results[1].end})")
+
     # Early direction: only once speech has started, once the board has held
     # a new direction for EARLY_SETTLE_N readings, once per line.
     fired = []
@@ -207,6 +222,33 @@ def main():
     if fired:
         errors.append(f"no early direction for an unmoved board or for Jack's own sound: {fired}")
 
+    fired = []
+    t, feed = tracker()
+    t.on_early = fired.append
+    feed(-16, 3.0)
+    t.direction(3.0)
+    t.jack_done()                         # the board already at -16 (session26 utt01)
+    t.speech_started()
+    feed(-16, doa.EARLY_WINDOW_S + 0.5)   # a long sound that doesn't move it...
+    feed(97, 1.0)                         # ...that ends somewhere new, too late to be early
+    if fired:
+        errors.append(f"early direction fired after EARLY_WINDOW_S: {fired}")
+
+    t, feed = tracker()
+    feed(147, 3.0)
+    t.direction(3.0)                 # a noise on his right
+    t.jack_started()
+    feed(147, 1.0, speech=False)     # the squawk
+    t.jack_done()
+    feed(1, 1.0)                     # the person speaks up in front, before the reply...
+    t.jack_started()
+    feed(1, 2.0, speech=False)       # ...the reply doesn't move the board
+    t.jack_done()
+    feed(1, 3.0)
+    if t.direction(3.0) != 1:
+        errors.append(f"a person who spoke between Jack's sounds isn't Jack's sound (session26 utt02), "
+                      f"got {t.direction(3.0)}")
+
     if errors:
         for e in errors:
             print(f"FAIL: {e}")
@@ -217,7 +259,8 @@ def main():
           "the same person in the same spot is trusted; a person who moved is found where they are now; "
           "any place Jack's sound moved the board since the last line is refused; stream log; "
           "session25 replay 8 right / 0 wrong / 1 none, end-of-line and early; early direction "
-          "only after speech starts, once settled, once per line, never for Jack's own sound")
+          "only after speech starts, once settled, once per line, within EARLY_WINDOW_S, never for "
+          "Jack's own sound; someone speaking between Jack's sounds isn't his sound; session26 replay")
 
 
 if __name__ == "__main__":

@@ -93,6 +93,8 @@ MIN_SHARE = 0.4         # ...the biggest bin holding at least this share, or no 
 # the end-of-line turn (docs/log.md 4.9).
 EARLY_SETTLE_N = 5
 SPEECH_LEAD_S = 0.25    # the Listener knows an utterance has started after 250ms of speech
+EARLY_WINDOW_S = 4.0    # no early direction later than this into the speech - after that it
+                        # isn't early, and session26's one was a 16s non-speech sound
 
 
 def to_jack(board_deg) -> float:
@@ -156,6 +158,7 @@ class DoaTracker:
         self._armed = False             # mic open, no early direction yet this line
         self._listen_t = 0.0            # when the mic reopened...
         self._reopen_angle = None       # ...and where the board was then
+        self._start_angle = None        # board angle when Jack's current sound started
         self._early = None              # this line's early direction, if any...
         self.early_at = None            # ...and when it was found
         self._person = None             # Jack angle the last utterance ended on
@@ -200,6 +203,9 @@ class DoaTracker:
     def _check_early(self):
         # Caller holds the lock. The last EARLY_SETTLE_N speech-flagged
         # readings since the mic reopened, if they agree and are new.
+        if self._now() - self._listen_t - SPEECH_LEAD_S > EARLY_WINDOW_S:
+            self._armed = False
+            return None
         recent = []
         for t, az, speech in reversed(self._readings):
             if t < self._listen_t or len(recent) == EARLY_SETTLE_N:
@@ -239,6 +245,8 @@ class DoaTracker:
         mic reopens."""
         with self._lock:
             self._armed = False
+            if self._readings:
+                self._start_angle = to_jack(self._readings[-1][1])
             self._write(self._now(), ",,jack_started")
 
     def take_early(self):
@@ -255,14 +263,21 @@ class DoaTracker:
 
     def jack_done(self):
         """Call when the mic reopens after Jack's own sound (squawk, reply,
-        beep): notes where the board is now, and whether his sound moved it
-        off where the person was last heard."""
+        beep): notes where the board is now, and whether his sound moved it -
+        off both where it was when that sound started (jack_started()) and
+        where the person was last heard. The start too since session26:
+        Chip spoke between the squawk and the reply, the board followed him,
+        and comparing with the person alone took his new spot for Jack's own
+        sound."""
         with self._lock:
             if not self._readings:
                 return
             t, az, _ = self._readings[-1]
             angle = to_jack(az)
-            moved = self._person is None or _apart(angle, self._person) > BIN_DEG
+            off_start = self._start_angle is None or _apart(angle, self._start_angle) > BIN_DEG
+            off_person = self._person is None or _apart(angle, self._person) > BIN_DEG
+            self._start_angle = None
+            moved = off_start and off_person
             if moved:
                 self._jack_angles.append(angle)
             self._reopen_angle = angle
