@@ -2378,6 +2378,11 @@ turns alike. `tests/test_coordinator.py` `check_turn_back_on_noise`,
 confirmed failing on the old code. Not yet watched live - next session
 (paused for household noise).
 
+XVF3800 heat check, same day (Chip, enclosure opened after the session
+runs, batting in place front and back): the chip is warmer than ambient
+but nowhere near too hot to keep a finger on - passes the "50C test". No
+venting needed on this evidence.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
