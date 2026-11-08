@@ -681,8 +681,11 @@ worked in parallel if priorities change.
    continuous yaw tracking. Built instead the same day: Jack turns
    toward each utterance's speaker (`doa.py` `DoaTracker`,
    `Motion.turn_toward()`, needs `--port`, `--no-doa` to skip) and the
-   squawk cocks their way. Next: watch it live and tune the starting
-   values (50 max turn, 600ms). Still open if that disappoints: an
+   squawk cocks their way. First live watch 2026-11-08 (session24):
+   only 1 of 9 lines turned - the "unchanged from before" stale rule
+   suppressed every repeat line from one spot; replaced the same day by
+   "still where Jack's own sound left the board". Next: watch it live
+   again and tune the starting values (50 max turn, 600ms). Still open if that disappoints: an
    enclosure redesign to clear the blockage fully (Chip rates it easier
    than new mic-array software), or Seeed's raw-mic firmware.
 8. **Build the audio loop per `docs/specification.md` section 4.16's

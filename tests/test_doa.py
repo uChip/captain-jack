@@ -7,7 +7,11 @@ JACK_FRONT_DEG, + = his right): the value the board held longest while
 the person spoke. Includes the two patterns seen live in session23
 (2026-10-21): the window opening still stuck on Jack's own voice, and a
 swing after the talker stops. None when there are too few readings, no
-direction dominates, or the board never moved off what it held before.
+direction dominates, or the board is still where Jack's own sound left it
+(jack_done()) - but a board that stayed on the same person through Jack's
+reply is trusted (session24, 2026-11-08: one person talking from one spot
+got no turns at all under the old "unchanged from before" rule). Also the
+--save stream log.
 
 Run: venv/bin/python tests/test_doa.py
 """
@@ -21,9 +25,9 @@ import doa  # noqa: E402
 F = doa.JACK_FRONT_DEG
 
 
-def tracker():
+def tracker(log=None):
     clock = [1000.0]
-    t = doa.DoaTracker(read=lambda: (0, False), now=lambda: clock[0])
+    t = doa.DoaTracker(read=lambda: (0, False), now=lambda: clock[0], log=log)
 
     def feed(jack_deg, seconds, speech=True):
         for _ in range(int(seconds * doa.POLL_HZ)):
@@ -60,10 +64,60 @@ def main():
         errors.append(f"readings from before the utterance should be ignored, got {t.direction(3.0)}")
 
     t, feed = tracker()
-    feed(40, 5.0)       # Jack's own reply, and the board never moves off it
+    feed(-90, 3.0)
+    t.direction(3.0)    # the person, on his left
+    feed(96, 4.0)       # Jack's reply moves the board to his speaker...
+    t.jack_done()
+    feed(96, 3.0)       # ...and it never leaves it while the next line is spoken
+    if t.direction(3.0) is not None:
+        errors.append("a board still where Jack's own sound left it should give None")
+
+    t, feed = tracker()
+    feed(40, 3.0)       # first line after waking: board still on the beep
+    t.jack_done()
     feed(40, 3.0)
     if t.direction(3.0) is not None:
-        errors.append("a direction unchanged from before the utterance should give None")
+        errors.append("with nobody heard yet, a board unmoved since Jack's sound should give None")
+
+    t, feed = tracker()
+    feed(-81, 3.0)
+    t.direction(3.0)    # the person, on his left...
+    feed(-81, 4.0, speech=False)   # ...the board holds still through Jack's reply...
+    t.jack_done()
+    feed(-81, 3.0)      # ...and they speak again from the same spot (session24 utt04)
+    if t.direction(3.0) != -81:
+        errors.append(f"same person, same spot, board unmoved by Jack should give -81, got {t.direction(3.0)}")
+
+    t, feed = tracker()
+    feed(0, 3.0)
+    t.direction(3.0)
+    feed(96, 4.0)       # Jack's reply moves the board...
+    t.jack_done()
+    feed(96, 0.4)
+    feed(-32, 3.0)      # ...then the person, now front-left (session24 utt02)
+    if t.direction(3.4) != -32:
+        errors.append(f"a person away from where Jack's sound left the board should give -32, got {t.direction(3.4)}")
+
+    t, feed = tracker()
+    feed(96, 3.0)
+    t.jack_done()       # moved=True, nobody heard yet...
+    feed(-45, 3.0)
+    t.direction(3.0)    # ...an utterance uses that up...
+    feed(96, 3.0)       # ...so the next one, with no Jack sound between, is trusted
+    if t.direction(3.0) != 96:
+        errors.append(f"with no Jack sound since the last utterance, nothing should be stale, got {t.direction(3.0)}")
+
+    import io
+    log = io.StringIO()
+    t, feed = tracker(log)
+    feed(10, 1.0)
+    t.jack_done()
+    feed(10, 1.0)
+    t.direction(1.0)
+    lines = log.getvalue().splitlines()
+    if (len(lines) != 22 or lines[0] != f"1000.10,{(F + 10) % 360},1,"
+            or not lines[10].endswith("jack_done +10 moved=1") or "utterance 1.0s -> " not in lines[-1]):
+        errors.append(f"stream log wrong: {lines[:2]} ... {lines[-2:]}")
 
     t, feed = tracker()
     feed(3, 0.4)
@@ -83,7 +137,8 @@ def main():
         sys.exit(1)
     print("PASS: board-to-Jack angle mapping; the direction held longest while the person spoke, "
           "ignoring Jack's own voice at the start, a swing at the end and earlier talkers; "
-          "too few / scattered readings, or no change from before, give None")
+          "too few / scattered readings, or a board still where Jack's own sound left it, give None; "
+          "the same person in the same spot is trusted; stream log")
 
 
 if __name__ == "__main__":

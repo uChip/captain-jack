@@ -601,9 +601,10 @@ when it was last confirmed passing.
 - **Expected**: `PASS: board-to-Jack angle mapping; the direction held
   longest while the person spoke, ignoring Jack's own voice at the
   start, a swing at the end and earlier talkers; too few / scattered
-  readings, or no change from before, give None`. Includes the patterns
-  seen live in session23.
-- **Last confirmed passing**: 2026-10-21.
+  readings, or a board still where Jack's own sound left it, give None;
+  the same person in the same spot is trusted; stream log`. Includes the
+  patterns seen live in session23 and session24.
+- **Last confirmed passing**: 2026-11-08.
 - **Not covered**: the real board (polling was checked by hand: ~10
   readings/s, clean stop), and the coordinator wiring (that's
   `test_coordinator.py`'s face-speaker check).

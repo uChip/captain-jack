@@ -530,12 +530,16 @@ class FakeDoa:
 
     def __init__(self, *angles):
         self.angles = list(angles)
+        self.jack_dones = 0
 
     def direction(self, utterance_s):
         return self.angles.pop(0)
 
     def recent(self, seconds):
         return [(1.5, 347, True), (0.2, 347, False)]
+
+    def jack_done(self):
+        self.jack_dones += 1
 
 
 def check_face_speaker():
@@ -562,6 +566,11 @@ def check_face_speaker():
     you = [line for line in out if line.startswith("You:")]
     if len(you) != 2 or "doa -40" not in you[0] or "doa -" not in you[1]:
         errors.append(f"DoA angle missing from console stats: {you!r}")
+    before = coord.doa.jack_dones
+    coord._on_playback("started", coordinator.BEEP_TAG, 0.0)
+    coord._on_playback("finished", coordinator.BEEP_TAG, 0.1)
+    if coord.doa.jack_dones != before + 1:
+        errors.append("the mic reopening after Jack's own sound didn't tell DoA (jack_done)")
     log = save / "utt01_doa.csv"
     if not log.exists() or log.read_text().splitlines()[1:] != ["1.5,347,1", "0.2,347,0"]:
         errors.append(f"--save didn't log the utterance's DoA readings: {log.read_text() if log.exists() else 'missing'}")

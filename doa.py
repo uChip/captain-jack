@@ -58,9 +58,15 @@ JACK_FRONT_DEG = 180
 # while the person spoke. Changed 2026-10-21 from "the newest 8 readings":
 # on session23 the window's start is still stuck on Jack's own reply and
 # its end can swing after the talker stops - 12 right / 4 wrong / 3 unsure
-# became 15 / 2 / 2 (docs/log.md 4.9). Tuned on that one session. If the
-# winner is just what the board already held before they started, it
-# never heard them (twice it was still on Jack's own voice): no answer.
+# became 15 / 2 / 2 (docs/log.md 4.9). Tuned on that one session.
+# Stale readings: if Jack's own sound (squawk, reply) moved the board, a
+# winner that is still where his sound left it never heard the person: no
+# answer. Changed 2026-11-08 from "what the board held just before they
+# began": with one person talking from one spot (session24) the board
+# rightly stays on them, and that rule threw away every line after the
+# first from each spot. Now the board's value when the mic reopens is
+# compared with where the person was last heard - unchanged means Jack's
+# sound didn't move it, and it's still them.
 POLL_HZ = 10
 KEEP_S = 35.0           # readings kept - longer than any utterance (Listener caps at 30s)
 SKIP_START_S = 0.5      # the board is still on the previous talker (often Jack)
@@ -73,6 +79,11 @@ MIN_SHARE = 0.4         # ...the biggest bin holding at least this share, or no 
 def to_jack(board_deg) -> float:
     """Board azimuth -> Jack's own angle, -180..180, + = to his right."""
     return (board_deg - JACK_FRONT_DEG + 180) % 360 - 180
+
+
+def _apart(a, b) -> float:
+    """Angle between two directions in degrees, 0-180."""
+    return abs((a - b + 180) % 360 - 180)
 
 
 def circular_mean(degs) -> tuple[float, float]:
@@ -118,9 +129,13 @@ class DoaTracker:
     returning (board azimuth, speech flag) - DoA().read by default; tests
     pass a fake."""
 
-    def __init__(self, read=None, now=time.monotonic):
+    def __init__(self, read=None, now=time.monotonic, log=None):
         self._read = read
         self._now = now
+        self._log = log                 # coordinator.py --save's doa_stream.csv (an open file), or None
+        self._person = None             # Jack angle the last utterance ended on
+        self._after_jack = None         # board angle when the mic reopened after Jack's sound...
+        self._jack_moved = False        # ...and whether his sound moved it off the person
         self._readings = deque(maxlen=int(POLL_HZ * KEEP_S))
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -151,7 +166,27 @@ class DoaTracker:
 
     def add(self, board_deg, speech):
         with self._lock:
-            self._readings.append((self._now(), board_deg, speech))
+            t = self._now()
+            self._readings.append((t, board_deg, speech))
+            self._write(t, f"{board_deg},{int(speech)},")
+
+    def _write(self, t, rest):
+        # Caller holds the lock. One line per reading or event, for replaying
+        # a whole session offline (each uttNN_doa.csv holds only 2s before).
+        if self._log:
+            self._log.write(f"{t:.2f},{rest}\n")
+
+    def jack_done(self):
+        """Call when the mic reopens after Jack's own sound (squawk, reply,
+        beep): notes where the board is now, and whether his sound moved it
+        off where the person was last heard."""
+        with self._lock:
+            if not self._readings:
+                return
+            t, az, _ = self._readings[-1]
+            self._after_jack = to_jack(az)
+            self._jack_moved = self._person is None or _apart(self._after_jack, self._person) > BIN_DEG
+            self._write(self._now(), f",,jack_done {self._after_jack:+.0f} moved={int(self._jack_moved)}")
 
     def recent(self, seconds):
         """[(age_s, board_deg, speech)] for the last seconds, oldest first -
@@ -166,13 +201,23 @@ class DoaTracker:
         utterance (+ = his right): the median of the most common
         BIN_DEG-wide group of speech-flagged readings taken while they
         spoke, or None if there are too few, no group dominates, or it's
-        the same direction the board held before they began."""
+        still where Jack's own sound moved the board (see jack_done())."""
         now = self._now()
-        began = now - utterance_s
-        start, end = began + SKIP_START_S, now - SKIP_END_S
+        start, end = now - utterance_s + SKIP_START_S, now - SKIP_END_S
         with self._lock:
             angles = [to_jack(az) for t, az, speech in self._readings if speech and start <= t <= end]
-            before = [to_jack(az) for t, az, _ in self._readings if t < began]
+            after_jack, moved = self._after_jack, self._jack_moved
+            self._after_jack, self._jack_moved = None, False   # one utterance per reopen
+            if angles:
+                self._person = angles[-1]
+            angle = self._pick(angles)
+            if angle is not None and moved and _apart(angle, after_jack) <= BIN_DEG:
+                angle = None
+            self._write(now, f",,utterance {utterance_s:.1f}s -> {angle}")
+        return None if angle is None else round(angle)
+
+    @staticmethod
+    def _pick(angles):
         if len(angles) < MIN_READINGS:
             return None
         groups = {}
@@ -181,10 +226,7 @@ class DoaTracker:
         biggest = max(groups.values(), key=len)
         if len(biggest) < MIN_SHARE * len(angles):
             return None
-        angle = sorted(biggest)[len(biggest) // 2]
-        if before and abs((angle - before[-1] + 180) % 360 - 180) <= BIN_DEG:
-            return None
-        return round(angle)
+        return sorted(biggest)[len(biggest) // 2]
 
 
 def main():

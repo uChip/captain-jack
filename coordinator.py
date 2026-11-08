@@ -36,7 +36,9 @@ conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
 keyboard (e.g. launched in the background). --save writes every
 utterance heard to DIR as a numbered .wav, for diagnosing mishearings (with
-DoA on, also uttNN_doa.csv: the direction readings leading up to it), and
+DoA on, also uttNN_doa.csv: the direction readings leading up to it, and
+doa_stream.csv: every reading all session, with when the mic reopened
+after Jack's own sound and each utterance's answer), and
 with --port/--dry-run, serial.log: every head command sent to the Arduino,
 timestamped, with the conversation's events between them.
 --port opens the Arduino for beak-sync + ambient motion (omit to run
@@ -262,6 +264,8 @@ class Coordinator:
             if not isinstance(tag, tuple) or tag == self._last_tag:
                 self.listener.ignore_until(dac_time + HOLDOFF_S)
                 self.spotter.ignore_until(dac_time + HOLDOFF_S)
+                if self.doa:
+                    self.doa.jack_done()   # where Jack's own sound left the board
             if tag == self._last_tag:
                 self.events.put(("reply_done", None))
             elif tag == BEEP_TAG:
@@ -457,6 +461,8 @@ class Coordinator:
             t = self._last_sentence_dac_time
             self.listener.ignore_until(t + HOLDOFF_S)
             self.spotter.ignore_until(t + HOLDOFF_S)
+            if self.doa:
+                self.doa.jack_done()
             self.events.put(("reply_done", None))
 
     def speak(self, text):
@@ -590,7 +596,14 @@ def main():
             else:
                 print("Speaker-ID off: nobody enrolled (enroll_speaker.py)")
                 speaker = None
-    doa = DoaTracker() if port and "--no-doa" not in args else None
+    doa = None
+    if port and "--no-doa" not in args:
+        doa_log = None
+        if save_dir:
+            Path(save_dir).mkdir(parents=True, exist_ok=True)
+            doa_log = open(Path(save_dir) / "doa_stream.csv", "a", buffering=1)
+            doa_log.write("t,board_deg,speech,event\n")
+        doa = DoaTracker(log=doa_log)
     coord = Coordinator(memory_dir, model, voice=voice, save_dir=save_dir, port=port, dry_run=dry_run,
                         hold="--hold" in args, filler="--no-filler" not in args, speaker_id=speaker,
                         doa=doa)

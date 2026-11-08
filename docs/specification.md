@@ -1249,9 +1249,16 @@ continuous tracking below, which the board's reading can't support):
 reports Jack's angle to the speaker as the direction the board held
 longest while they spoke (speech-flagged readings, skipping the first
 and last 0.5s, grouped in 15° bins, the biggest holding at least 40% of
-at least 5), or nothing - including when that's just what the board
-already held before they began (it never heard them). Revised
-2026-10-21 after the first two live runs (log.md 4.9). `coordinator.py` then calls `Motion.turn_toward()`,
+at least 5), or nothing - including when the board is still where
+Jack's own sound (squawk, reply, beep) left it, so it never heard them.
+Whether his sound moved it is checked when the mic reopens: the board's
+value then against where the person was last heard. If it didn't move,
+the reading is still that person and is trusted, so someone talking
+from one spot keeps getting turned toward. Revised
+2026-10-21 after the first two live runs, and 2026-11-08 after session24
+(log.md 4.9). With `--save`, `doa_stream.csv` logs every reading all
+session, with each mic reopen and each utterance's answer, for offline
+replay. `coordinator.py` then calls `Motion.turn_toward()`,
 which moves the baseline yaw that way (capped at 50°, one 600ms move -
 the squawk's lead-in silence) so every later gesture plays facing them,
 and the squawk cocks toward them when they're 20° or more to his left

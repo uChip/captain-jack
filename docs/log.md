@@ -2210,6 +2210,45 @@ so a reflection off the nearer left wall is the likely source. It doesn't
 show in the settled values. Next: watch the once-per-utterance turn live
 (`coordinator.py --port`).
 
+**Live watch of the turn, session24 (`--save`, `--scratch-memory`), same
+day.** Chip alone: front, then left, then right, then back toward front,
+announcing each spot. Chip: "Jack turned to the left but then stayed there
+for the rest of the test." Of 9 lines only utt02 gave a direction (-32);
+the rest returned none. The saved readings show the board doing its job -
+left lines settled at -81, right lines at +66 to +76, front-ish at 0 to
++2 - so the misses were the tracker's rules, not the readings:
+- The "no answer if that's what the board held before they began" rule
+  (adopted from session23, where Chip and Kath alternated) suppressed every
+  line after the first from a spot: one person talking from one place
+  leaves the board on them, so it always "held that before". utt04 (-81),
+  utt06 and utt07 (+71/+76) were correct readings thrown away, and the
+  head could never correct its earlier -32.
+- The board starts swinging toward a talker a few hundred ms before the
+  window the tracker counts as the utterance, so the talker's own onset
+  counted as "before" (utt01, utt09).
+- Jack's own voice, when it moves the board, reads +96 - within about
+  10-20 deg of a person on his right (+77 to +86 in the walk-around), so
+  excluding his voice by angle would also stop right-side turns.
+- utt03 (Chip walking while talking) and utt05 (short, garbled, swinging
+  +96 to -80) rightly gave none.
+
+Fix: the stale check now asks whether Jack's own sound moved the board.
+`DoaTracker.jack_done()` is called whenever the mic reopens after Jack's
+sound (`coordinator.py`'s `_on_playback`/`_finish_reply`); it notes the
+board's value and whether it differs (> 15 deg) from where the last
+utterance ended. Only if it moved is a winner near that value refused; if
+it didn't move, it's still the person. With nobody heard yet (first line
+after waking) it counts as moved, as before. Hand-applied to session24:
+turns on utt02 (-32), utt04 (-81), utt07 (+76), utt08 (+1), utt09 (+2);
+none on utt01, 03, 05, 06 (utt06's board had gone to +66 by the time the
+mic reopened, cause unknown, so it would still be refused). A rough check
+only - each `uttNN_doa.csv` holds just 2s before the line - so `--save`
+now also writes `doa_stream.csv`: every reading all session plus each
+mic reopen and each utterance's answer, for replaying a whole session
+offline next time. Tests: `tests/test_doa.py` (the session24 patterns),
+`tests/test_coordinator.py` (mic reopen calls `jack_done`, confirmed
+failing on the old coordinator).
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
