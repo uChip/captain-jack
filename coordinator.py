@@ -79,7 +79,7 @@ import numpy as np
 import serial_link
 from capture import Capture
 from listener import HOLDOFF_S, Listener
-from motion import Motion
+from motion import MAX_TURN_DEG, Motion
 from home import Home
 from orchestrate import MEMORY_DIR, household_names, stream_turn
 from doa import DoaTracker
@@ -112,6 +112,12 @@ FILLER_DIR = Path(__file__).parent / "wavFiles" / "fillers"
 # tried first, 0.6s kept after session18. Costs nothing - STT starts
 # immediately either way, in parallel with playback.
 FILLER_DELAY_S = 0.6
+# Early turn (mid-utterance, doa.py's EARLY_SETTLE_N): at most this far per
+# move while someone talks - 30-50 degree turns mixed into session25's lines
+# changed 2 of 118 words, the 100-degree side-to-side swing 9 (docs/log.md
+# 4.9). The rest of the turn waits for face_speaker() after they stop.
+EARLY_STEP_DEG = 50
+EARLY_MIN_DEG = 15      # closer than this to where he already faces: don't move
 
 
 def voice_note(text, match) -> str:
@@ -156,6 +162,8 @@ class Coordinator:
         # A doa.DoaTracker, or None (tests, no --port, --no-doa): which way
         # to turn the head after each utterance. Only used with Motion.
         self.doa = doa
+        if doa:
+            doa.on_early = self._on_early_turn
         self.client = client or anthropic.Anthropic()
         prompt = names_prompt(household_names(self.memory_dir))
         self.stt = STT(model, prompt) if model else STT(prompt=prompt)
@@ -181,7 +189,8 @@ class Coordinator:
         self._last_sentence_dac_time = 0.0  # dac_time of the most recent one, for _finish_reply's race catch-up
         self._heard_at = None        # when the utterance being answered was handed over
 
-        self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)))
+        self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)),
+                                 on_speech_start=self._on_speech_start)
         self.spotter = WakeSpotter(on_wake=self.wake, on_sleep=self.sleep_phrase,
                                     on_score=self._on_spotter_score)
         self.player = Playback(on_event=self._on_playback)
@@ -238,6 +247,8 @@ class Coordinator:
         if kind == "started":
             self.listener.ignore_until(float("inf"))
             self.spotter.ignore_until(float("inf"))
+            if self.doa:
+                self.doa.jack_started()   # the board's speech flag means Jack now
             if tag == self._first_tag:
                 self._hold_head(False)   # mic just closed - Jack may move while he talks
                 self.events.put(("reply_started", time.monotonic()))
@@ -504,30 +515,54 @@ class Coordinator:
         if self.motion:
             self.motion.squawk_tilt(FILLER_DELAY_S, len(self.fillers[name]) / RATE, toward)
 
+    def _on_speech_start(self):
+        """Listener thread: an utterance has just started."""
+        if self.doa and self.mode == "on_watch":
+            self.doa.speech_started()
+
+    def _on_early_turn(self, angle):
+        """DoA thread, mid-utterance: the board has settled on a new
+        direction - turn that way now, as an animal turns at a sound, by at
+        most EARLY_STEP_DEG (bigger moves while someone talks measurably hurt
+        STT - docs/log.md 4.9). face_speaker() finishes the turn after."""
+        if self.mode != "on_watch" or not self.motion:
+            return
+        heading = self.motion.heading()
+        target = max(-MAX_TURN_DEG, min(MAX_TURN_DEG, angle))
+        step = max(-EARLY_STEP_DEG, min(EARLY_STEP_DEG, target - heading))
+        if abs(step) <= EARLY_MIN_DEG:
+            return
+        self.motion.turn_toward(heading + step)
+        if self._serial_log:
+            self._log_serial(f"# early turn: doa {angle:+d}, heading {heading:+d} -> {heading + step:+d}")
+
     def face_speaker(self, samples):
-        """Turn the head toward whoever just spoke samples; returns their
-        angle (+ = Jack's right), or None if DoA isn't sure - then the
-        head stays where it is."""
+        """Turn the head toward whoever just spoke samples (finishing any
+        early turn made while they spoke); returns (their angle, the early
+        angle), + = Jack's right, either None if DoA wasn't sure - then
+        the head stays where it is."""
         if not (self.doa and self.motion):
-            return None
+            return None, None
         angle = self.doa.direction(len(samples) / RATE)
+        early = self.doa.take_early()
         if angle is not None:
             self.motion.turn_toward(angle)
-        return angle
+        return angle, early
 
     def handle_utterance(self, samples):
         self._heard_at = time.monotonic()
-        angle = self.face_speaker(samples)
+        angle, early = self.face_speaker(samples)
         if self._serial_log:
-            self._log_serial(f"# utt{self._saved + 1:02d} doa {angle} baseline yaw "
+            self._log_serial(f"# utt{self._saved + 1:02d} doa {angle} early {early} baseline yaw "
                              f"{self.motion.baseline.yaw if self.motion else '-'}")
-        self.play_filler(angle)
+        self.play_filler(angle if angle is not None else early)
         saved = self.save_utterance(samples) if self.save_dir else ""
         voice = self._voice_pool.submit(self.speaker_id.identify, samples) if self.speaker_id else None
         heard = self.stt.transcribe(samples)
         match = voice.result() if voice else None
         doa = "" if not (self.doa and self.motion) else (
-            f", doa {angle:+d}" if angle is not None else ", doa -")
+            (f", doa {angle:+d}" if angle is not None else ", doa -")
+            + (f" (early {early:+d})" if early is not None else ""))
         stats = (f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}"
                  f"{describe_voice(match)}{doa}{saved}")
         if not heard.accepted:

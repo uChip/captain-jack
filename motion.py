@@ -153,12 +153,18 @@ class Motion:
         (doa.py's DoaTracker.direction(), + = to his right), capped at
         MAX_TURN_DEG. Moves the baseline, so it lasts - ambient motion
         and every gesture carry on around the new heading - and sends one
-        TURN_MS move there now. Sent even while held, like squawk_tilt():
-        it comes right after an utterance, while the mic is deaf."""
+        TURN_MS move there now. Sent even while held, like squawk_tilt().
+        Called mid-utterance too (an early turn, 2026-11-08) - coordinator.py
+        keeps those moves to EARLY_STEP_DEG, which measured harmless to
+        recognition (docs/log.md 4.9)."""
         turn = clamp(angle, -MAX_TURN_DEG, MAX_TURN_DEG)
         self.baseline.yaw = clamp(int(round(self.catalog["resting"]["yaw"] - turn)),
                                   *AXIS_RANGE["y"])   # yaw: + = turned left
         self._send(resolve_move({"t": TURN_MS}, self.baseline))
+
+    def heading(self) -> int:
+        """Where the head faces now, as a turn_toward() angle (+ = his right)."""
+        return self.catalog["resting"]["yaw"] - self.baseline.yaw
 
     def hold(self, on: bool):
         """Hold the head still (on=True) until released or the mode

@@ -164,6 +164,48 @@ def main():
     counts, marks = doa_replay.score(results, expect)
     if counts != {"right": 8, "wrong": 0, "none": 1}:
         errors.append(f"session25 replay: {counts}, per line {marks}")
+    counts, marks = doa_replay.score(results, expect, which="early")
+    if counts != {"right": 8, "wrong": 0, "none": 1}:
+        errors.append(f"session25 replay, early turns: {counts}, per line {marks}")
+
+    # Early direction: only once speech has started, once the board has held
+    # a new direction for EARLY_SETTLE_N readings, once per line.
+    fired = []
+    t, feed = tracker()
+    t.on_early = fired.append
+    feed(0, 3.0)
+    t.direction(3.0)                 # someone in front
+    feed(0, 2.0, speech=False)
+    t.jack_done()                    # Jack's reply didn't move the board
+    feed(-90, 2.0)                   # flagged sound before anyone speaks (footsteps)...
+    if fired:
+        errors.append(f"early direction fired before speech started: {fired}")
+    t.speech_started()               # (counts from SPEECH_LEAD_S before: 2 readings)
+    feed(-90, 0.1)
+    if fired:
+        errors.append(f"early direction fired before {doa.EARLY_SETTLE_N} settled readings: {fired}")
+    feed(-90, 0.3)
+    if fired != [-90] or t.take_early() != -90:
+        errors.append(f"early direction should fire once at -90: {fired}")
+    feed(45, 1.0)
+    if fired != [-90]:
+        errors.append(f"early direction fired twice in one line: {fired}")
+
+    fired = []
+    t, feed = tracker()
+    t.on_early = fired.append
+    feed(-81, 3.0)
+    t.direction(3.0)
+    feed(-81, 2.0, speech=False)
+    t.jack_done()
+    t.speech_started()
+    feed(-81, 2.0)                   # same person, same spot - he already faces them
+    t.direction(2.0)
+    feed(30, 1.0)
+    t.jack_started()                 # Jack's own sound: flagged, but him
+    feed(30, 1.0)
+    if fired:
+        errors.append(f"no early direction for an unmoved board or for Jack's own sound: {fired}")
 
     if errors:
         for e in errors:
@@ -174,7 +216,8 @@ def main():
           "too few / scattered readings, or a board still where Jack's own sound left it, give None; "
           "the same person in the same spot is trusted; a person who moved is found where they are now; "
           "any place Jack's sound moved the board since the last line is refused; stream log; "
-          "session25 replay 8 right / 0 wrong / 1 none")
+          "session25 replay 8 right / 0 wrong / 1 none, end-of-line and early; early direction "
+          "only after speech starts, once settled, once per line, never for Jack's own sound")
 
 
 if __name__ == "__main__":

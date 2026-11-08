@@ -201,6 +201,10 @@ class FakeMotion:
 
     def __init__(self):
         self.calls = []
+        self.facing = 0
+
+    def heading(self):
+        return self.facing
 
     def set_mode(self, mode):
         self.calls.append(("set_mode", mode))
@@ -216,6 +220,7 @@ class FakeMotion:
 
     def turn_toward(self, angle):
         self.calls.append(("turn_toward", angle))
+        self.facing = max(-50, min(50, angle))
 
 
 def check_asleep_entry_context():
@@ -528,9 +533,23 @@ def check_speaker_id():
 class FakeDoa:
     """Stands in for doa.DoaTracker: canned directions in turn."""
 
-    def __init__(self, *angles):
+    def __init__(self, *angles, early=None):
         self.angles = list(angles)
         self.jack_dones = 0
+        self.early = early
+        self.on_early = None
+        self.speech_starts = 0
+        self.jack_starts = 0
+
+    def take_early(self):
+        early, self.early = self.early, None
+        return early
+
+    def speech_started(self):
+        self.speech_starts += 1
+
+    def jack_started(self):
+        self.jack_starts += 1
 
     def direction(self, utterance_s):
         return self.angles.pop(0)
@@ -577,6 +596,56 @@ def check_face_speaker():
     return errors
 
 
+def check_early_turn():
+    """Mid-utterance, DoA's early direction turns the head at once, by at
+    most EARLY_STEP_DEG, and not at all if he already faces that way;
+    face_speaker() finishes the turn after. Speech start arms DoA only in
+    On Watch, and Jack's own sound disarms it."""
+    errors = []
+    out = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=out.append, doa=FakeDoa(90, early=90))
+    coord.motion = FakeMotion()
+    if coord.doa.on_early != coord._on_early_turn:
+        errors.append("Coordinator didn't hand DoA its early-turn callback")
+    coord._on_speech_start()
+    if coord.doa.speech_starts != 0:
+        errors.append("speech start armed DoA outside On Watch")
+    coord.start_session()
+    coord._on_speech_start()
+    if coord.doa.speech_starts != 1:
+        errors.append("speech start in On Watch didn't arm DoA")
+    coord.motion.facing = -50                     # turned to someone on his left...
+    coord._on_early_turn(90)                      # ...a new talker on his right
+    coord._on_early_turn(-45)                     # now facing 0: a talker front-left
+    turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
+    if turns[:1] != [("turn_toward", 0)]:
+        errors.append(f"early turn from -50 toward +90 should step 50 to 0: {turns!r}")
+    if len(turns) != 2 or turns[1] != ("turn_toward", -45):
+        errors.append(f"a second early direction should still turn (by <= 50): {turns!r}")
+    coord.motion.facing = 40
+    coord._on_early_turn(48)
+    if len([c for c in coord.motion.calls if c[0] == "turn_toward"]) != 2:
+        errors.append("early turn within EARLY_MIN_DEG of the heading should not move")
+    coord.handle_utterance(load_clip())
+    turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
+    if turns[-1] != ("turn_toward", 90):
+        errors.append(f"face_speaker() should finish the turn at +90: {turns!r}")
+    you = [line for line in out if line.startswith("You:")]
+    if not you or "doa +90 (early +90)" not in you[0]:
+        errors.append(f"early angle missing from console stats: {you!r}")
+    coord._on_playback("started", coordinator.BEEP_TAG, 0.0)
+    if coord.doa.jack_starts != 1:
+        errors.append("Jack's own sound starting didn't tell DoA (jack_started)")
+    coord.mode = "off_watch"
+    n = len(coord.motion.calls)
+    coord._on_early_turn(-90)
+    if len(coord.motion.calls) != n:
+        errors.append("early turn moved the head outside On Watch")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -595,7 +664,7 @@ if __name__ == "__main__":
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
-              + check_speaker_id() + check_face_speaker())
+              + check_speaker_id() + check_face_speaker() + check_early_turn())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -612,5 +681,6 @@ if __name__ == "__main__":
           "reopens the mic/fires reply_done correctly, and the head holds still exactly while "
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
           "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
-          "and the head turns toward each utterance's speaker (DoA) before the squawk"
+          "and the head turns toward each utterance's speaker (DoA) before the squawk, "
+          "and turns early, mid-utterance, by at most 50 degrees"
           + (", live Haiku replied" if live else ""))

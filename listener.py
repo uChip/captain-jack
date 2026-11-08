@@ -85,8 +85,9 @@ class Listener:
     moment (e.g. queue the utterance for STT) but shouldn't block long.
     """
 
-    def __init__(self, on_utterance):
+    def __init__(self, on_utterance, on_speech_start=None):
         self.on_utterance = on_utterance
+        self.on_speech_start = on_speech_start   # called (no args) the moment an utterance starts
         self.vad = SileroVAD()
         self._frames = queue.Queue()
         self._ignore_until = 0.0
@@ -156,6 +157,8 @@ class Listener:
                 self._windows = [w for w, _ in self._pre_roll]
                 self._start_t = self._pre_roll[0][1]
                 self._pre_roll.clear()
+                if self.on_speech_start:
+                    self.on_speech_start()
             return
 
         self._windows.append(window)

@@ -2319,6 +2319,23 @@ lost, voice scores down 0.01-0.05. The 100 deg side-to-side swing changed
 right" -> "on your side") and 10 at 1200ms - a slower turn doesn't help;
 how far the head travels does. One voice match lost at 600ms.
 
+**Early turn built, same day.** `DoaTracker` arms on the Listener's new
+`on_speech_start` (fired once 250ms of speech starts an utterance;
+counting from 0.25s before), fires `on_early` once per line when the last
+5 speech-flagged readings agree within 15 deg, differ from the board's
+value when the mic reopened, and aren't where Jack's sound left it.
+`jack_started()` (any playback starting) disarms it; `direction()` ends
+it. `coordinator.py` turns at most `EARLY_STEP_DEG` 50 per move and skips
+moves within 15 deg of the heading (`Motion.heading()`, new); the
+end-of-line turn finishes it. First version armed from the mic reopening
+instead: replayed, 2 of 8 early turns went wrong, both fired 1.4-3.1s
+*before* Chip spoke (sound while he walked over, or the board still
+settling) - hence arming on speech start. Replay now: early 8 right, 0
+wrong, 1 none, 0.5-1.7s into the speech (utt06 3.4s and utt07 2.9s,
+both just after Chip moved); end-of-line unchanged at 8/0/1.
+`doa_stream.csv` now also logs `speech_started`, `jack_started` and
+`early`; `doa_replay.py` fakes the first two for session25's older stream.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

@@ -83,6 +83,17 @@ MIN_READINGS = 5        # speech-flagged readings needed in between...
 BIN_DEG = 15            # ...grouped into bins this wide...
 MIN_SHARE = 0.4         # ...the biggest bin holding at least this share, or no answer
 
+# Early turn (2026-11-08): once the Listener hears speech start, report a
+# direction as soon as the board has moved off where it was when the mic
+# reopened and held one
+# direction (every reading within BIN_DEG of their median) for this many
+# speech-flagged readings in a row - unless that's where Jack's own sound
+# left it. Once per line; the end-of-line direction() then corrects it.
+# Replayed on session25: 8 of 8 right, 0.6-2.0s into the line, vs 2.5-8s for
+# the end-of-line turn (docs/log.md 4.9).
+EARLY_SETTLE_N = 5
+SPEECH_LEAD_S = 0.25    # the Listener knows an utterance has started after 250ms of speech
+
 
 def to_jack(board_deg) -> float:
     """Board azimuth -> Jack's own angle, -180..180, + = to his right."""
@@ -137,10 +148,16 @@ class DoaTracker:
     returning (board azimuth, speech flag) - DoA().read by default; tests
     pass a fake."""
 
-    def __init__(self, read=None, now=time.monotonic, log=None):
+    def __init__(self, read=None, now=time.monotonic, log=None, on_early=None):
         self._read = read
         self._now = now
         self._log = log                 # coordinator.py --save's doa_stream.csv (an open file), or None
+        self.on_early = on_early        # called with a Jack angle, from the polling thread
+        self._armed = False             # mic open, no early direction yet this line
+        self._listen_t = 0.0            # when the mic reopened...
+        self._reopen_angle = None       # ...and where the board was then
+        self._early = None              # this line's early direction, if any...
+        self.early_at = None            # ...and when it was found
         self._person = None             # Jack angle the last utterance ended on
         self._jack_angles = []          # where Jack's own sound moved the board since the last utterance
         self._readings = deque(maxlen=int(POLL_HZ * KEEP_S))
@@ -176,6 +193,59 @@ class DoaTracker:
             t = self._now()
             self._readings.append((t, board_deg, speech))
             self._write(t, f"{board_deg},{int(speech)},")
+            early = self._check_early() if self._armed and speech else None
+        if early is not None and self.on_early:
+            self.on_early(early)
+
+    def _check_early(self):
+        # Caller holds the lock. The last EARLY_SETTLE_N speech-flagged
+        # readings since the mic reopened, if they agree and are new.
+        recent = []
+        for t, az, speech in reversed(self._readings):
+            if t < self._listen_t or len(recent) == EARLY_SETTLE_N:
+                break
+            if speech:
+                recent.append(to_jack(az))
+        if len(recent) < EARLY_SETTLE_N:
+            return None
+        mid = sorted(recent)[len(recent) // 2]
+        if max(_apart(a, mid) for a in recent) > BIN_DEG:
+            return None
+        if self._reopen_angle is not None and _apart(mid, self._reopen_angle) <= BIN_DEG:
+            return None        # hasn't moved: the same person, same spot, or still Jack's sound
+        if any(_apart(mid, j) <= BIN_DEG for j in self._jack_angles):
+            return None
+        self._armed = False
+        self._early = round(mid)
+        self.early_at = self._now()
+        self._write(self._now(), f",,early {self._early:+d}")
+        return self._early
+
+    def speech_started(self):
+        """Call when the Listener hears an utterance start: from here until
+        it ends (direction()) or Jack makes a sound, look for an early
+        direction. Counting only from the speech, not from the mic
+        reopening: sounds before it (footsteps, the board still settling)
+        gave wrong early turns in the session25 replay."""
+        with self._lock:
+            self._armed = True
+            self._listen_t = self._now() - SPEECH_LEAD_S
+            self._early = None
+            self._write(self._now(), ",,speech_started")
+
+    def jack_started(self):
+        """Call when Jack's own sound starts (squawk, reply, beep): the
+        board's speech flag now means him, so no early direction until the
+        mic reopens."""
+        with self._lock:
+            self._armed = False
+            self._write(self._now(), ",,jack_started")
+
+    def take_early(self):
+        """This line's early direction (or None), cleared once read."""
+        with self._lock:
+            early, self._early = self._early, None
+            return early
 
     def _write(self, t, rest):
         # Caller holds the lock. One line per reading or event, for replaying
@@ -195,6 +265,8 @@ class DoaTracker:
             moved = self._person is None or _apart(angle, self._person) > BIN_DEG
             if moved:
                 self._jack_angles.append(angle)
+            self._reopen_angle = angle
+            self._early = None
             self._write(self._now(), f",,jack_done {angle:+.0f} moved={int(moved)}")
 
     def recent(self, seconds):
@@ -214,6 +286,7 @@ class DoaTracker:
         now = self._now()
         start, end = now - utterance_s * (1 - COUNT_FROM), now - SKIP_END_S
         with self._lock:
+            self._armed = False   # one early direction per line
             angles = [to_jack(az) for t, az, speech in self._readings if speech and start <= t <= end]
             jack_angles, self._jack_angles = self._jack_angles, []
             if angles:

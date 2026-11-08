@@ -1269,6 +1269,20 @@ and the squawk cocks toward them when they're 20° or more to his left
 where it is; leaving On Watch faces front again. All starting values,
 to judge by eye. `--no-doa` turns it off; it needs `--port`.
 
+**Early turn - built 2026-11-08** (Chip: "a live animal turns when they
+hear a sound"). Once the Listener hears an utterance start, `DoaTracker`
+watches for the board to move off where it was when the mic reopened and
+hold one direction (5 speech-flagged readings, 0.5s, within 15° of each
+other), unless that's where Jack's own sound left it; the first time it
+does, `coordinator.py` turns the head that way at once, by at most 50°
+per move (a 100° swing mid-line measurably hurt STT; 30-50° didn't), and
+not at all if he already faces within 15° of it. Once per line; Jack's
+own sound disarms it. When the line ends, the end-of-line direction
+above finishes or corrects the turn during the squawk, and the squawk
+cocks toward the early direction if the end-of-line one is unsure.
+Replayed on session25: early turns 8 of 8 right, 0.5-1.7s into the line
+(about 3s just after the person moved). log.md 4.9.
+
 **Intended function (original design; continuous tracking not built -
 see above)**: supply a continuous sound-direction cue that pulls
 On Watch's and Off Watch's baseline yaw toward whoever's currently
