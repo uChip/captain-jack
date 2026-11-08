@@ -2336,6 +2336,28 @@ both just after Chip moved); end-of-line unchanged at 8/0/1.
 `doa_stream.csv` now also logs `speech_started`, `jack_started` and
 `early`; `doa_replay.py` fakes the first two for session25's older stream.
 
+**Early turn live, session26, same day.** 15 lines (2 STT rejects).
+Early turns fired on 10; where Chip's spot is clear they went the right
+way and came 0.6-1.5s into the speech (utt03 left, step +50 -> 0 then
+-50 at the end; utt06 right of center +51; utt08 and utt14 front; utt13
+right +89 at 2.2s; utt04 already facing, no move). utt07 "in front" read
+-26/-30 on the board itself. utt15 ("off to your left", said while
+moving) turned early to front, then -32 at the end. Problems:
+- utt01: 15.9s of something that wasn't Chip (STT: "[INAUDIBLE]"); the
+  board sat at -16 for 14s, then early fired at +97 with 14s gone and
+  turned the head +50 - not early at all by then.
+- utt02 (Chip in front) got no turn, so the head stayed at +50: Chip had
+  started speaking while Jack said "didn't catch that", which moved the
+  board to +1 before the mic reopened, so +1 was taken as Jack's own sound.
+- utt11, a 1.3s noise STT rejected, turned the head to -43 early (the
+  next line, utt12, read -47, so it may have been Chip).
+- Recognition: of six lines with a mid-line turn, one came out garbled
+  (utt03 "Over still doing some direction, Kath Jack"), the turn landing
+  0.9s in - consistent with the mix test's 2/118 for 50 deg, not clearly
+  worse.
+Jack's own sound read +128, +166, +104, -169 and +47 at different mic
+reopens - still all over the place.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
