@@ -674,9 +674,10 @@ worked in parallel if priorities change.
    (`doa.py`, via Seeed's own Python control script - see "Done so far"
    item 46). Calibrated 2026-10-21 (`tests/doa_walkaround.py --laps
    2`): with the bird centered on the enclosure it blocked a mic; moved
-   to the rear, Jack's front is board 84 (190 since the 2026-11-07 enclosure
-   extension, provisional - readings skewed, cause unknown) and left/right reads correctly
-   87-100% of the time, but the reading is too sticky and rough for
+   to the rear, Jack's front was board 84 (180 since the
+   2026-11-08 inner-box rebuild - XVF3800 in its own closed box; readings
+   now repeat lap to lap) and left/right reads correctly
+   82-100% of the time, but the reading is too sticky and rough for
    continuous yaw tracking. Built instead the same day: Jack turns
    toward each utterance's speaker (`doa.py` `DoaTracker`,
    `Motion.turn_toward()`, needs `--port`, `--no-doa` to skip) and the

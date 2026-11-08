@@ -1229,12 +1229,18 @@ new talker by 2-6s. Beam 2 of `AEC_AZIMUTH_VALUES` is worse and isn't
 used. Good enough for the squawk cock's left/right and a once-per-
 utterance turn; not for continuous yaw tracking.
 
-**Recalibrated 2026-11-07 (provisional)**: after the enclosure was
-extended to the rear (array not moved), two walk-arounds put front near
-board 190, about 100° off the layout - the readings are skewed, not the
-board rotated. `JACK_FRONT_DEG` follows the board (190) so the turn picks
-the right side; quilt batting behind the board improved left/right (89-100%)
-but readings stay sticky and front is unreliable. Cause under investigation
+**Recalibrated 2026-11-08**: the XVF3800 now sits in its own closed box
+inside the electronics enclosure, modeled on Seeed's case (3mm walls and
+back cover, foam mic rings compressed ~0.5mm against the top face, quilt
+batting front and back). Walk-around: front at board 180 (median error
+4°), angle increasing toward Jack's right; settled positions repeat lap to
+lap within about 3-17°, and front-left/left are now distinct (~135/~98);
+left/right correct 82-100%. The board (USB to the rear) hasn't moved in
+any enclosure, and three runs since the 2026-11-07 rebuild all fit
+180-194, so `JACK_FRONT_DEG` = 180; the October 84 is the outlier, cause
+unknown. Right-side talkers still sometimes read briefly as left before
+settling, likely a reflection off the nearer wall on the bird's left.
+The batting insulates the board, so its temperature needs watching
 (docs/log.md 4.9).
 
 **Once-per-utterance turn - built 2026-10-21** (instead of the

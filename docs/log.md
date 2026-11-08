@@ -2170,6 +2170,46 @@ rings are compressed against the top face, then rerun
 `doa_walkaround.py --laps 2`, expecting front back near 84. Next: an A/B with soft material behind the board (towel, felt)
 or the lid off, before buying acoustic foam.
 
+2026-11-08 (Chip): filing the mounts was abandoned - slow, and likely to
+end uneven. Instead the enclosure was reprinted with the rest of Seeed's
+XVF3800 case built in: the board now sits in its own box inside the
+electronics box, 3mm walls round the PCB and a 3mm cover over the back,
+mounted closer to the (unchanged) top face so the foam mic rings compress
+about 0.5mm. Quilt batting fills the space between PCB and top face
+(cut out round the mounts and mic rings) and between PCB and cover. Before
+this, the sides and back of the board were open to the whole electronics
+box. The board's own LED ring now follows sounds better and looks much
+less chaotic. Heat to watch: Seeed's case is unvented too, but the batting
+lies against the board, so check it by touch after a long session; if it
+runs hot, open a window in the back batting over the chip first. The board
+itself has been the same in every enclosure: USB to the rear, the front
+two mics parallel to the enclosure front.
+
+Walk-around in the inner box (`doa_walkaround.py --laps 2 --lead-in 10`,
+`stt_samples/doa_walkaround_inner_box.csv`). Settled means (last 5s), lap 1 / lap 2:
+front 184/164, front-left 134/137, left 95/102, front-right 207/224,
+right 262/257, behind 12/13. Fit: front = board 180, angle increasing
+toward Jack's right, median error 4 (75th pct 12). Left/right correct:
+front-left 98%, left 100%, front-right 82%, right 100%. Against the
+11-07 runs: positions now land in their expected order round the circle at
+roughly 45 deg steps and repeat lap to lap (the batting run read left and
+front-left both as 132); the reading swings to a value and stays rather
+than latching and jumping. Beam 2 still worse (median error 20), unused.
+
+Front stayed at 180 with the rings sealed, so the 0.1mm gap wasn't the
+cause of the ~100 deg shift from October's 84. With three runs since the
+rebuild at 180-194 and the board never moved, `JACK_FRONT_DEG` is now 180
+(was 190 provisional) and October's 84 is treated as the outlier - why it
+read that way is unknown (it was taken in the gray enclosure, bird just
+moved off a blocked mic).
+
+Left over: in the front-right and right windows the raw reading sometimes
+swings to ~87 (the left value) before settling. The room isn't symmetric -
+a wall about 8ft off the bird's left versus about 15ft on the right -
+so a reflection off the nearer left wall is the likely source. It doesn't
+show in the settled values. Next: watch the once-per-utterance turn live
+(`coordinator.py --port`).
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
