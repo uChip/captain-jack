@@ -2369,8 +2369,14 @@ lost utt09 (the reply moved the board back to Chip's spot), hence both.
 Replay: session26 utt01 no early turn, utt02 +1 (was none), nothing else
 changed; session25 unchanged. session26's stream committed as
 `tests/data/doa_session26_stream.csv` and replayed by `test_doa.py`.
-Recovery after a noise turn is the next line's turn; reverting the head
-when STT rejects a line as noise was considered and not built.
+Recovery after a noise turn is the next line's turn. Chip then asked for
+the turn-back too, same day: `coordinator.py` notes the heading when the
+Listener hears speech start (`_line_heading`), and if STT rejects the line
+and the head has moved more than 15 deg since, turns it back there (shown
+in the console stats as "turned back to"). Covers early and end-of-line
+turns alike. `tests/test_coordinator.py` `check_turn_back_on_noise`,
+confirmed failing on the old code. Not yet watched live - next session
+(paused for household noise).
 
 ### 4.10 Idle and Ambient Audio Player
 

@@ -188,6 +188,7 @@ class Coordinator:
         self._sentences_finished = 0  # how many of the CURRENT reply's sentences have played, see _finish_reply
         self._last_sentence_dac_time = 0.0  # dac_time of the most recent one, for _finish_reply's race catch-up
         self._heard_at = None        # when the utterance being answered was handed over
+        self._line_heading = None    # where the head faced when the current line started (DoA)
 
         self.listener = Listener(on_utterance=lambda s, t: self.events.put(("utterance", s)),
                                  on_speech_start=self._on_speech_start)
@@ -519,6 +520,8 @@ class Coordinator:
         """Listener thread: an utterance has just started."""
         if self.doa and self.mode == "on_watch":
             self.doa.speech_started()
+            if self.motion:
+                self._line_heading = self.motion.heading()   # to turn back to if it's noise
 
     def _on_early_turn(self, angle):
         """DoA thread, mid-utterance: the board has settled on a new
@@ -543,6 +546,8 @@ class Coordinator:
         the head stays where it is."""
         if not (self.doa and self.motion):
             return None, None
+        if self._line_heading is None:
+            self._line_heading = self.motion.heading()
         angle = self.doa.direction(len(samples) / RATE)
         early = self.doa.take_early()
         if angle is not None:
@@ -565,7 +570,14 @@ class Coordinator:
             + (f" (early {early:+d})" if early is not None else ""))
         stats = (f"{heard.audio_s:.1f}s audio, stt {heard.stt_s:.2f}s, p={heard.prob:.2f}"
                  f"{describe_voice(match)}{doa}{saved}")
+        before, self._line_heading = self._line_heading, None
         if not heard.accepted:
+            if self.motion and before is not None and abs(self.motion.heading() - before) > EARLY_MIN_DEG:
+                # STT heard no words: the turn was toward a noise. Look back,
+                # as an animal does once a sound turns out to be nothing
+                # (Chip, 2026-11-08: a noise turn is lifelike "but should recover").
+                self.motion.turn_toward(before)
+                stats += f", turned back to {before:+d}"
             self.out(f"  (rejected - {heard.reject}: {heard.raw!r})   [{stats}]")
             self.out(f"Jack: {DIDNT_CATCH}")
             self.speak(DIDNT_CATCH)

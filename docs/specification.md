@@ -1287,7 +1287,9 @@ as the next line recovers. Since then: no early direction more than 4s
 into the speech, and "Jack's sound moved the board" means it moved off
 both its value when that sound started and the person's last spot, so
 someone speaking up between the squawk and the reply still gets turned
-toward. log.md 4.9.
+toward. And when STT rejects a line (noise, no words), the head turns back
+to where it faced when the line started - built 2026-11-08, not yet
+watched live. log.md 4.9.
 
 **Intended function (original design; continuous tracking not built -
 see above)**: supply a continuous sound-direction cue that pulls

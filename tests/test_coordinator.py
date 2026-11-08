@@ -646,6 +646,34 @@ def check_early_turn():
     return errors
 
 
+def check_turn_back_on_noise():
+    """A line STT rejects (noise) turns the head back to where it faced when
+    the line started, early turn and end-of-line turn both undone; an
+    accepted line keeps its turn."""
+    errors = []
+    out = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=out.append, doa=FakeDoa(-43, 40, early=-43))
+    coord.motion = FakeMotion()
+    coord.start_session()
+    coord.motion.facing = 10
+    coord._on_speech_start()
+    coord._on_early_turn(-43)
+    noise = np.zeros(16000, dtype=np.int16)          # STT rejects silence
+    coord.handle_utterance(noise)
+    turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
+    if turns[-1] != ("turn_toward", 10):
+        errors.append(f"a rejected line should turn the head back to 10: {turns!r}")
+    if not any("turned back to +10" in line for line in out):
+        errors.append(f"turn-back missing from console stats: {out!r}")
+    coord.handle_utterance(load_clip())
+    turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
+    if turns[-1] != ("turn_toward", 40):
+        errors.append(f"an accepted line should keep its turn (40): {turns!r}")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -664,7 +692,8 @@ if __name__ == "__main__":
               + check_mid_reply_sentence_gap() + check_nonreply_clip_reopens_mic()
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
-              + check_speaker_id() + check_face_speaker() + check_early_turn())
+              + check_speaker_id() + check_face_speaker() + check_early_turn()
+              + check_turn_back_on_noise())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -682,5 +711,5 @@ if __name__ == "__main__":
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
           "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
           "and the head turns toward each utterance's speaker (DoA) before the squawk, "
-          "and turns early, mid-utterance, by at most 50 degrees"
+          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line"
           + (", live Haiku replied" if live else ""))
