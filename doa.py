@@ -66,10 +66,18 @@ JACK_FRONT_DEG = 180
 # rightly stays on them, and that rule threw away every line after the
 # first from each spot. Now the board's value when the mic reopens is
 # compared with where the person was last heard - unchanged means Jack's
-# sound didn't move it, and it's still them.
+# sound didn't move it, and it's still them. Two more changes the same day
+# after session25 (7 of 10 right), checked by replaying its logged stream
+# (tests/doa_replay.py): every place Jack's sound moved the board since the
+# last utterance is refused, not just the last mic reopen (his own sound
+# reads at a different angle each time - reflections - and the squawk's
+# value was missed once the reply drifted off it), and only the second half
+# of the utterance is counted (a person who has moved holds the board on
+# their old spot for up to ~3.5s). Replayed: 8 right, none wrong, 1 none.
 POLL_HZ = 10
 KEEP_S = 35.0           # readings kept - longer than any utterance (Listener caps at 30s)
-SKIP_START_S = 0.5      # the board is still on the previous talker (often Jack)
+COUNT_FROM = 0.5        # count from this far through the utterance - before that the
+                        # board can still be on the previous talker, or their old spot
 SKIP_END_S = 0.5        # ...and can swing after they stop
 MIN_READINGS = 5        # speech-flagged readings needed in between...
 BIN_DEG = 15            # ...grouped into bins this wide...
@@ -134,8 +142,7 @@ class DoaTracker:
         self._now = now
         self._log = log                 # coordinator.py --save's doa_stream.csv (an open file), or None
         self._person = None             # Jack angle the last utterance ended on
-        self._after_jack = None         # board angle when the mic reopened after Jack's sound...
-        self._jack_moved = False        # ...and whether his sound moved it off the person
+        self._jack_angles = []          # where Jack's own sound moved the board since the last utterance
         self._readings = deque(maxlen=int(POLL_HZ * KEEP_S))
         self._lock = threading.Lock()
         self._stop = threading.Event()
@@ -184,9 +191,11 @@ class DoaTracker:
             if not self._readings:
                 return
             t, az, _ = self._readings[-1]
-            self._after_jack = to_jack(az)
-            self._jack_moved = self._person is None or _apart(self._after_jack, self._person) > BIN_DEG
-            self._write(self._now(), f",,jack_done {self._after_jack:+.0f} moved={int(self._jack_moved)}")
+            angle = to_jack(az)
+            moved = self._person is None or _apart(angle, self._person) > BIN_DEG
+            if moved:
+                self._jack_angles.append(angle)
+            self._write(self._now(), f",,jack_done {angle:+.0f} moved={int(moved)}")
 
     def recent(self, seconds):
         """[(age_s, board_deg, speech)] for the last seconds, oldest first -
@@ -203,15 +212,14 @@ class DoaTracker:
         spoke, or None if there are too few, no group dominates, or it's
         still where Jack's own sound moved the board (see jack_done())."""
         now = self._now()
-        start, end = now - utterance_s + SKIP_START_S, now - SKIP_END_S
+        start, end = now - utterance_s * (1 - COUNT_FROM), now - SKIP_END_S
         with self._lock:
             angles = [to_jack(az) for t, az, speech in self._readings if speech and start <= t <= end]
-            after_jack, moved = self._after_jack, self._jack_moved
-            self._after_jack, self._jack_moved = None, False   # one utterance per reopen
+            jack_angles, self._jack_angles = self._jack_angles, []
             if angles:
                 self._person = angles[-1]
             angle = self._pick(angles)
-            if angle is not None and moved and _apart(angle, after_jack) <= BIN_DEG:
+            if angle is not None and any(_apart(angle, j) <= BIN_DEG for j in jack_angles):
                 angle = None
             self._write(now, f",,utterance {utterance_s:.1f}s -> {angle}")
         return None if angle is None else round(angle)

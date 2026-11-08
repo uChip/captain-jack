@@ -602,12 +602,36 @@ when it was last confirmed passing.
   longest while the person spoke, ignoring Jack's own voice at the
   start, a swing at the end and earlier talkers; too few / scattered
   readings, or a board still where Jack's own sound left it, give None;
-  the same person in the same spot is trusted; stream log`. Includes the
-  patterns seen live in session23 and session24.
+  the same person in the same spot is trusted; a person who moved is
+  found where they are now; any place Jack's sound moved the board since
+  the last line is refused; stream log; session25 replay 8 right / 0
+  wrong / 1 none`. Includes the patterns seen live in session23, 24 and
+  25, and replays session25's logged stream
+  (`tests/data/doa_session25_stream.csv`) through `doa_replay.py`.
 - **Last confirmed passing**: 2026-11-08.
 - **Not covered**: the real board (polling was checked by hand: ~10
   readings/s, clean stop), and the coordinator wiring (that's
   `test_coordinator.py`'s face-speaker check).
+
+### DoA stream replay
+
+- **Covers**: [4.9](specification.md#49-direction-of-arrival-doa-reader) -
+  trying a `DoaTracker` rule change against real sessions before taking
+  it to the bird.
+- **Script**: [`../tests/doa_replay.py`](../tests/doa_replay.py)
+- **Run**: `venv/bin/python tests/doa_replay.py
+  stt_samples/sessionNN/doa_stream.csv [--expect="-,front,left,..."]`
+  (no hardware; needs a `coordinator.py --port --save` session, which
+  writes `doa_stream.csv`).
+- **Expected**: per utterance, the answer logged live next to the answer
+  today's rules give (marked "changed" where they differ); with
+  `--expect` (where the person really was, one per utterance, "-" to
+  skip), a right/wrong/none score on where the head would end up (both
+  capped at the 50-degree turn limit, within 25 degrees).
+- **Last confirmed**: 2026-11-08 (session25: live 7 right / 2 wrong,
+  replayed 8 / 0 / 1 none).
+- **Not covered**: how a turn looks on the bird (a live watch), and
+  sessions from before 2026-11-08 (no stream logged).
 
 ## Wake Word Spotter
 

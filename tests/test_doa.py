@@ -11,7 +11,10 @@ direction dominates, or the board is still where Jack's own sound left it
 (jack_done()) - but a board that stayed on the same person through Jack's
 reply is trusted (session24, 2026-11-08: one person talking from one spot
 got no turns at all under the old "unchanged from before" rule). Also the
---save stream log.
+--save stream log, and a replay of session25's logged stream
+(tests/data/doa_session25_stream.csv, via tests/doa_replay.py): a person who
+moved is found where they are now, not their old spot, and any place Jack's
+own sound moved the board since the last line is refused.
 
 Run: venv/bin/python tests/test_doa.py
 """
@@ -107,6 +110,28 @@ def main():
     if t.direction(3.0) != 96:
         errors.append(f"with no Jack sound since the last utterance, nothing should be stale, got {t.direction(3.0)}")
 
+    t, feed = tracker()
+    feed(38, 3.0)
+    t.direction(3.0)    # the person at his front-right...
+    feed(38, 4.0, speech=False)
+    t.jack_done()
+    feed(38, 3.4)       # ...walks to front: the board holds the old spot for 3.4s
+    feed(1, 2.6)        # (session25 utt06)
+    if t.direction(6.0) != 1:
+        errors.append(f"a person who moved should be found where they are now (1), got {t.direction(6.0)}")
+
+    t, feed = tracker()
+    feed(4, 3.0)
+    t.direction(3.0)    # the person in front
+    feed(37, 2.0)       # the squawk moves the board to +37...
+    t.jack_done()
+    feed(4, 3.0)        # ...the reply drifts back to the person's spot before the mic reopens
+    t.jack_done()
+    feed(37, 3.0)       # the board latches on +37 again (session25 utt11)
+    if t.direction(3.0) is not None:
+        errors.append(f"any place Jack's sound moved the board since the last line should be refused, "
+                      f"got {t.direction(3.0)}")
+
     import io
     log = io.StringIO()
     t, feed = tracker(log)
@@ -126,10 +151,19 @@ def main():
         errors.append("too few speech-flagged readings should give None")
 
     t, feed = tracker()
-    for a in (-150, -90, -30, 30, 90, 150):   # all over the place - nothing dominates
-        feed(a, 0.5)
+    for a in (-150, -90, -30, 30, 90, 150) * 5:   # all over the place - nothing dominates
+        feed(a, 0.1)
     if t.direction(3.0) is not None:
         errors.append(f"scattered readings should give None, got {t.direction(3.0)}")
+
+    # session25's logged stream, replayed through the current rules: where
+    # Chip said he was (docs/log.md 4.9) - 8 right, none wrong, utt11 none.
+    import doa_replay
+    results = doa_replay.replay(Path(__file__).parent / "data" / "doa_session25_stream.csv")
+    expect = doa_replay.parse_expect("-,front,left,right,front_right,front,-,left,left,front,right,-")
+    counts, marks = doa_replay.score(results, expect)
+    if counts != {"right": 8, "wrong": 0, "none": 1}:
+        errors.append(f"session25 replay: {counts}, per line {marks}")
 
     if errors:
         for e in errors:
@@ -138,7 +172,9 @@ def main():
     print("PASS: board-to-Jack angle mapping; the direction held longest while the person spoke, "
           "ignoring Jack's own voice at the start, a swing at the end and earlier talkers; "
           "too few / scattered readings, or a board still where Jack's own sound left it, give None; "
-          "the same person in the same spot is trusted; stream log")
+          "the same person in the same spot is trusted; a person who moved is found where they are now; "
+          "any place Jack's sound moved the board since the last line is refused; stream log; "
+          "session25 replay 8 right / 0 wrong / 1 none")
 
 
 if __name__ == "__main__":

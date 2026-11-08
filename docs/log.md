@@ -2275,6 +2275,26 @@ reopen - utt11 becomes none instead of wrong; (b) count only the second
 half of the utterance - fixes utt06 (and gives utt07 the left it ended
 on) without changing any line that was right.
 
+Both adopted the same day (`COUNT_FROM = 0.5` replaces `SKIP_START_S`;
+`jack_done()` keeps a list per utterance). Built `tests/doa_replay.py`,
+which runs a `doa_stream.csv` through the real `DoaTracker` on a fake
+clock, shows the live and current answers side by side, and scores them
+against `--expect` on where the head would end up (both capped at the
+50-degree turn). Its replay of the old rules matches session25's live
+answers exactly. With both tweaks: utt06 front +1 (was +37), utt11 none
+(was +37, now stays put rather than turning wrong), utt01 (an STT reject)
+now -90; 8 right, 0 wrong, 1 none. utt07 is still +1 - the second half
+of that line was still front; Chip said "on your left now" at the very
+end. Caveat: tuned and scored on the same session. session25's stream is
+committed as `tests/data/doa_session25_stream.csv`, and `test_doa.py`
+replays it as a regression check.
+
+Chip on the turn itself: speed (one 600ms move) and the 50-degree limit
+are fine, but "a live animal turns when they hear a sound. Jack doesn't
+turn until he starts to speak." The turn is computed only after the
+utterance ends (Listener end-pointing), then made during the squawk's
+lead-in silence.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

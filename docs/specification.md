@@ -1247,18 +1247,21 @@ The batting insulates the board, so its temperature needs watching
 continuous tracking below, which the board's reading can't support):
 `doa.py`'s `DoaTracker` polls at 10Hz; when an utterance ends, it
 reports Jack's angle to the speaker as the direction the board held
-longest while they spoke (speech-flagged readings, skipping the first
-and last 0.5s, grouped in 15° bins, the biggest holding at least 40% of
+longest while they spoke (speech-flagged readings from the second half
+of the utterance - before that the board can still be on the previous
+talker or the person's old spot - skipping the last 0.5s, grouped in 15° bins, the biggest holding at least 40% of
 at least 5), or nothing - including when the board is still where
 Jack's own sound (squawk, reply, beep) left it, so it never heard them.
-Whether his sound moved it is checked when the mic reopens: the board's
-value then against where the person was last heard. If it didn't move,
-the reading is still that person and is trusted, so someone talking
-from one spot keeps getting turned toward. Revised
-2026-10-21 after the first two live runs, and 2026-11-08 after session24
-(log.md 4.9). With `--save`, `doa_stream.csv` logs every reading all
-session, with each mic reopen and each utterance's answer, for offline
-replay. `coordinator.py` then calls `Motion.turn_toward()`,
+Whether his sound moved it is checked each time the mic reopens (after
+the squawk, after the reply): the board's value then against where the
+person was last heard. Every value his sound moved it to since their last
+line is refused - his own sound reads at a different angle each time
+(reflections). If it didn't move, the reading is still that person and
+is trusted, so someone talking from one spot keeps getting turned toward. Revised
+2026-10-21 after the first two live runs, and 2026-11-08 after sessions
+24 and 25 (log.md 4.9). With `--save`, `doa_stream.csv` logs every reading all
+session, with each mic reopen and each utterance's answer, and
+`tests/doa_replay.py` replays it through the current rules. `coordinator.py` then calls `Motion.turn_toward()`,
 which moves the baseline yaw that way (capped at 50°, one 600ms move -
 the squawk's lead-in silence) so every later gesture plays facing them,
 and the squawk cocks toward them when they're 20° or more to his left
