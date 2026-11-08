@@ -2249,6 +2249,32 @@ offline next time. Tests: `tests/test_doa.py` (the session24 patterns),
 `tests/test_coordinator.py` (mic reopen calls `jack_done`, confirmed
 failing on the old coordinator).
 
+**Second live watch with the fix, session25, same day.** Chip alone,
+announcing each spot, moving between lines. 10 lines with a spot to judge
+(utt01 was an STT reject, utt12 "just pacing around" rightly gave none):
+front -5, left -90, right +77, front-right +38, left -59, left -60, front
++4 all right; front (utt06) +37 and right (utt11) +37 wrong; utt07
+("...on your left now", moving while talking) gave +1, where it started.
+So 7 of 10 right (session24: 1 of 9 turned at all). `doa_stream.csv` shows
+two causes for the misses:
+- **Lag when the person moves.** utt06: the board held the previous spot
+  (+37) for the first ~3.4s of the line before swinging to front (+1), so
+  the old spot won the count. SKIP_START_S (0.5s) assumes a much faster
+  swing.
+- **Jack's own sound reads at different angles.** Where the mic reopened
+  after his squawk/reply, the board read +144/+128/+173 early in this
+  session, +37 later, and +96 in session24 - not one fixed direction, so
+  reflections, not the speaker's real bearing. In utt11 the board went to
+  +37 (where the squawk had just left it) and stayed, with Chip on the
+  right. It wasn't refused because only the last mic reopen is checked,
+  and the board had gone back to +4 by the end of the reply.
+Candidate tweaks, to try against the logged stream rather than one more
+live run: (a) refuse a winner near *any* value Jack's sound moved the
+board to since the last utterance (squawk and reply), not just the last
+reopen - utt11 becomes none instead of wrong; (b) count only the second
+half of the utterance - fixes utt06 (and gives utt07 the left it ended
+on) without changing any line that was right.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of
