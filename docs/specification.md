@@ -2223,8 +2223,9 @@ consumes and produces.
 
 History: [log.md#417-running-at-boot](log.md#417-running-at-boot).
 
-**Status: Built 2026-11-09, not yet enabled** (CLAUDE.md work list item
-11; decisions are Chip's, 2026-11-09).
+**Status: Built, enabled and live-confirmed 2026-11-09** (reboot
+starts Jack by itself; a 5s button hold powers the Pi off cleanly).
+CLAUDE.md work list item 11; decisions are Chip's, 2026-11-09).
 
 **Description**: the Pi boots to the console (no desktop) and systemd
 starts Jack (`deploy/captain-jack.service`, user `chips`). Pieces:

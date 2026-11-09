@@ -794,7 +794,8 @@ worked in parallel if priorities change.
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.
 11. Boot straight into Jack (Chip, 2026-10-19; decisions made
-    2026-11-09). Service built 2026-11-09, not yet enabled - see spec
+    2026-11-09). Service built, enabled and live-confirmed 2026-11-09
+    (reboot starts Jack by itself; button hold powers the Pi off) - see spec
     4.17 for how it works (`deploy/`, `coordinator.py --boot`,
     `~/jack-live`, `~/jack-data/jack.env`, `sudo deploy/install.sh`).
     Requirements: SSH stays available; a way

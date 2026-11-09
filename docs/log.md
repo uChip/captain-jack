@@ -2839,6 +2839,24 @@ building, beyond Chip's decisions:
   the offline line covers no internet, an API outage and an expired key
   alike.
 
+**Live checks, 2026-11-09.** Installed and enabled 15:54. A real reboot
+at 16:01 brought Jack up by himself in Off Watch (wait script: devices
+present at once, clock synced after 20s), with the journal now on the SD
+card (`/var/log/journal`). Then the button: a 5s hold at 16:07:35 gave a
+clean stop at 16:07:39, exit 42, and systemd powered off at 16:07:42 -
+no errors. Powered back on, Jack came up again normally.
+- Without an RTC battery, the boot clock starts from the last saved time
+  (here 16:07:43, a second after shutdown), so log timestamps before the
+  clock sync are early: the wait script said "clock synced after 30s"
+  while its two log lines were 97s apart - the clock jumped about 67s
+  on sync. Expected, not a bug; the clock wait is what keeps it harmless.
+- Side effect seen at the desktop: a second SSH window that had a
+  mouse-tracking program open (a pager, Claude Code) when the Pi powered
+  off kept spewing mouse reports (`35;59;28M...`) - the connection
+  dropped before the program could switch tracking off. Terminal state
+  only; `printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l'`, `reset`, or a
+  new tab clears it.
+
 ### 4.16 Runtime Integration (End-to-End Turn)
 
 **Designed 2026-09-25**: the "interconnection" session planned at the
