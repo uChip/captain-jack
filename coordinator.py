@@ -572,10 +572,15 @@ class Coordinator:
                  f"{describe_voice(match)}{doa}{saved}")
         before, self._line_heading = self._line_heading, None
         if not heard.accepted:
-            if self.motion and before is not None and abs(self.motion.heading() - before) > EARLY_MIN_DEG:
+            real_voice = match is not None and match.name is not None
+            if (self.motion and before is not None and not real_voice
+                    and abs(self.motion.heading() - before) > EARLY_MIN_DEG):
                 # STT heard no words: the turn was toward a noise. Look back,
                 # as an animal does once a sound turns out to be nothing
                 # (Chip, 2026-11-08: a noise turn is lifelike "but should recover").
+                # Not when speaker-ID names a household voice - that was a
+                # real person STT failed on (session27 utt01: a doubled
+                # transcript rejected as a repeat loop), so keep facing them.
                 self.motion.turn_toward(before)
                 stats += f", turned back to {before:+d}"
             self.out(f"  (rejected - {heard.reject}: {heard.raw!r})   [{stats}]")

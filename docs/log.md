@@ -2383,6 +2383,29 @@ runs, batting in place front and back): the chip is warmer than ambient
 but nowhere near too hot to keep a finger on - passes the "50C test". No
 venting needed on this evidence.
 
+Live watch, session27 (2026-11-09; early turn with the 4s window and the
+talk-over fix, and the turn-back): Chip, "Tracked me very well". 9 lines;
+the early turn fired on all 9, 0.5-1.7s into the speech, and agreed with
+the end-of-line answer within 2-9 deg. utt06 (1.9s, "It's Captain Chip")
+got no end-of-line answer (too few readings left in its second half once
+Jack's own +167 was refused), but the early turn had already faced Chip
+at -38. Replay matches live except that utt06 gets -36 in replay, a
+window-edge timing difference. Chip's distraction noises (coughs, claps,
+a dropped object) never turned Jack. The stream has exactly 9
+speech_started events, one per spoken line, so Silero VAD never took any
+noise for speech. Short noises are filtered before DoA is even asked, and
+the turn-back only matters for speech-like noise (TV, talk in another
+room). The turn-back did fire once, wrongly: utt01 was Chip from the left
+("Good morning Jack, how's the perch today?"), turned to -51 early, but
+STT rejected it as a repeat loop (the sentence transcribed twice; the
+no-prompt retry evidently looped too), so the head swung back to front,
+away from him. Fixed the same day: no turn-back when speaker-ID names a
+household voice (utt01 matched Chip at 0.59), since that was a real
+person STT failed on. A noise matches no one, so it still turns back.
+`check_turn_back_on_noise` extended, confirmed failing on the old code.
+The doubled-transcript reject itself is an STT issue, noted and left for
+now.
+
 ### 4.10 Idle and Ambient Audio Player
 
 **Off Watch's (and On Watch's) behavior loop**: an earlier sketch of

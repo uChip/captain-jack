@@ -687,8 +687,10 @@ worked in parallel if priorities change.
    "still where Jack's own sound left the board"; session25 7/10, then
    tweaks replayed to 8/0 (`tests/doa_replay.py`). Early turn built the
    same day (Chip: turn on hearing, not after): mid-line, at most 50 deg
-   per move (turn noise measured harmless to STT up to 50). Next: watch
-   the early turn live. Still open if that disappoints: an
+   per move (turn noise measured harmless to STT up to 50). Watched live
+   2026-11-09 (session27): "Tracked me very well", early turn on all 9
+   lines; turn-back on rejected noise now skipped for a known voice.
+   Still open if tracking ever disappoints: an
    enclosure redesign to clear the blockage fully (Chip rates it easier
    than new mic-array software), or Seeed's raw-mic firmware.
 8. **Build the audio loop per `docs/specification.md` section 4.16's

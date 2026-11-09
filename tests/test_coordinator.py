@@ -671,6 +671,24 @@ def check_turn_back_on_noise():
     turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
     if turns[-1] != ("turn_toward", 40):
         errors.append(f"an accepted line should keep its turn (40): {turns!r}")
+
+    # A rejected line in a known voice was a real person STT failed on:
+    # keep facing them (session27 utt01).
+    from speaker_id import Match
+    out = []
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                     client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                     out=out.append, doa=FakeDoa(-43, early=-43),
+                                     speaker_id=FakeSpeakerID(Match("Chip", 0.59, 0.30, {"Chip": 0.59})))
+    coord.motion = FakeMotion()
+    coord.start_session()
+    coord.motion.facing = 10
+    coord._on_speech_start()
+    coord._on_early_turn(-43)
+    coord.handle_utterance(noise)
+    turns = [c for c in coord.motion.calls if c[0] == "turn_toward"]
+    if ("turn_toward", 10) in turns or any("turned back" in line for line in out):
+        errors.append(f"a rejected line in a known voice shouldn't turn back: {turns!r} {out!r}")
     return errors
 
 
