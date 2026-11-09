@@ -692,6 +692,53 @@ def check_turn_back_on_noise():
     return errors
 
 
+def check_voice_shutdown():
+    """Voice shutdown: Haiku asks (MODE: SHUTDOWN_ASK) and, on the very next
+    reply, confirms (MODE: SHUTDOWN); the coordinator shuts down (Stop
+    "voice") once that reply has played - but only if the asking line
+    was a recognized voice, and only right after the ask. A line STT
+    rejects in between doesn't break the exchange."""
+    from speaker_id import Match
+    chip = Match("Chip", 0.6, 0.3, {"Chip": 0.6})
+    nobody = Match(None, 0.2, 0.1, {"Chip": 0.2}, "below threshold")
+    ask = "Power down, Captain? Are ye sure?\nMODE: SHUTDOWN_ASK\nMEMORY: NONE"
+    yes = "Fair winds, matey!\nMODE: SHUTDOWN\nMEMORY: NONE"
+    chat = "Aye, a fine day.\nMODE: NONE\nMEMORY: NONE"
+    noise = np.zeros(16000, dtype=np.int16)
+    clip = load_clip()
+    cases = [
+        # (name, [(reply, voice, audio)], should shut down)
+        ("recognized voice, ask then yes", [(ask, chip, clip), (yes, nobody, clip)], True),
+        ("noise between ask and yes", [(ask, chip, clip), (None, nobody, noise), (yes, chip, clip)], True),
+        ("unrecognized voice asks", [(ask, nobody, clip), (yes, chip, clip)], False),
+        ("yes without an ask", [(yes, chip, clip)], False),
+        ("something else between", [(ask, chip, clip), (chat, chip, clip), (yes, chip, clip)], False),
+    ]
+    errors = []
+    for name, steps, want in cases:
+        client = FakeClient(chat)
+        coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=client,
+                                         out=lambda *a: None, filler=False,
+                                         speaker_id=FakeSpeakerID(*[v for _, v, _ in steps]))
+        coord.start_session()
+        stopped = None
+        try:
+            for reply, _, audio in steps:
+                if reply:
+                    client.reply = reply
+                coord.handle_utterance(audio)
+                coord._handle_event("reply_done", None)
+        except coordinator.Stop as e:
+            stopped = str(e)
+        if want and stopped != "voice":
+            errors.append(f"{name}: should have shut down (Stop voice), got {stopped!r}")
+        if not want and stopped is not None:
+            errors.append(f"{name}: shouldn't have shut down, got Stop({stopped})")
+        if not want and coord.mode != "on_watch":
+            errors.append(f"{name}: should still be On Watch, got {coord.mode}")
+    return errors
+
+
 class FakePlayer:
     """Records clear()/play() for the shutdown check."""
 
@@ -770,7 +817,7 @@ if __name__ == "__main__":
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
               + check_speaker_id() + check_face_speaker() + check_early_turn()
-              + check_turn_back_on_noise() + check_long_press())
+              + check_turn_back_on_noise() + check_long_press() + check_voice_shutdown())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -788,5 +835,5 @@ if __name__ == "__main__":
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
           "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
           "and the head turns toward each utterance's speaker (DoA) before the squawk, "
-          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line (not for a known voice), and a long press of the shutdown button cuts Jack off, plays the farewell and stops"
+          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line (not for a known voice), and a long press of the shutdown button cuts Jack off, plays the farewell and stops, and voice shutdown needs a recognized voice and a yes right after Jack asks"
           + (", live Haiku replied" if live else ""))

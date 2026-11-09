@@ -23,6 +23,11 @@ the bird marks the start of listening. Transitions:
     finishes playing - or the 2-minute no-prompt timeout (-> Off Watch).
   - Off Watch -> Asleep: the sleep-phrase stand-in above, or a
     15-minute no-wake timeout.
+  - Shutdown (CLAUDE.md item 11): from any mode, a 5s press of the
+    back-panel button (button.py); in On Watch, by voice - Jack asks a
+    recognized voice to confirm (MODE: SHUTDOWN_ASK), and a yes
+    (MODE: SHUTDOWN) shuts down once his farewell has played. Either way:
+    clean stop, exit SHUTDOWN_EXIT (the service powers the Pi off).
 Timeouts are spec 4.11's initial, not-yet-tuned numbers.
 
 Run (in its own terminal - it reads the keyboard):
@@ -203,6 +208,7 @@ class Coordinator:
         # same as entering Off Watch any other way (end_session()).
         self.deadline = time.monotonic() + OFF_WATCH_TIMEOUT_S
         self._pending_mode = None    # Haiku's MODE: tag for the reply in flight, applied on reply_done
+        self._shutdown_asked = False  # last reply asked a recognized voice "shut down - are ye sure?"
         self._reply = 0              # counts replies, to tag their sentences
         self._first_tag = None       # first and last sentence of the reply being spoken
         self._last_tag = None        # (reply, len(sentences) - 1) - only known once fully streamed
@@ -400,6 +406,9 @@ class Coordinator:
             self.end_session("Jack ended the conversation")
         elif pending == "NAP":
             self.start_nap("Jack said goodnight")
+        elif pending == "SHUTDOWN":
+            self.out("[Shutting down - confirmed by voice]")
+            raise Stop("voice")       # run()'s finally: clean stop, head to rest; exit SHUTDOWN_EXIT
         else:
             self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
             self._hold_head(True)   # mic is open again
@@ -418,6 +427,7 @@ class Coordinator:
     def start_session(self):
         self.mode = "on_watch"
         self.history = []
+        self._shutdown_asked = False
         if self.motion:
             self.motion.set_mode("on_watch")
         self._hold_head(True)
@@ -669,8 +679,29 @@ class Coordinator:
         self.out(f"Jack: {turn.spoken}   [haiku {time.monotonic() - start:.2f}s]")
         if turn.saved:
             self.out(f"  [memory saved - {turn.saved}]")
-        self._pending_mode = turn.mode
+        self._pending_mode = self._shutdown_check(turn.mode, match)
         self._finish_reply(reply, n)
+
+    def _shutdown_check(self, mode, match):
+        """Voice shutdown (CLAUDE.md item 11, Chip 2026-11-09): On Watch only,
+        a household voice only, and only after Jack has asked "are ye
+        sure?" and been told yes. Haiku runs the exchange (identity.md's
+        SHUTDOWN_ASK, then SHUTDOWN), but the rules are enforced here:
+        SHUTDOWN_ASK counts only when speaker-ID names the voice asking,
+        and SHUTDOWN only on the very next reply after a counted
+        SHUTDOWN_ASK (a line STT rejects in between doesn't break it).
+        Returns the mode to apply once the reply finishes playing."""
+        asked, self._shutdown_asked = self._shutdown_asked, False
+        if mode == "SHUTDOWN_ASK":
+            if match is not None and match.name:
+                self._shutdown_asked = True
+            else:
+                self.out("  [shutdown not offered: voice not recognized]")
+            return None
+        if mode == "SHUTDOWN" and not asked:
+            self.out("  [shutdown tag ignored: Jack hadn't asked a recognized voice to confirm]")
+            return None
+        return mode
 
 
 def scratch_memory_copy() -> Path:
@@ -778,7 +809,7 @@ def main():
         print()
     except Stop as e:
         print(f"Stopped ({e}) - clean stop done.", flush=True)
-        if str(e) == "button":
+        if str(e) in ("button", "voice"):
             print(f"Exit {SHUTDOWN_EXIT}: shutdown requested (the service powers the Pi off).", flush=True)
             sys.exit(SHUTDOWN_EXIT)
 

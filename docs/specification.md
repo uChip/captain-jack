@@ -1610,6 +1610,20 @@ catalog on every transition, and (via `--port`/`--dry-run`) wires in the
 Serial writer; `orchestrate.py`'s `MODE:` meta-tag is how the
 Conversation Orchestrator signals an exit back up to it.
 
+**Shutdown** (Chip, 2026-11-09; built, button not yet wired): leaving all
+three modes for a powered-off Pi. Two ways in. The back-panel button
+held 5s (`button.py`, GPIO26 to ground, debounced in software) works from
+any mode with no confirmation: Jack is cut off mid-word, squawks and says
+a pre-rendered farewell (`wavFiles/shutdown/`), and the head goes to
+rest. By voice, On Watch only: Jack asks to confirm (`MODE:
+SHUTDOWN_ASK`) and a yes on the very next line gets a farewell and
+`MODE: SHUTDOWN`. Code, not Haiku, enforces the rules: the ask counts only
+when speaker-ID names the voice asking, and the shutdown only right after
+a counted ask - so a guest or the TV can't shut him down. Either way the
+coordinator does the same clean stop as Ctrl+C or SIGTERM and exits 42,
+which the systemd service (CLAUDE.md item 11, not built yet) will take as
+"power off". History: none yet.
+
 ### 4.12 Gesture Engine and Catalog
 
 History: [log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-catalog),

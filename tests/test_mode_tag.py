@@ -45,6 +45,11 @@ def check_split_mode_line():
     if (text, mode) != ("Still here, Captain.", "NONE"):
         errors.append(f"explicit NONE not split correctly, got {(text, mode)!r}")
 
+    for tag in ("SHUTDOWN_ASK", "SHUTDOWN"):     # voice shutdown, 2026-11-09
+        text, mode = split_mode_line(f"Are ye sure, Captain?\nMODE: {tag.lower()}")
+        if (text, mode) != ("Are ye sure, Captain?", tag):
+            errors.append(f"{tag} not split correctly, got {(text, mode)!r}")
+
     text, mode = split_mode_line("Just an ordinary reply.")
     if (text, mode) != ("Just an ordinary reply.", None):
         errors.append(f"missing MODE: line should fail closed to None, got {(text, mode)!r}")

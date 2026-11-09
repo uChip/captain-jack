@@ -40,7 +40,7 @@ TAG_RE = re.compile(
 # needs the local wake/sleep-phrase spotter to listen for fixed phrases
 # while Jack isn't already On Watch. Sits right before the MEMORY: line,
 # which stays the true last line.
-MODE_LINE_RE = re.compile(r"^MODE:\s*(NONE|END_SESSION|NAP)\s*$", re.IGNORECASE)
+MODE_LINE_RE = re.compile(r"^MODE:\s*(NONE|END_SESSION|NAP|SHUTDOWN_ASK|SHUTDOWN)\s*$", re.IGNORECASE)
 
 SECTION_HEADINGS = {
     "household": "Household",
@@ -454,7 +454,7 @@ def _home_turn(client, history, user_text, memory_dir, home, on_sentence=None) -
 class Turn:
     spoken: str             # what Jack says aloud
     saved: str | None       # "section: fact" if a memory was saved, else None
-    mode: str | None        # "END_SESSION" or "NAP" if Jack signaled either, else None
+    mode: str | None        # "END_SESSION", "NAP", "SHUTDOWN_ASK" or "SHUTDOWN" if signaled, else None
 
 
 def _finish_turn(reply: str, memory_dir: Path) -> Turn:

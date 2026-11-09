@@ -818,6 +818,28 @@ when it was last confirmed passing.
   other than an enrolled name or `other` (e.g. `music`, for clips judged
   unfit) are scored the same way as `other`, just listed separately.
 
+### Voice shutdown with live Haiku
+
+- **Covers**: Haiku's side of voice shutdown (2026-11-09, CLAUDE.md item
+  11, `memory/identity.md` "Shutting down"): a recognized voice asking to
+  shut down gets a confirming question (`MODE: SHUTDOWN_ASK`), a yes gets
+  `MODE: SHUTDOWN`, a no or an unknown voice doesn't, "goodnight" stays
+  `NAP`, and turning off a light isn't shutting Jack down. Code enforces
+  the same rules regardless - `test_coordinator.py`'s
+  `check_voice_shutdown` (recognized voice, ask-then-yes, a rejected line
+  in between allowed) and `test_mode_tag.py` (the new tags parse).
+- **Script**: [`../tests/voice_shutdown_haiku.py`](../tests/voice_shutdown_haiku.py)
+- **Run**: `venv/bin/python tests/voice_shutdown_haiku.py [--repeat 2]
+  [--show]` (needs `ANTHROPIC_API_KEY`; a cent or two). Scratch memory,
+  no home tools.
+- **Expected**: one `ok` line per turn and `18/18 turns tagged as
+  expected` (6 conversations x 2), exit 0.
+- **Last run**: 2026-11-09, 18/18. The unknown voice was turned down in
+  character, pointing to the household or the button.
+- **Not covered**: real speech (a short "yes" may come back `[voice:
+  unknown]`; only the asking line's voice is checked, for that reason),
+  and the live shutdown itself.
+
 ### Voice notes with live Haiku
 
 - **Covers**: [4.15](specification.md#415-speaker-recognition-voice-id)'s
