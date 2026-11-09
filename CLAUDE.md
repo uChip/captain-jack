@@ -845,6 +845,7 @@ worked in parallel if priorities change.
     - Desktop: off - the Pi boots to the console (multi-user.target).
       SSH, NetworkManager and the Wi-Fi connection (system-wide, stored
       password, autoconnect) were checked to start without it.
+      Confirmed by a real reboot 2026-11-09: console boot, SSH up.
     - No terminal: the Enter/`sleep` keyboard stand-ins go away, so the
       wake phrase is the only way in. Output goes to journald.
     - Logs: journald holds conversation transcripts for debugging only
