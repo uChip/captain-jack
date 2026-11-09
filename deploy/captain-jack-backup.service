@@ -1,0 +1,14 @@
+# Daily snapshot of ~/jack-data (memory.md, voiceprints). Started by
+# captain-jack-backup.timer; installed by deploy/install.sh.
+# Run now: sudo systemctl start captain-jack-backup
+# Logs:    journalctl -u captain-jack-backup
+
+[Unit]
+Description=Captain Jack data backup (memory.md, voiceprints)
+# Snapshot names are dates - wait for a synced clock (no RTC battery).
+After=time-sync.target
+
+[Service]
+Type=oneshot
+User=chips
+ExecStart=/home/chips/jack-live/deploy/backup-jack-data.sh

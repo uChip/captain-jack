@@ -2862,6 +2862,27 @@ no errors. Powered back on, Jack came up again normally.
   rest that the clean stop sends. As expected; full power-off is at the
   mains.
 
+**Backups, 2026-11-09.** Chip had planned the on-Pi daily snapshots; the
+desktop pull was Claude's addition, for the SD card dying, which local
+snapshots can't cover. Choices:
+- No GitHub, even a private repo: `memory.md` holds household facts
+  (the brief's privacy note), so they stay in the house.
+- `jack.env` left out: the API keys can be reissued, and every extra
+  copy of a secret is another place for it to leak.
+- The desktop logged in by password only (`authorized_keys` was empty),
+  and a scheduled task can't type one. Rather than a general-purpose key,
+  its key is pinned to one command (`command="tar ...",restrict`) - the
+  same least-privilege reasoning as the repo's deploy key.
+- `.cmd`, not PowerShell: Windows PowerShell 5's `>` re-encodes output
+  as text and would corrupt the tar stream; cmd's `>` passes bytes.
+  Unpacking uses Windows' built-in `tar`.
+- Snapshot only on change, so 30 snapshots means the last 30 changes,
+  not the last 30 days - a bad save can't age out the good copies just by
+  Jack sitting idle.
+- Voiceprints include their enrollment WAVs (2.4MB per snapshot): kept
+  whole rather than hard-linking unchanged files - 72MB on the Pi at
+  most, not worth the complexity.
+
 ### 4.16 Runtime Integration (End-to-End Turn)
 
 **Designed 2026-09-25**: the "interconnection" session planned at the

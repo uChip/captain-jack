@@ -1,0 +1,12 @@
+# Daily backup of ~/jack-data; installed by deploy/install.sh.
+# Persistent: a run missed while the Pi was off happens at next boot.
+
+[Unit]
+Description=Daily Captain Jack data backup
+
+[Timer]
+OnCalendar=*-*-* 03:30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

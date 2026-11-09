@@ -920,7 +920,8 @@ like code and arrives by pull). Each save is atomic (temp file, fsync,
 rename), so a power cut leaves the old file or the new one, never a
 truncated one. `--scratch-memory` copies the repo template, not the live
 file. Speaker-ID voiceprints moved alongside, to `~/jack-data/voiceprints/`.
-Backup of `~/jack-data` is not yet decided.
+Backups: daily snapshots on the Pi, pulled to Chip's desktop - see
+section 4.17, "Backups".
 
 **Description**: a deliberately simple, tag-based, plain-markdown memory
 store — an identity/boot doc plus one running facts file, no daily notes,
@@ -2272,11 +2273,41 @@ starts Jack (`deploy/captain-jack.service`, user `chips`). Pieces:
   debugging only - Jack never reads them. Raspberry Pi OS keeps the
   journal in RAM; `deploy/journald-captain-jack.conf` makes it persistent,
   7 days, capped at 200MB.
-- **Install**: `sudo deploy/install.sh [--now]` copies the unit and
-  journald drop-in into `/etc` and enables the service.
+- **Install**: `sudo deploy/install.sh [--now]` copies the units and
+  journald drop-in into `/etc`, enables the service and starts the
+  backup timer.
 
-Still open: what the servos do once the Pi is off; backing up
-`~/jack-data`.
+- **After shutdown**: the servos hold the rest pose. Halting the Pi cuts
+  no power (Pi, Arduino, servo supply), and the Arduino isn't reset, so
+  it keeps the clean stop's last command. Full power-off is at the mains.
+- **Backups** (2026-11-09): two layers, for two ways to lose
+  `memory.md`.
+  - *On the Pi, against bad saves*: `captain-jack-backup.timer` runs
+    `deploy/backup-jack-data.sh` daily at 03:30 (or at the next boot if
+    the Pi was off then, after the clock syncs). It copies `memory.md`
+    and `voiceprints/` to `~/jack-data/backups/<date>_<time>/`, only when
+    something changed since the newest snapshot, and keeps the newest 30.
+    `jack.env` is left out (keys can be reissued). Each snapshot is built
+    in a temp dir and renamed into place. A snapshot is ~2.4MB (the
+    voiceprints include their enrollment WAVs). Restore: stop Jack, copy
+    the file back, start Jack.
+  - *On Chip's desktop, against the SD card dying*: a Windows scheduled
+    task runs `deploy/windows/pull-jack-backups.cmd` daily, which fetches
+    `backups/` over SSH as a tar stream and unpacks it into
+    `E:\captain-jack-backups` (outside the repo clone - private data),
+    logging to `pull-log.txt` there. If the Pi is off, it fails and logs;
+    the next day catches up. The desktop keeps every snapshot it sees.
+  - *The desktop's key is least-privilege*: its line in the Pi's
+    `~/.ssh/authorized_keys` is
+    `command="tar -C /home/chips/jack-data -cf - backups",restrict ssh-ed25519 ... jack-backup-pull`,
+    so it can fetch the backups and nothing else - no shell, no
+    forwarding. Household facts never leave the house (no GitHub).
+  - *One-time desktop setup*: `ssh-keygen -t ed25519 -f
+    %USERPROFILE%\.ssh\jack_backup_pull -N "" -C jack-backup-pull`; put
+    the `.pub` on the Pi with the restricted line above; copy the `.cmd`
+    to `E:\captain-jack-backups`, set `HOST` there, run it once by hand,
+    then schedule that copy daily with "run as soon as possible after a
+    missed start".
 
 **Interfaces**: systemd runs `coordinator.py --boot --port ...`;
 coordinator exit codes: 0 clean stop, 42 power off, anything else a crash.

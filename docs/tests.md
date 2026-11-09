@@ -32,6 +32,20 @@ when it was last confirmed passing.
   own; voiceprints default under `JACK_DATA`.
 - **Last confirmed passing**: 2026-11-09.
 
+### Daily data backup
+
+- **Covers**: [Running at Boot](specification.md#417-running-at-boot)'s
+  "Backups" (`deploy/backup-jack-data.sh`, 2026-11-09).
+- **Script**: [`../tests/test_backup_jack_data.py`](../tests/test_backup_jack_data.py)
+- **Run**: `venv/bin/python tests/test_backup_jack_data.py`
+- **Expected**: prints `PASS: backup snapshots only on change ...` and
+  exits 0. Runs against a temp `JACK_DATA`, never `~/jack-data`: the
+  first run copies `memory.md` and `voiceprints/` but not `jack.env`; an
+  unchanged run writes nothing; a changed memory or voiceprint writes a
+  new snapshot; only the newest `KEEP` survive; a leftover `.tmp-*` is
+  cleared; an empty data dir fails instead of writing an empty snapshot.
+- **Last confirmed passing**: 2026-11-09.
+
 ### `home` tag save path
 
 - **Covers**: [Memory Subsystem](specification.md#45-memory-subsystem) /

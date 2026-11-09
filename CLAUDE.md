@@ -868,7 +868,10 @@ worked in parallel if priorities change.
     - Live memory: moved out of the repo (e.g. `~/jack-data/memory.md`,
       seeded once from the repo copy, which stays as a template), and
       written atomically (temp file + rename) to survive power cuts.
-      Backing it up is a separate question, still open. Built
+      Backups (2026-11-09): daily snapshots on the Pi
+      (`captain-jack-backup.timer`, keep 30), pulled daily to Chip's
+      desktop by a Windows task with a key that can only fetch them -
+      spec 4.17 "Backups". Built
       2026-11-09 (`datadir.py`, `tests/test_live_memory.py`; spec 4.5):
       voiceprints moved to `~/jack-data/voiceprints/` too.
     - Secrets: the API keys live in `~/.bashrc`, which a service doesn't
