@@ -1000,3 +1000,24 @@ clips:
     attribution: Claude as Captain Jack
     engine: kokoro-pi/am_santa
     rendered: 2026-10-10
+  # Shutdown farewells (CLAUDE.md item 11): one is played, after a squawk,
+  # when the back-panel button is held 5s and Jack powers down. Rendered
+  # into wavFiles/shutdown/ - not idle clips, never in the Off Watch list.
+  - file: shutdown/BattenDownTheHatches.wav
+    text: "Battening down the hatches. Fair winds, mates!"
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-11-09
+  - file: shutdown/StrikeTheColors.wav
+    text: "Strike the colors, I'm going below. Fair winds!"
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-11-09
+  - file: shutdown/LightsOutOnDeck.wav
+    text: "Lights out on deck. Wake me when the tide turns."
+    category: saying
+    attribution: Claude as Captain Jack
+    engine: kokoro-pi/am_santa
+    rendered: 2026-11-09

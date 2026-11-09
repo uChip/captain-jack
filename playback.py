@@ -128,6 +128,7 @@ class Playback:
         self._idle.set()
         self._last_dac_time = 0.0   # when the most recently finished item left the speaker
         self._stream = None
+        self._cut = None            # the item clear() asked to cut short
 
     def start(self):
         set_hw_volume_max()
@@ -156,6 +157,24 @@ class Playback:
     def play_file(self, path, tag=None):
         self.play(load_wav(path), tag if tag is not None else Path(path).name)
 
+    def clear(self):
+        """Drop everything queued and cut what's playing short (at the next
+        audio block). No events fire for what's dropped. Anything played
+        after this call is kept - used to cut Jack off for the shutdown
+        farewell (button.py)."""
+        dropped = 0
+        while True:
+            try:
+                self._queue.get_nowait()
+            except queue.Empty:
+                break
+            dropped += 1
+        self._cut = self._current
+        with self._lock:
+            self._pending -= dropped
+            if self._pending == 0:
+                self._idle.set()
+
     def wait_idle(self, timeout=None) -> bool:
         """Block until everything queued has been handed to the device."""
         return self._idle.wait(timeout)
@@ -176,6 +195,14 @@ class Playback:
     def _callback(self, outdata, frames, time_info, status):
         mono = np.zeros(frames, dtype=np.float32)
         filled = 0
+        if self._cut is not None:
+            if self._current is self._cut:
+                self._current = None
+                with self._lock:
+                    self._pending -= 1
+                    if self._pending == 0:
+                        self._idle.set()
+            self._cut = None
         while filled < frames:
             if self._current is None:
                 try:

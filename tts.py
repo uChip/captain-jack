@@ -148,6 +148,19 @@ class TTS:
             self._pending += 1
         self._queue.put((sentence, tag))
 
+    def clear(self):
+        """Drop the sentences still waiting (not the one being synthesized)."""
+        while True:
+            try:
+                item = self._queue.get_nowait()
+            except queue.Empty:
+                return
+            if item is None:            # stop()'s sentinel - put it back
+                self._queue.put(None)
+                return
+            with self._lock:
+                self._pending -= 1
+
     def pending(self) -> int:
         """Sentences queued or being synthesized, not yet handed to on_audio."""
         return self._pending

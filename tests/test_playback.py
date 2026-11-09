@@ -75,6 +75,32 @@ def check_callback():
     return errors
 
 
+def check_clear():
+    """clear() (the shutdown cut-off, 2026-11-09) drops what's queued and
+    cuts what's playing at the next block, with no events for either; an
+    item played right after clear() is kept and plays in full."""
+    errors = []
+    events = []
+    player = playback.Playback(on_event=lambda k, tag, t: events.append((k, tag)))
+    player.play(np.full(5000, 1000, dtype=np.int16), "long")
+    player.play(np.full(500, 1000, dtype=np.int16), "queued")
+    run_callback(player, 1)                       # "long" is now playing
+    player.clear()
+    player.play(np.full(700, 2000, dtype=np.int16), "farewell")
+    out = run_callback(player, 4)[:, 0]
+    gain = 10 ** (playback.OUTPUT_GAIN_DB / 20)
+    if not (out[:700] == int(2000 * gain)).all() or out[700:].any():
+        errors.append("after clear(), the next block should be the farewell, in full, then silence")
+    if events != [("started", "long"), ("started", "farewell"), ("finished", "farewell")]:
+        errors.append(f"clear(): events {events}")
+    if not player.wait_idle(timeout=0):
+        errors.append("clear(): wait_idle() not set once the farewell played (pending count off)")
+    player.clear()                                # nothing playing: harmless
+    if not player.wait_idle(timeout=0):
+        errors.append("clear() with nothing playing broke the pending count")
+    return errors
+
+
 def check_listen():
     errors = []
     clips = [playback.WAV_DIR / "IllBeBack.wav", playback.WAV_DIR / "MayGodBless.wav"]
@@ -104,7 +130,7 @@ def check_listen():
 
 
 if __name__ == "__main__":
-    errors = check_callback()
+    errors = check_callback() + check_clear()
     if "--listen" in sys.argv[1:] and not errors:
         print("Playing IllBeBack.wav then MayGodBless.wav back to back...")
         errors = check_listen()
@@ -112,6 +138,6 @@ if __name__ == "__main__":
         for e in errors:
             print(f"FAIL: {e}")
         sys.exit(1)
-    print("PASS: playback gain cap, mono->2ch, gapless queue, and events correct")
+    print("PASS: playback gain cap, mono->2ch, gapless queue, events, and clear() correct")
     if "--listen" in sys.argv[1:]:
         print("Listener check: both clips clean, no gap or click between them?")

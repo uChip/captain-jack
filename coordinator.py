@@ -30,7 +30,7 @@ Run (in its own terminal - it reads the keyboard):
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
                                    [--hold] [--no-filler] [--no-home] [--no-speaker-id]
-                                   [--no-doa]
+                                   [--no-doa] [--no-button]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -60,8 +60,15 @@ Motion.turn_toward(), spec 4.9), and the squawk cocks toward them.
 --no-home leaves out the home-automation tools (home.py), so nothing in
 the house can be switched - by default Jack can control the devices
 marked in docs/home-automation-device-list.csv.
+--no-button ignores the back-panel shutdown button (button.py): by
+default, holding it 5s from any mode cuts Jack off, squawks and says a
+farewell, does the clean stop, and exits 42 - the service's cue to power
+the Pi off (run by hand, it just exits). It's off anyway if GPIO26 can't
+be opened. SIGUSR1 acts as a long press (for testing without the
+button). SIGTERM/SIGHUP do the same clean stop, exiting 0.
 """
 
+import os
 import queue
 import random
 from concurrent.futures import ThreadPoolExecutor
@@ -84,6 +91,7 @@ from motion import MAX_TURN_DEG, Motion
 from home import Home
 from orchestrate import MEMORY_DIR, household_names, stream_turn
 from doa import DoaTracker
+from button import HOLD_S, LINE as BUTTON_LINE, ShutdownButton, gpio_reader
 from playback import RATE, Playback, load_wav
 from speaker_id import MODEL_PATH as SPEAKER_MODEL, SpeakerID
 from stt import STT, names_prompt
@@ -99,6 +107,16 @@ DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
 # Distinct from any (reply, sentence) tag, so _on_playback can tell the
 # listening beep apart from a spoken reply.
 BEEP_TAG = "listening beep"
+# Shutdown (CLAUDE.md item 11): a squawk then one of these pre-rendered
+# farewells (wavFiles/manifest.yaml - pre-rendered so they play instantly
+# and with no network), then a clean stop and exit SHUTDOWN_EXIT, which
+# the service (systemd) takes as "power the Pi off". If the clean stop
+# hasn't finished SHUTDOWN_FALLBACK_S after the request (something hung),
+# the process exits with that code anyway.
+SHUTDOWN_DIR = Path(__file__).parent / "wavFiles" / "shutdown"
+SHUTDOWN_TAG = "shutdown farewell"
+SHUTDOWN_EXIT = 42
+SHUTDOWN_FALLBACK_S = 30.0
 
 # Filler squawks (CLAUDE.md work list, 2026-10-14): one is played the moment
 # an utterance is handed over, before STT even starts, so the ~3s wait for
@@ -173,6 +191,8 @@ class Coordinator:
         self.fillers = ({p.name: load_wav(p) for p in sorted(FILLER_DIR.glob("*.wav"))}
                         if filler else {})
         self._last_filler = None
+        self._shutting_down = False
+        self.button = None           # button.ShutdownButton, started/stopped with run() (main() sets it)
         self.save_dir = Path(save_dir) if save_dir else None
         self._saved = 0
         self.events = queue.Queue()
@@ -197,7 +217,7 @@ class Coordinator:
                                     on_score=self._on_spotter_score)
         self.player = Playback(on_event=self._on_playback)
         self.capture = Capture(on_frame=self._on_frame)
-        self.tts = TTS(on_audio=self.player.play, **({"voice": voice} if voice else {}))
+        self.tts = TTS(on_audio=self._on_tts_audio, **({"voice": voice} if voice else {}))
 
         # Motion & the Serial writer are only stood up when asked to (tests and
         # a bare --scratch-memory run skip them entirely) - see --port/--dry-run.
@@ -313,6 +333,8 @@ class Coordinator:
         if self.doa:
             self.doa.start()
         self.tts.start()
+        if self.button:
+            self.button.start()
         try:
             while True:
                 timeout = None
@@ -325,6 +347,8 @@ class Coordinator:
                     continue
                 self._handle_event(kind, data)
         finally:
+            if self.button:
+                self.button.stop()
             self.capture.stop()
             if self.doa:
                 self.doa.stop()
@@ -362,6 +386,9 @@ class Coordinator:
             self._apply_pending_mode()
         elif kind == "beep_done":
             self.out("[On Watch - speak to Jack]")
+        elif kind == "shutdown":
+            self.player.wait_played(timeout=15)   # let the farewell finish
+            raise Stop(data)
         # events that don't match the current mode are ignored
 
     def _apply_pending_mode(self):
@@ -503,11 +530,40 @@ class Coordinator:
             w.writeframes(samples.tobytes())
         return f", {path.name}"
 
+    def _on_tts_audio(self, samples, tag):
+        """TTS thread: a synthesized sentence, to play - unless Jack is
+        shutting down, when anything still coming from TTS is dropped."""
+        if not self._shutting_down:
+            self.player.play(samples, tag)
+
+    def long_press(self):
+        """Button thread: the back-panel button was held HOLD_S - shut down,
+        from any mode, no confirmation (the long press is its own; Chip,
+        2026-11-09). Cuts off whatever Jack is saying, deafens the mic,
+        sends the head to rest, and plays a squawk and a farewell; the main
+        thread then waits for it to finish and does the clean stop
+        (_handle_event's "shutdown" -> Stop("button") -> exit SHUTDOWN_EXIT)."""
+        if self._shutting_down:
+            return
+        self._shutting_down = True
+        self.out("[Button held - shutting down]")
+        fallback = threading.Timer(SHUTDOWN_FALLBACK_S, os._exit, (SHUTDOWN_EXIT,))
+        fallback.daemon = True       # a clean exit doesn't wait for it
+        fallback.start()
+        self.tts.clear()
+        self.player.clear()
+        self.listener.ignore_until(float("inf"))
+        self.spotter.ignore_until(float("inf"))
+        if self.motion:
+            self.motion.stop()       # no more gestures or idle clips; head to rest
+        self.player.play(farewell_audio(), SHUTDOWN_TAG)
+        self.events.put(("shutdown", "button"))
+
     def play_filler(self, toward=None):
         """Queue a squawk (see FILLER_DIR) after FILLER_DELAY_S of silence,
         never the same one twice running, with a head tilt to match -
         cocked toward the speaker's angle if known (see face_speaker())."""
-        if not self.fillers:
+        if not self.fillers or self._shutting_down:
             return
         names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
         name = random.choice(names)
@@ -624,6 +680,13 @@ def scratch_memory_copy() -> Path:
     return scratch
 
 
+def farewell_audio():
+    """A random squawk, a short beat, and a random farewell line."""
+    squawk = load_wav(random.choice(sorted(FILLER_DIR.glob("*.wav"))))
+    line = load_wav(random.choice(sorted(SHUTDOWN_DIR.glob("*.wav"))))
+    return np.concatenate([squawk, np.zeros(int(0.3 * RATE), dtype=np.int16), line])
+
+
 class Stop(BaseException):
     """Raised in the main thread by SIGTERM (systemd stopping the service,
     `sudo poweroff`, a plain `kill`) or SIGHUP (the SSH session running
@@ -697,13 +760,27 @@ def main():
         threading.Timer(delay, coord.wake).start()
     print(f"Whisper {coord.stt.model_name}. Press Enter to wake Jack; "
           f"type sleep + Enter for \"Goodnight, Jack\"; Ctrl+C to quit.")
+    if "--no-button" not in args:
+        try:
+            coord.button = ShutdownButton(coord.long_press)
+            coord.button.read, coord.button._close = gpio_reader()
+            print(f"Shutdown button: GPIO{BUTTON_LINE} (hold {HOLD_S:g}s)")
+        except Exception as e:     # no gpiod, line busy, no permission: run without it
+            coord.button = None
+            print(f"Shutdown button off: {e}")
     install_stop_signals()
+    # SIGUSR1 = a long press, for testing the shutdown path without the
+    # button (`kill -USR1 <pid>`); run on its own thread, as the button's is.
+    signal.signal(signal.SIGUSR1, lambda *a: threading.Thread(target=coord.long_press, daemon=True).start())
     try:
         coord.run()
     except KeyboardInterrupt:
         print()
     except Stop as e:
         print(f"Stopped ({e}) - clean stop done.", flush=True)
+        if str(e) == "button":
+            print(f"Exit {SHUTDOWN_EXIT}: shutdown requested (the service powers the Pi off).", flush=True)
+            sys.exit(SHUTDOWN_EXIT)
 
 
 if __name__ == "__main__":

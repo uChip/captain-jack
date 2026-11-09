@@ -419,6 +419,37 @@ when it was last confirmed passing.
 - **Not covered**: the real head move (dry-run), and a stop that hangs
   (left to systemd's stop timeout).
 
+### Shutdown button (simulated pin)
+
+- **Covers**: `button.py` (2026-11-09, CLAUDE.md item 11): the
+  back-panel button, GPIO26 to ground, not debounced. `LongPress` fed a
+  simulated pin that bounces like a real switch: a 5s hold fires once,
+  about 5s in; bounce on press/release and a 3s press never fire; a 20ms
+  glitch mid-hold doesn't restart the hold, a real 0.5s release does; a
+  20s hold fires once; two long presses fire twice; a press held from
+  start doesn't count until the button has been released once. Plus the
+  `ShutdownButton` polling thread on a fake pin and clock. The
+  coordinator side (cut-off, head to rest, farewell, `Stop("button")`,
+  from all three modes) is in `test_coordinator.py`'s
+  `check_long_press`, and `Playback.clear()` in `test_playback.py`.
+- **Script**: [`../tests/test_button.py`](../tests/test_button.py)
+- **Run**: `venv/bin/python tests/test_button.py` (automatic, no
+  hardware). By hand on the real pin, once wired: `venv/bin/python
+  button.py` prints each press/release and "LONG PRESS" (shuts nothing
+  down; Jack must be stopped, as he holds the pin).
+- **Expected**: `PASS: a 5s press fires once; bounce, short presses and
+  mid-hold glitches don't; a real release restarts the hold; a press held
+  from start needs a release first; the polling thread calls back once`.
+- **Last run**: 2026-11-09, pass (button not yet wired). The whole path
+  also checked on the real bird the same day, with SIGUSR1 standing in
+  for the press: `coordinator.py --scratch-memory --port /dev/ttyUSB0
+  --no-home --save DIR < /dev/null &`, then `kill -USR1 <pid>`: printed
+  "[Button held - shutting down]", sent the rest move, played the
+  squawk and farewell, and exited 42 about 9s after the signal.
+- **Not covered**: the real switch's bounce (watch `button.py` once
+  it's wired), and the power-off itself (exit 42 -> the systemd service,
+  step 5).
+
 ### Streamed Haiku replies
 
 - **Covers**: [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
@@ -485,13 +516,15 @@ when it was last confirmed passing.
   build step 1 — `playback.py`: output gain (`OUTPUT_GAIN_DB`, now
   `0.0` — see [Open Issue 26](specification.md#5-open-issues), resolved
   via an external amp), mono→2ch duplication, gapless back-to-back
-  queueing, and started/finished events.
+  queueing, and started/finished events. Also `clear()` (2026-11-09,
+  the shutdown cut-off): queued items dropped, the playing one cut at the
+  next block, no events for either, and an item played right after kept.
 - **Script**: [`../tests/test_playback.py`](../tests/test_playback.py)
 - **Run**: `venv/bin/python tests/test_playback.py` (automatic, no
   hardware) or add `--listen` to also play `IllBeBack.wav` then
   `MayGodBless.wav` through the bird (**needs a person listening**).
 - **Expected**: prints `PASS: playback gain cap, mono->2ch, gapless
-  queue, and events correct` and exits 0. The automatic part drives the
+  queue, events, and clear() correct` and exits 0. The automatic part drives the
   audio callback directly with fake buffers: checks both channels are
   identical, samples are scaled by `OUTPUT_GAIN_DB`, the second item
   starts on the very next sample after the first (including mid-block),

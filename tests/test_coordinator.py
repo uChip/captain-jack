@@ -692,6 +692,65 @@ def check_turn_back_on_noise():
     return errors
 
 
+class FakePlayer:
+    """Records clear()/play() for the shutdown check."""
+
+    def __init__(self):
+        self.calls = []
+
+    def clear(self):
+        self.calls.append(("clear",))
+
+    def play(self, samples, tag=None):
+        self.calls.append(("play", tag))
+
+    def wait_played(self, timeout=None):
+        self.calls.append(("wait_played",))
+        return True
+
+
+def check_long_press():
+    """The shutdown button's long press, from any mode: cuts off what's
+    playing, sends the head to rest (Motion.stop), plays the squawk +
+    farewell after the cut, and the main thread waits for it and raises
+    Stop("button"). Nothing from TTS or a filler plays after; a second
+    long press does nothing more."""
+    errors = []
+    coordinator.SHUTDOWN_FALLBACK_S = 3600     # don't let the safety exit end the test run
+    for mode in ("on_watch", "off_watch", "asleep"):
+        coord = coordinator.Coordinator(coordinator.scratch_memory_copy(),
+                                         client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
+                                         out=lambda *a: None)
+        coord.motion = FakeMotion()
+        coord.motion.stop = lambda m=coord.motion: m.calls.append(("stop",))
+        coord.player = FakePlayer()
+        coord.mode = mode
+        coord.long_press()
+        coord.long_press()
+        coord._on_tts_audio(np.zeros(10, dtype=np.int16), (1, 0))
+        coord.play_filler()
+        p = coord.player.calls
+        if p != [("clear",), ("play", coordinator.SHUTDOWN_TAG)]:
+            errors.append(f"{mode}: player calls {p}, expected clear then the farewell, once")
+        if ("stop",) not in coord.motion.calls:
+            errors.append(f"{mode}: head not sent to rest (Motion.stop)")
+        try:
+            kind, data = coord.events.get_nowait()
+            coord._handle_event(kind, data)
+            errors.append(f"{mode}: shutdown event didn't stop the run loop")
+        except coordinator.Stop as e:
+            if str(e) != "button":
+                errors.append(f"{mode}: Stop({e!s}), expected Stop(button)")
+            if p[-1] != ("wait_played",):
+                errors.append(f"{mode}: stopped without waiting for the farewell")
+        except Exception as e:
+            errors.append(f"{mode}: {e!r}")
+    audio = coordinator.farewell_audio()
+    if not 2 * coordinator.RATE < len(audio) < 12 * coordinator.RATE:
+        errors.append(f"farewell is {len(audio) / coordinator.RATE:.1f}s, expected a few seconds")
+    return errors
+
+
 def check_live():
     scratch = coordinator.scratch_memory_copy()
     out = []
@@ -711,7 +770,7 @@ if __name__ == "__main__":
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
               + check_speaker_id() + check_face_speaker() + check_early_turn()
-              + check_turn_back_on_noise())
+              + check_turn_back_on_noise() + check_long_press())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -729,5 +788,5 @@ if __name__ == "__main__":
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
           "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
           "and the head turns toward each utterance's speaker (DoA) before the squawk, "
-          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line"
+          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line (not for a known voice), and a long press of the shutdown button cuts Jack off, plays the farewell and stops"
           + (", live Haiku replied" if live else ""))

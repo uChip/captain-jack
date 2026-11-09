@@ -818,7 +818,13 @@ worked in parallel if priorities change.
       stops, Jack squawks and says a short pre-rendered line (works
       offline), the head goes to rest, the program stops cleanly, then
       the Pi powers off. A press already held at startup doesn't count;
-      it needs a fresh 5s press. Short presses: unassigned.
+      it needs a fresh 5s press. Short presses: unassigned. Built
+      2026-11-09 against a simulated pin (`button.py`,
+      `tests/test_button.py`; `--no-button` to leave out): Jack exits 42
+      after the clean stop, the service's cue to power off (step 5);
+      SIGUSR1 stands in for the press. Checked on the real bird with
+      SIGUSR1. Three farewells in `wavFiles/shutdown/` (manifest). Next:
+      Chip wires the button, then `button.py` by hand.
     - Shutdown by voice, On Watch only: "shut down" asks for a spoken
       confirmation ("Are ye sure, Captain?"), and only a yes leads to a
       farewell line and shutdown. Only for a household voice
