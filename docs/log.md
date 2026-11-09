@@ -3549,6 +3549,22 @@ cat, shouting "Where?" at "treasure") still `[joke]` and the office-light
 preference still `[automation]`. The voice-note live test still passes
 15/15.
 
+**Live memory moved out of the repo, 2026-11-09** (CLAUDE.md item 11,
+step 4, for the boot service's separate `~/jack-live` checkout): memory
+now lives in `~/jack-data/memory.md` (`datadir.py`, `JACK_DATA`
+overrides), seeded once from the repo copy, which stays as the template.
+`identity.md` deliberately stays in the repo - it changes with the code,
+not with conversations. A memory dir may still carry its own
+`identity.md` (scratch copies, `compare_models.py --identity`), which then
+wins. Saves are now atomic (temp + fsync + rename + dir fsync); before,
+`write_text()` truncated first, so a power cut mid-save could have
+emptied the file. `--scratch-memory` copies the template, not the live
+file, keeping tests deterministic. Voiceprints (git-ignored, so they'd
+never have reached `~/jack-live` either) moved to
+`~/jack-data/voiceprints/` in the same change. The seeded file is
+identical to the repo copy today; the template still carries the real
+household facts, left as is. Test: `tests/test_live_memory.py`.
+
 ### 4.6 Home-Automation Tool Schema
 
 **Built and live-tested, 2026-10-18.** Choices made along the way:

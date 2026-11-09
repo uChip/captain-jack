@@ -9,7 +9,9 @@ Either takes an optional home.Home: Jack's home-automation tools (spec
 4.6), run in a tool round trip within the same turn.
 """
 
+import os
 import re
+import shutil
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -17,10 +19,15 @@ from pathlib import Path
 
 import anthropic
 
+from datadir import DATA_DIR
 from tts import MIN_SENTENCE_CHARS, SENTENCE_END_RE, clean_text
 
-MEMORY_DIR = Path(__file__).parent / "memory"
-IDENTITY_PATH = MEMORY_DIR / "identity.md"
+# identity.md is code-like (edited in the repo, arrives by git pull);
+# memory.md is Jack's live memory, kept outside the repo (datadir.py) and
+# seeded once from the repo's copy, which stays as the template.
+TEMPLATE_DIR = Path(__file__).parent / "memory"
+IDENTITY_PATH = TEMPLATE_DIR / "identity.md"
+MEMORY_DIR = DATA_DIR
 MEMORY_PATH = MEMORY_DIR / "memory.md"
 
 MODEL = "claude-haiku-4-5"
@@ -50,8 +57,40 @@ SECTION_HEADINGS = {
 }
 
 
+def live_memory_dir() -> Path:
+    """The live memory directory, seeding memory.md from the repo's template
+    the first time (never overwriting an existing one)."""
+    MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+    if not MEMORY_PATH.exists():
+        shutil.copy(TEMPLATE_DIR / "memory.md", MEMORY_PATH)
+    return MEMORY_DIR
+
+
+def identity_path(memory_dir: Path) -> Path:
+    """A memory dir may carry its own identity.md (scratch copies,
+    compare_models.py --identity); otherwise the repo's is used."""
+    own = memory_dir / "identity.md"
+    return own if own.exists() else IDENTITY_PATH
+
+
+def write_atomic(path: Path, text: str):
+    """Write via a temp file + rename, so a power cut mid-save leaves either
+    the old file or the new one, never a truncated one."""
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w") as f:
+        f.write(text)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+    fd = os.open(path.parent, os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
 def load_system_prompt(memory_dir: Path = MEMORY_DIR) -> str:
-    identity = (memory_dir / "identity.md").read_text()
+    identity = identity_path(memory_dir).read_text()
     memory = (memory_dir / "memory.md").read_text()
     return f"{identity}\n\n---\n\n{memory}"
 
@@ -241,7 +280,7 @@ def save_memory(
         lines[at:at] = [entry]
 
     lines = _normalize_blank_lines(lines)
-    memory_path.write_text("\n".join(lines) + "\n")
+    write_atomic(memory_path, "\n".join(lines) + "\n")
     return True
 
 
@@ -523,6 +562,7 @@ def stream_turn(
 
 
 def main():
+    live_memory_dir()
     client = anthropic.Anthropic()
     history: list[dict] = []
     home = None

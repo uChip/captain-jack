@@ -7,8 +7,8 @@ an utterance is matched by cosine similarity. Chosen 2026-10-21 by
 measurement over CAM++ (the first pick), ResNet34 and ERes2Net - see
 docs/log.md's 4.15 history.
 
-Voiceprints live in voiceprints/ (git-ignored - biometric data, never
-pushed), one <Name>.npz per person plus their enrollment clips in
+Voiceprints live in ~/jack-data/voiceprints/ (datadir.py: outside the
+repo - biometric data, never pushed), one <Name>.npz per person plus their enrollment clips in
 <Name>/ so a model change is a re-run, not a re-recording. Only
 enroll_speaker.py writes them; orchestration code only reads them.
 
@@ -29,9 +29,11 @@ from pathlib import Path
 import numpy as np
 import sherpa_onnx
 
+from datadir import DATA_DIR
+
 ROOT = Path(__file__).parent
 MODEL_PATH = ROOT / "models" / "nemo_en_titanet_small.onnx"
-VOICEPRINTS_DIR = ROOT / "voiceprints"
+VOICEPRINTS_DIR = DATA_DIR / "voiceprints"
 RATE = 16000
 
 # Calibrated 2026-10-21 on conversational lines through Jack's mic, head

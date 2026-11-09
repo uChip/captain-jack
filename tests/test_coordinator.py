@@ -27,7 +27,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import coordinator  # noqa: E402
-from orchestrate import MEMORY_PATH  # noqa: E402
+from orchestrate import MEMORY_PATH, TEMPLATE_DIR  # noqa: E402
 
 CLIP = Path(__file__).parent / "data" / "quick_brown_fox_ch1.wav"
 
@@ -78,7 +78,8 @@ def load_clip():
 
 def check_offline():
     errors = []
-    real_before = MEMORY_PATH.read_text()
+    real = [p for p in (MEMORY_PATH, TEMPLATE_DIR / "memory.md") if p.exists()]
+    real_before = [p.read_text() for p in real]
     scratch = coordinator.scratch_memory_copy()
     out = []
     client = FakeClient("Arr, a nimble fox indeed!\nMEMORY: [joke] Test fox fact (coordinator test)")
@@ -105,7 +106,7 @@ def check_offline():
         errors.append(f"reply not output cleanly: {text!r}")
     if "Test fox fact (coordinator test)" not in (scratch / "memory.md").read_text():
         errors.append("memory not saved to the scratch copy")
-    if MEMORY_PATH.read_text() != real_before:
+    if [p.read_text() for p in real] != real_before:
         errors.append("the REAL memory.md was modified")
 
     noise = np.tile(load_clip()[:int(0.55 * 16000)], 4)     # room noise before speech

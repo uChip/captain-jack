@@ -844,7 +844,7 @@ no TTS to feed incrementally; both share the same tag-parsing/memory-
 saving tail (`_finish_turn()`). See [4.16](#416-runtime-integration-end-to-end-turn)
 build step 5 for the latency rationale.
 
-**Interfaces**: reads `memory/identity.md` and `memory/memory.md` directly
+**Interfaces**: reads `memory/identity.md` and the live `~/jack-data/memory.md` directly
 (file I/O lives in orchestration code by design, never delegated to the
 model as an autonomous tool call); calls the Anthropic Messages API; will
 eventually also call the
@@ -910,6 +910,17 @@ History: [log.md#45-memory-subsystem](log.md#45-memory-subsystem).
 **Status: Implemented** — `memory/memory.md` +
 [captain-jack-memory-design.md](captain-jack-memory-design.md) + the
 save/parse logic in `orchestrate.py`.
+
+**Where it lives** (2026-11-09): Jack's live memory is
+`~/jack-data/memory.md`, outside the repo (`datadir.py`; `JACK_DATA`
+overrides), so a pull or a second checkout never touches it. It is seeded
+once from the repo's `memory/memory.md`, which stays as the template, and
+never overwritten after. `identity.md` stays in the repo (it's edited
+like code and arrives by pull). Each save is atomic (temp file, fsync,
+rename), so a power cut leaves the old file or the new one, never a
+truncated one. `--scratch-memory` copies the repo template, not the live
+file. Speaker-ID voiceprints moved alongside, to `~/jack-data/voiceprints/`.
+Backup of `~/jack-data` is not yet decided.
 
 **Description**: a deliberately simple, tag-based, plain-markdown memory
 store — an identity/boot doc plus one running facts file, no daily notes,

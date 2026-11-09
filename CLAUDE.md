@@ -11,7 +11,7 @@ can be run directly from a session in this repo; there's no "deploy to the
 Pi" step to account for.
 
 Early implementation. `orchestrate.py` is Captain Jack's text-only
-conversation loop: loads `memory/identity.md` + `memory/memory.md` as the
+conversation loop: loads `memory/identity.md` + `~/jack-data/memory.md` as the
 system prompt, calls the Claude API (Haiku), and parses/validates/saves the
 model's proposed `MEMORY:` line per `docs/captain-jack-memory-design.md`.
 `coordinator.py` runs the voice loop (spec section 4.16) and the full
@@ -861,7 +861,9 @@ worked in parallel if priorities change.
     - Live memory: moved out of the repo (e.g. `~/jack-data/memory.md`,
       seeded once from the repo copy, which stays as a template), and
       written atomically (temp file + rename) to survive power cuts.
-      Backing it up is a separate question, still open.
+      Backing it up is a separate question, still open. Built
+      2026-11-09 (`datadir.py`, `tests/test_live_memory.py`; spec 4.5):
+      voiceprints moved to `~/jack-data/voiceprints/` too.
     - Secrets: the API keys live in `~/.bashrc`, which a service doesn't
       read. They'd move to a 600-permission environment file.
     - Start-up order: wait for the XVF3800 and Arduino to appear, for the

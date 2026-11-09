@@ -22,7 +22,9 @@ simpler, for two reasons specific to Captain Jack:
 - `memory/identity.md` — boot doc. Persona, tone, operating rules. Small,
   human-edited, doesn't change at runtime.
 - `memory/memory.md` — durable facts + a running log, in one file, split
-  into sections (see the file itself). No daily-note folders, no
+  into sections (see the file itself). This repo copy is the template;
+  Jack's live memory is `~/jack-data/memory.md`, seeded from it once
+  (see `docs/specification.md` section 4.5). No daily-note folders, no
   frontmatter, no wikilinks.
 
 Both files are plain text injected verbatim into Haiku's system prompt each

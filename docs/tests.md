@@ -18,6 +18,20 @@ when it was last confirmed passing.
 
 ## Memory Subsystem
 
+### Live memory outside the repo
+
+- **Covers**: [Memory Subsystem](specification.md#45-memory-subsystem)'s
+  "Where it lives" (`datadir.py`, `orchestrate.py`, 2026-11-09).
+- **Script**: [`../tests/test_live_memory.py`](../tests/test_live_memory.py)
+- **Run**: `venv/bin/python tests/test_live_memory.py`
+- **Expected**: prints `PASS: live memory seeds once from the template
+  ...` and exits 0. Runs against a temp `JACK_DATA`, never `~/jack-data`:
+  seeding copies the template once and never overwrites; a save leaves
+  no temp file, and a save that fails at the rename leaves the old file
+  intact; the repo `identity.md` is used unless the memory dir has its
+  own; voiceprints default under `JACK_DATA`.
+- **Last confirmed passing**: 2026-11-09.
+
 ### `home` tag save path
 
 - **Covers**: [Memory Subsystem](specification.md#45-memory-subsystem) /

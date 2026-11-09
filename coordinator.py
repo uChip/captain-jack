@@ -94,7 +94,7 @@ from capture import Capture
 from listener import HOLDOFF_S, Listener
 from motion import MAX_TURN_DEG, Motion
 from home import Home
-from orchestrate import MEMORY_DIR, household_names, stream_turn
+from orchestrate import MEMORY_DIR, TEMPLATE_DIR, household_names, live_memory_dir, stream_turn
 from doa import DoaTracker
 from button import HOLD_S, LINE as BUTTON_LINE, ShutdownButton, gpio_reader
 from playback import RATE, Playback, load_wav
@@ -707,7 +707,7 @@ class Coordinator:
 def scratch_memory_copy() -> Path:
     scratch = Path(tempfile.mkdtemp(prefix="jack-memory-"))
     for name in ("identity.md", "memory.md"):
-        shutil.copy(MEMORY_DIR / name, scratch / name)
+        shutil.copy(TEMPLATE_DIR / name, scratch / name)
     return scratch
 
 
@@ -750,10 +750,12 @@ def main():
     dry_run = "--dry-run" in args
     if save_dir:
         Path(save_dir).mkdir(parents=True, exist_ok=True)
-    memory_dir = MEMORY_DIR
     if "--scratch-memory" in args:
         memory_dir = scratch_memory_copy()
         print(f"Using a scratch copy of memory: {memory_dir}")
+    else:
+        memory_dir = live_memory_dir()
+        print(f"Memory: {memory_dir / 'memory.md'}")
 
     speaker = None
     if "--no-speaker-id" not in args:

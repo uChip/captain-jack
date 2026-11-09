@@ -7,7 +7,7 @@ Liz) - enrollment never adds a household member. Prints one sentence
 at a time; read each aloud to Jack after the beep, at your normal
 distance and voice. After the last one, any recording that doesn't
 match the others is asked for again. The voiceprint (the average of all
-the recordings) and the recordings themselves go to voiceprints/,
+the recordings) and the recordings themselves go to ~/jack-data/voiceprints/,
 overwriting any earlier enrollment for that name. Run it in its own
 terminal, with the room fairly quiet. The servos aren't driven, so the
 head stays still.
@@ -21,7 +21,7 @@ import numpy as np
 
 from capture import RATE, Capture
 from listener import HOLDOFF_S, Listener
-from orchestrate import MEMORY_DIR, household_names
+from orchestrate import household_names, live_memory_dir
 from playback import Playback
 from speaker_id import SpeakerID, unit
 
@@ -90,11 +90,12 @@ def leave_one_out(embeddings):
 
 def main():
     args = sys.argv[1:]
-    memory_dir = MEMORY_DIR
+    memory_dir = None
     if "--memory-dir" in args:
         i = args.index("--memory-dir")
         memory_dir = Path(args[i + 1])
         del args[i:i + 2]
+    memory_dir = memory_dir or live_memory_dir()
     if len(args) != 1:
         sys.exit(__doc__)
     names = household_names(memory_dir)
