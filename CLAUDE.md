@@ -839,7 +839,11 @@ worked in parallel if priorities change.
       (`tests/voice_shutdown_haiku.py`). Exits 42 like the button. First
       live try (session28) found two prompt gaps (no re-ask after a no;
       the yes's unknown voice refused); `identity.md` fixed, 45/45 on
-      live Haiku, not yet re-tried on the bird.
+      live Haiku. Re-tried on the bird 2026-11-09 (session29): ask, no,
+      ask again (re-asked), yes -> farewell, exit 42. Watch item: the
+      short "Yes, please." was rejected by STT as low-confidence twice
+      (p=0.25/0.23) before the third got through; the pending ask
+      survived the rejects, so it only cost "say again"s.
       Over SSH, `sudo poweroff` works as well: SIGTERM (and SIGHUP)
       now run the same clean stop as Ctrl+C, head to rest (built
       2026-11-09, `tests/test_stop_signal.py`).

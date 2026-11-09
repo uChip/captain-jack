@@ -2717,6 +2717,24 @@ didn't. Then `coordinator.py --port` on the bird, held 5s from Off
 Watch: squawk, farewell, head to rest (Chip watching), "Stopped
 (button)", exit 42.
 
+Voice shutdown re-tried on the bird, same day (session29, after the
+`identity.md` fixes): "Shut down, please, Jack" -> "Power down for the
+night, Captain? Are ye sure?" -> "[No], let's keep talking for a minute"
+(STT heard "Now") -> carried on. Asked again -> asked again (the
+session28 gap is fixed) -> "Yes, please." -> "Fare thee well, matey.
+Anchors aweigh!" -> "Stopped (voice)", exit 42. Request voice
+recognized both times (Chip 0.59/0.65). The yes took three tries: the
+first two "Yes, please." came back at p=0.25 and 0.23, under STT's
+low-confidence reject, and Jack said "say again" each time; the third
+scored 0.59. Rejected lines don't count as the next line, so the
+pending ask carried over the "say again"s, as intended. Speaker-ID
+couldn't name any of the three yeses (0.26-0.35), as expected for a
+short word, which is why only the request's voice is checked. Left as
+is for now: rejecting a doubtful yes is the safe side (Chip prefers a
+"say again" to a misread), but if short confirmations keep being
+rejected, a confirmation-specific path (e.g. accept a low-p transcript
+that is plainly yes/no while an ask is pending) is the lever.
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library
