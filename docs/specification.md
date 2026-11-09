@@ -1621,7 +1621,7 @@ catalog on every transition, and (via `--port`/`--dry-run`) wires in the
 Serial writer; `orchestrate.py`'s `MODE:` meta-tag is how the
 Conversation Orchestrator signals an exit back up to it.
 
-**Shutdown** (Chip, 2026-11-09; built, button not yet wired): leaving all
+**Shutdown** (Chip, 2026-11-09; built and confirmed live): leaving all
 three modes for a powered-off Pi. Two ways in. The back-panel button
 held 5s (`button.py`, GPIO26 to ground, debounced in software) works from
 any mode with no confirmation: Jack is cut off mid-word, squawks and says
@@ -1632,8 +1632,9 @@ SHUTDOWN_ASK`) and a yes on the very next line gets a farewell and
 when speaker-ID names the voice asking, and the shutdown only right after
 a counted ask - so a guest or the TV can't shut him down. Either way the
 coordinator does the same clean stop as Ctrl+C or SIGTERM and exits 42,
-which the systemd service (CLAUDE.md item 11, not built yet) will take as
-"power off". History: none yet.
+which the systemd service ([4.17](#417-running-at-boot)) takes as
+"power off". History: [log.md#416-runtime-integration-end-to-end-turn](log.md#416-runtime-integration-end-to-end-turn)
+(2026-11-09 entries).
 
 ### 4.12 Gesture Engine and Catalog
 
@@ -2217,6 +2218,67 @@ spotter later changes nothing downstream.
 **Interfaces**: this section *is* the wiring between 4.1–4.15; each
 module's own Interfaces paragraph remains the source for what it
 consumes and produces.
+
+### 4.17 Running at Boot
+
+History: [log.md#417-running-at-boot](log.md#417-running-at-boot).
+
+**Status: Built 2026-11-09, not yet enabled** (CLAUDE.md work list item
+11; decisions are Chip's, 2026-11-09).
+
+**Description**: the Pi boots to the console (no desktop) and systemd
+starts Jack (`deploy/captain-jack.service`, user `chips`). Pieces:
+
+- **Separate checkout**: the service runs `~/jack-live`, a clone of the
+  GitHub repo with its own `venv/` and a copy of `models/`, so a
+  half-finished edit in the dev tree never goes live. Updating Jack is
+  an explicit `git pull` there (it only sees what's been pushed - the
+  push stays the review step) and `sudo systemctl restart captain-jack`;
+  a `requirements.txt` change also needs `venv/bin/pip install -r
+  requirements.txt` there.
+- **Live data** lives in `~/jack-data` ([4.5](#45-memory-subsystem)),
+  shared by both checkouts, plus `jack.env`: the API keys, mode 600, read
+  by the service as its environment (the keys also stay in `~/.bashrc`
+  for dev runs - replace both when one expires).
+- **Start-up order**: after `network-online.target`, but
+  `deploy/wait-for-jack.sh` does the real waiting: up to 60s for the
+  Arduino (`/dev/serial/by-id/...`) and the XVF3800 sound card (failing
+  the start if either never appears, so it's retried), then up to 45s for
+  the clock to sync - after that Jack starts anyway. He never waits for
+  the internet.
+- **Boot state** (`coordinator.py --boot`): local time 22:00-06:00, or a
+  clock that hasn't synced (no RTC battery, so the hour can't be
+  trusted), starts Asleep with a silent stretch then the settle-in;
+  otherwise Off Watch with a squawk 12dB under normal and a stretch, so
+  you know he's up. `--boot` also drops the keyboard stand-ins: the wake
+  phrase is the only way in.
+- **Restarts**: on a crash only, 30s apart - an Arduino reset within
+  seconds of the last one snaps the head (Done-so-far item 45). A
+  SIGTERM (`systemctl stop`, `sudo poweroff`) does the clean stop, head
+  to rest.
+- **Shutdown**: exit 42 ([4.11](#411-sleep-mode-state-machine)
+  "Shutdown") is a success that is never restarted, and the unit's
+  `ExecStopPost` powers the Pi off.
+- **Internet down**: Jack still starts and runs (wake, sleep, idle clips,
+  STT and TTS are all local); a turn whose Haiku call fails with nothing
+  yet spoken gets an in-character line (`OFFLINE_LINE`) instead of
+  silence.
+- **Dev mode**: `sudo systemctl stop captain-jack` (Jack holds the audio
+  device and serial port exclusively, so every dev tool needs him
+  stopped); `touch ~/jack-data/dev-mode` also skips him at boot, for when
+  he misbehaves at start-up.
+- **Logs**: stdout to journald (`journalctl -u captain-jack`), for
+  debugging only - Jack never reads them. Raspberry Pi OS keeps the
+  journal in RAM; `deploy/journald-captain-jack.conf` makes it persistent,
+  7 days, capped at 200MB.
+- **Install**: `sudo deploy/install.sh [--now]` copies the unit and
+  journald drop-in into `/etc` and enables the service.
+
+Still open: what the servos do once the Pi is off; backing up
+`~/jack-data`.
+
+**Interfaces**: systemd runs `coordinator.py --boot --port ...`;
+coordinator exit codes: 0 clean stop, 42 power off, anything else a crash.
 
 ## 5. Open Issues
 

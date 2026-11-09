@@ -433,6 +433,20 @@ when it was last confirmed passing.
 - **Not covered**: the real head move (dry-run), and a stop that hangs
   (left to systemd's stop timeout).
 
+### Boot greeting and offline line
+
+- **Covers**: [Running at Boot](specification.md#417-running-at-boot)
+  (`coordinator.py --boot`, `OFFLINE_LINE`, 2026-11-09).
+- **Script**: part of [`../tests/test_coordinator.py`](../tests/test_coordinator.py)
+  (`check_boot_greeting`, `check_offline_line`).
+- **Run**: `venv/bin/python tests/test_coordinator.py`
+- **Expected**: the overall `PASS:` line. Boot at 23:00, 03:00, 05:00 or
+  with the clock unsynced: Asleep, stretch then a silent settle-in,
+  nothing played. Boot at 06:00 or 21:00: Off Watch with the 15-minute
+  timeout running, one stretch, one squawk at `BOOT_SQUAWK_DB`. Haiku
+  unreachable with nothing spoken: the offline line, still On Watch.
+- **Last confirmed passing**: 2026-11-09.
+
 ### Shutdown button (simulated pin)
 
 - **Covers**: `button.py` (2026-11-09, CLAUDE.md item 11): the

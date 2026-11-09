@@ -2818,6 +2818,27 @@ MY1690-era design, and was removed along with the MY1690 (see 3.7).
 Firmware must not reintroduce SoftwareSerial alongside the easing library
 without further research into that interaction.
 
+### 4.17 Running at Boot
+
+**Built 2026-11-09** (CLAUDE.md item 11, step 5). Choices made while
+building, beyond Chip's decisions:
+- `~/jack-live` clones from GitHub rather than from the dev tree, so it
+  only ever runs pushed code - the push is already Chip's review step.
+  Own venv (fresh `pip install -r requirements.txt`) and a copied
+  `models/` (800MB, plenty of SD space), so nothing in the dev tree can
+  break the live one.
+- The clock wait is bounded (45s) and an unsynced clock boots Asleep:
+  `systemd-time-wait-sync` would block forever offline, and with no RTC
+  battery the pre-sync hour is the last shutdown's, not now.
+- Audio needs no PipeWire: PortAudio opens the XVF3800 as raw ALSA
+  `hw:2,0`, so a system service with no login session can use it.
+- Raspberry Pi OS ships `Storage=volatile` for journald
+  (`/usr/lib/systemd/journald.conf.d/40-rpi-volatile-storage.conf`); the
+  drop-in overrides it. No rsyslog, so no double writes.
+- Before this, a failed Haiku call left Jack silent (only a log line);
+  the offline line covers no internet, an API outage and an expired key
+  alike.
+
 ### 4.16 Runtime Integration (End-to-End Turn)
 
 **Designed 2026-09-25**: the "interconnection" session planned at the
