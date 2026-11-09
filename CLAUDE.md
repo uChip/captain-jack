@@ -834,8 +834,10 @@ worked in parallel if priorities change.
       `coordinator.py` enforces it - the asking line's voice must be
       recognized (a short "yes" often scores too low to check), and the
       yes must be the very next line. Live Haiku 18/18
-      (`tests/voice_shutdown_haiku.py`). Exits 42 like the button. Not
-      yet tried by voice on the bird.
+      (`tests/voice_shutdown_haiku.py`). Exits 42 like the button. First
+      live try (session28) found two prompt gaps (no re-ask after a no;
+      the yes's unknown voice refused); `identity.md` fixed, 45/45 on
+      live Haiku, not yet re-tried on the bird.
       Over SSH, `sudo poweroff` works as well: SIGTERM (and SIGHUP)
       now run the same clean stop as Ctrl+C, head to rest (built
       2026-11-09, `tests/test_stop_signal.py`).

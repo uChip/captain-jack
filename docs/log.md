@@ -2679,6 +2679,36 @@ section and is now done for the wake phrase and checked-and-left-alone
 for the sleep phrase - see [4.1](#41-wake-word-spotter)'s 2026-10-12
 entries.
 
+Shutdown, 2026-11-09 (CLAUDE.md item 11; spec 4.11 "Shutdown"). Chip's
+decisions: a back-panel button held 5s shuts down from any mode with no
+confirmation, with a squawk and a spoken line; by voice, On Watch only,
+with a spoken "are ye sure?" and only for a household voice. Built the
+same day: `button.py` (tested on a simulated bouncing pin; the button
+isn't wired yet - wiring needs a power-down), the coordinator's
+long-press path (checked on the bird via SIGUSR1: exit 42, about 9s),
+and voice shutdown via two new `MODE:` tags, `SHUTDOWN_ASK` and
+`SHUTDOWN`, with the rules enforced in code: the ask counts only when
+speaker-ID names the voice asking, and the shutdown only on the line
+right after it. Only the asking line's voice is checked because a bare
+"yes" is too short to score.
+
+First live try (session28): the no worked ("Power down for the night,
+Captain? Are ye sure?" / "No, never mind" / carried on). Two prompt
+gaps, both caught by the code guard but still awkward. Chip asked again
+straight after his no, and Haiku skipped the question and said a
+farewell tagged `SHUTDOWN`; the code refused it, so Jack said goodbye and
+stayed on ("ye just powered me back on!"). Then, asked properly, Chip's
+"Yes" scored 0.26 (`[voice: unknown]`), and Haiku refused him as a
+stranger, applying the voice rule to the yes as well (the code would have
+accepted it). `identity.md` now says only the request needs a household
+name, and to ask every time, never `SHUTDOWN` unless the previous reply
+was the question. `tests/voice_shutdown_haiku.py` gained both cases: 45/45
+on live Haiku (was 18/18 before the new cases). Not yet re-tried on the
+bird. Also found: with stdout to a file, Python block-buffered the
+session log until exit; `coordinator.py` now line-buffers stdout (needed
+for the journal too). SIGTERM's clean stop confirmed on the real bird
+the same run (exit 0, rest move last).
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library

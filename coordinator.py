@@ -739,6 +739,9 @@ def install_stop_signals():
 
 
 def main():
+    # One line at a time even into a file or the journal - block-buffered,
+    # a session log showed nothing until exit (session28, 2026-11-09).
+    sys.stdout.reconfigure(line_buffering=True)
     args = sys.argv[1:]
     model = args[args.index("--model") + 1] if "--model" in args else None
     voice = args[args.index("--voice") + 1] if "--voice" in args else None
