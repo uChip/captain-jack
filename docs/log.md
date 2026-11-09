@@ -2709,6 +2709,14 @@ session log until exit; `coordinator.py` now line-buffers stdout (needed
 for the journal too). SIGTERM's clean stop confirmed on the real bird
 the same run (exit 0, rest move last).
 
+Button wired and confirmed live, same day. Booted without the desktop
+first (console, SSH up). `button.py` watching the real pin: 7 presses,
+each one clean pressed/released, no bounce getting through the 50ms
+debounce; one long press fired once mid-hold, the shorter presses
+didn't. Then `coordinator.py --port` on the bird, held 5s from Off
+Watch: squawk, farewell, head to rest (Chip watching), "Stopped
+(button)", exit 42.
+
 ### 4.12 Gesture Engine and Catalog
 
 **`Blink` gesture removed**: a previous draft of the gesture library

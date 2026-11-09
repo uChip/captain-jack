@@ -823,8 +823,10 @@ worked in parallel if priorities change.
       `tests/test_button.py`; `--no-button` to leave out): Jack exits 42
       after the clean stop, the service's cue to power off (step 5);
       SIGUSR1 stands in for the press. Checked on the real bird with
-      SIGUSR1. Three farewells in `wavFiles/shutdown/` (manifest). Next:
-      Chip wires the button, then `button.py` by hand.
+      SIGUSR1. Three farewells in `wavFiles/shutdown/` (manifest). Button
+      wired and confirmed live 2026-11-09: `button.py` saw clean presses
+      (no bounce through), and a 5s hold on the running bird gave squawk,
+      farewell, head to rest, exit 42.
     - Shutdown by voice, On Watch only: "shut down" asks for a spoken
       confirmation ("Are ye sure, Captain?"), and only a yes leads to a
       farewell line and shutdown. Only for a household voice
