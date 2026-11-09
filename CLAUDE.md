@@ -823,9 +823,9 @@ worked in parallel if priorities change.
       confirmation ("Are ye sure, Captain?"), and only a yes leads to a
       farewell line and shutdown. Only for a household voice
       (speaker-ID names someone); others get an in-character refusal.
-      Over SSH, `sudo poweroff` works as well, once the service stops
-      cleanly on SIGTERM (not built yet - only Ctrl+C runs the clean
-      stop today).
+      Over SSH, `sudo poweroff` works as well: SIGTERM (and SIGHUP)
+      now run the same clean stop as Ctrl+C, head to rest (built
+      2026-11-09, `tests/test_stop_signal.py`).
     - What the servos do once the Pi is off still needs checking.
     - Desktop: off - the Pi boots to the console (multi-user.target).
       SSH, NetworkManager and the Wi-Fi connection (system-wide, stored

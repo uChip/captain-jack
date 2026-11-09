@@ -66,6 +66,7 @@ import queue
 import random
 from concurrent.futures import ThreadPoolExecutor
 import shutil
+import signal
 import sys
 import tempfile
 import threading
@@ -623,6 +624,26 @@ def scratch_memory_copy() -> Path:
     return scratch
 
 
+class Stop(BaseException):
+    """Raised in the main thread by SIGTERM (systemd stopping the service,
+    `sudo poweroff`, a plain `kill`) or SIGHUP (the SSH session running
+    Jack dropped). A BaseException, like KeyboardInterrupt, so it unwinds
+    through run() and its finally runs the same clean stop as Ctrl+C:
+    every thread stopped, head and beak back to rest (CLAUDE.md item 11)."""
+
+
+def install_stop_signals():
+    """Turn SIGTERM/SIGHUP into Stop in the main thread. After the first,
+    both are ignored, so a second signal can't cut the clean stop short
+    (systemd's stop timeout still ends a stop that hangs)."""
+    def handler(signum, frame):
+        for sig in (signal.SIGTERM, signal.SIGHUP):
+            signal.signal(sig, signal.SIG_IGN)
+        raise Stop(signal.Signals(signum).name)
+    for sig in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, handler)
+
+
 def main():
     args = sys.argv[1:]
     model = args[args.index("--model") + 1] if "--model" in args else None
@@ -676,10 +697,13 @@ def main():
         threading.Timer(delay, coord.wake).start()
     print(f"Whisper {coord.stt.model_name}. Press Enter to wake Jack; "
           f"type sleep + Enter for \"Goodnight, Jack\"; Ctrl+C to quit.")
+    install_stop_signals()
     try:
         coord.run()
     except KeyboardInterrupt:
         print()
+    except Stop as e:
+        print(f"Stopped ({e}) - clean stop done.", flush=True)
 
 
 if __name__ == "__main__":

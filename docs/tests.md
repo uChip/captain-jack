@@ -397,6 +397,28 @@ when it was last confirmed passing.
   (0/3 from "Asleep" that turned out to be a session stuck On Watch by
   unrelated STT failures, not a real Asleep-wake bug).
 
+### Clean stop on SIGTERM/SIGHUP
+
+- **Covers**: `coordinator.py`'s `install_stop_signals()` (2026-11-09,
+  CLAUDE.md item 11, boot straight into Jack): SIGTERM (systemd stopping
+  the service, `sudo poweroff`, `kill`) and SIGHUP (a dropped SSH
+  session) raise `Stop` in the main thread, even while it's blocked
+  waiting on the event queue, so `run()`'s finally does the same clean
+  stop as Ctrl+C. A second signal during that stop is ignored.
+- **Script**: [`../tests/test_stop_signal.py`](../tests/test_stop_signal.py)
+- **Run**: `venv/bin/python tests/test_stop_signal.py` (automatic, no
+  hardware).
+- **Expected**: `PASS: SIGTERM and SIGHUP each raise Stop in the main
+  thread, even mid-wait, and a second signal during the clean stop is
+  ignored`.
+- **Last run**: 2026-11-09, pass. Also checked by hand the same day with
+  the real program: `coordinator.py --scratch-memory --dry-run --no-home
+  --save DIR < /dev/null &`, then `kill -TERM <pid>` after start-up: it
+  printed "Stopped (SIGTERM) - clean stop done.", exited 0, and the last
+  line of `DIR/serial.log` was the rest move (`b48p35r30y70t1000s`).
+- **Not covered**: the real head move (dry-run), and a stop that hangs
+  (left to systemd's stop timeout).
+
 ### Streamed Haiku replies
 
 - **Covers**: [Conversation Orchestrator](specification.md#43-conversation-orchestrator)'s
