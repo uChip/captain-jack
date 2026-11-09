@@ -35,7 +35,7 @@ Run (in its own terminal - it reads the keyboard):
                                    [--scratch-memory] [--wake-after SECONDS]
                                    [--save DIR] [--port /dev/ttyUSB0] [--dry-run]
                                    [--hold] [--no-filler] [--no-home] [--no-speaker-id]
-                                   [--no-doa] [--no-button]
+                                   [--no-doa] [--no-button] [--boot]
 --scratch-memory runs against a temporary copy of memory/, so test
 conversations can't add facts to the real memory.md. --wake-after wakes
 Jack automatically that many seconds after starting, for runs with no
@@ -71,14 +71,20 @@ farewell, does the clean stop, and exits 42 - the service's cue to power
 the Pi off (run by hand, it just exits). It's off anyway if GPIO26 can't
 be opened. SIGUSR1 acts as a long press (for testing without the
 button). SIGTERM/SIGHUP do the same clean stop, exiting 0.
+--boot is how the service (deploy/captain-jack.service) starts him: no
+keyboard stand-ins, and the starting state by time of day - Asleep with a
+silent stretch in quiet hours (22:00-06:00, or while the clock isn't yet
+synced), otherwise Off Watch with a quiet squawk and a stretch.
 """
 
 import os
 import queue
 import random
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 import shutil
 import signal
+import subprocess
 import sys
 import tempfile
 import threading
@@ -108,6 +114,21 @@ OFF_WATCH_TIMEOUT_S = 15 * 60  # spec 4.11: 15 minutes with no wake phrase -> As
 
 # Spec 4.2: a rejected utterance gets an in-character prompt, not silence.
 DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
+
+# Haiku unreachable (no internet, API down, key expired): said in
+# character instead of going silent (CLAUDE.md item 11). Spoken by local
+# TTS, so it needs no network itself.
+OFFLINE_LINE = "Arr, I can't reach the mainland just now. Try me again in a bit."
+
+# Boot greeting (--boot, CLAUDE.md item 11, Chip 2026-11-09): started by the
+# service, Jack comes up Asleep with a silent stretch in quiet hours
+# (QUIET_START_H to QUIET_END_H, local time), otherwise Off Watch with a
+# quiet squawk (BOOT_SQUAWK_DB under a normal one) and a stretch, so you
+# know he's up. With the clock not yet synced the hour can't be trusted,
+# so it's treated as quiet hours.
+QUIET_START_H = 22
+QUIET_END_H = 6
+BOOT_SQUAWK_DB = -12.0
 
 # Distinct from any (reply, sentence) tag, so _on_playback can tell the
 # listening beep apart from a spoken reply.
@@ -395,6 +416,8 @@ class Coordinator:
         elif kind == "shutdown":
             self.player.wait_played(timeout=15)   # let the farewell finish
             raise Stop(data)
+        elif kind == "boot":
+            self.boot_greeting(*data)
         # events that don't match the current mode are ignored
 
     def _apply_pending_mode(self):
@@ -446,6 +469,24 @@ class Coordinator:
             self.motion.set_mode("off_watch")
         self.deadline = time.monotonic() + OFF_WATCH_TIMEOUT_S
         self.out(f"[Off Watch - {why}. Press Enter to wake Jack.]")
+
+    def boot_greeting(self, hour, synced):
+        """--boot: pick the starting state by time of day (see QUIET_START_H).
+        hour is the local hour; synced is whether the clock is known good."""
+        if not synced or in_quiet_hours(hour):
+            if self.motion:
+                self.motion.stretch()   # silent; the settle-in waits for it
+            self.start_nap("boot, quiet hours" if synced else "boot, clock not synced")
+            return
+        if self.fillers:
+            names = list(self.fillers)
+            name = random.choice(names)
+            self._last_filler = name
+            quiet = self.fillers[name] * 10 ** (BOOT_SQUAWK_DB / 20)
+            self.player.play(quiet.astype(np.int16), "boot squawk")
+        if self.motion:
+            self.motion.stretch()
+        self.out("[Off Watch - booted. Say the wake phrase.]")
 
     def start_nap(self, why, context=None):
         """context picks the settle-in line (spec 4.10): "goodnight_phrase",
@@ -675,6 +716,9 @@ class Coordinator:
         except anthropic.APIError as e:
             self.out(f"  [error reaching Haiku: {e}]")
             self._finish_reply(reply, n)
+            if n == 0:   # nothing spoken yet: say why, rather than go silent
+                self.out(f"Jack: {OFFLINE_LINE}")
+                self.speak(OFFLINE_LINE)
             return
         self.out(f"Jack: {turn.spoken}   [haiku {time.monotonic() - start:.2f}s]")
         if turn.saved:
@@ -702,6 +746,22 @@ class Coordinator:
             self.out("  [shutdown tag ignored: Jack hadn't asked a recognized voice to confirm]")
             return None
         return mode
+
+
+def in_quiet_hours(hour: int) -> bool:
+    return hour >= QUIET_START_H or hour < QUIET_END_H
+
+
+def clock_synced() -> bool:
+    """Whether systemd says the clock has synced to NTP. The Pi 5 keeps
+    time across power-off only with an RTC battery, so before a sync
+    the hour may be far off."""
+    try:
+        out = subprocess.run(["timedatectl", "show", "-p", "NTPSynchronized", "--value"],
+                             capture_output=True, text=True, timeout=5).stdout
+        return out.strip() == "yes"
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def scratch_memory_copy() -> Path:
@@ -790,7 +850,11 @@ def main():
             else:
                 coord.wake()
 
-    threading.Thread(target=keyboard, name="keyboard", daemon=True).start()
+    if "--boot" in args:   # started by the service: no keyboard, greeting by time of day
+        synced = clock_synced()
+        coord.events.put(("boot", (datetime.now().hour, synced)))
+    else:
+        threading.Thread(target=keyboard, name="keyboard", daemon=True).start()
     if "--wake-after" in args:
         delay = float(args[args.index("--wake-after") + 1])
         threading.Timer(delay, coord.wake).start()

@@ -219,6 +219,9 @@ class FakeMotion:
     def squawk_tilt(self, delay_s, squawk_s, toward=None):
         self.calls.append(("squawk_tilt", delay_s, squawk_s, toward))
 
+    def stretch(self):
+        self.calls.append(("stretch",))
+
     def turn_toward(self, angle):
         self.calls.append(("turn_toward", angle))
         self.facing = max(-50, min(50, angle))
@@ -407,6 +410,68 @@ def check_no_hold():
     coord.handle_utterance(load_clip())
     held = [c for c in coord.motion.calls if c[0] == "hold"]
     return [f"the default should never hold the head, got {held!r}"] if held else []
+
+
+def check_boot_greeting():
+    """--boot (CLAUDE.md item 11): in quiet hours (22:00-06:00) or with the
+    clock unsynced, Jack comes up Asleep with a silent stretch (the
+    settle-in after it, no wav); otherwise Off Watch with a squawk at
+    BOOT_SQUAWK_DB and a stretch."""
+    errors = []
+    for hour, synced, want_mode in ((23, True, "asleep"), (3, True, "asleep"), (5, True, "asleep"),
+                                    (12, False, "asleep"), (6, True, "off_watch"), (21, True, "off_watch")):
+        coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=FakeClient("Aye."),
+                                         out=lambda *a: None)
+        coord.motion = FakeMotion()
+        coord._handle_event("boot", (hour, synced))
+        queued = []
+        while not coord.player._queue.empty():
+            queued.append(coord.player._queue.get_nowait())
+        label = f"boot at {hour}:00{'' if synced else ' (unsynced)'}"
+        if coord.mode != want_mode:
+            errors.append(f"{label}: mode {coord.mode}, want {want_mode}")
+        if want_mode == "asleep":
+            if coord.motion.calls != [("stretch",), ("fall_asleep", None)]:
+                errors.append(f"{label}: motion {coord.motion.calls}, want stretch then a silent settle-in")
+            if queued:
+                errors.append(f"{label}: should be silent, queued {[t for t, _ in queued]}")
+        else:
+            if coord.motion.calls != [("stretch",)]:
+                errors.append(f"{label}: motion {coord.motion.calls}, want one stretch")
+            if [t for t, _ in queued] != ["boot squawk"]:
+                errors.append(f"{label}: queued {[t for t, _ in queued]}, want one boot squawk")
+            else:
+                full = coord.fillers[coord._last_filler]
+                ratio = np.abs(queued[0][1]).max() / np.abs(full).max()
+                want = 10 ** (coordinator.BOOT_SQUAWK_DB / 20)
+                if abs(ratio - want) > 0.01:
+                    errors.append(f"{label}: squawk at {ratio:.3f} of full, want {want:.3f}")
+            if coord.deadline is None:
+                errors.append(f"{label}: Off Watch's 15-minute timeout not running")
+    return errors
+
+
+def check_offline_line():
+    """Haiku unreachable with nothing spoken yet: Jack says OFFLINE_LINE
+    rather than going silent, and stays On Watch."""
+    import anthropic
+
+    class DownClient(FakeClient):
+        def _stream(self, **kwargs):
+            raise anthropic.APIConnectionError(request=None)
+
+    coord = coordinator.Coordinator(coordinator.scratch_memory_copy(), client=DownClient(""),
+                                     out=lambda *a: None)
+    spoken = []
+    coord.speak = spoken.append
+    coord.start_session()
+    coord.handle_utterance(load_clip())
+    errors = []
+    if spoken != [coordinator.OFFLINE_LINE]:
+        errors.append(f"with Haiku unreachable, spoke {spoken}, want the offline line")
+    if coord.mode != "on_watch":
+        errors.append(f"with Haiku unreachable, mode became {coord.mode}")
+    return errors
 
 
 def check_filler():
@@ -818,7 +883,8 @@ if __name__ == "__main__":
               + check_late_last_sentence_race() + check_head_held_while_mic_open()
               + check_no_hold() + check_filler() + check_first_sentence_split()
               + check_speaker_id() + check_face_speaker() + check_early_turn()
-              + check_turn_back_on_noise() + check_long_press() + check_voice_shutdown())
+              + check_turn_back_on_noise() + check_long_press() + check_voice_shutdown()
+              + check_boot_greeting() + check_offline_line())
     live = "--live" in sys.argv[1:]
     if live and not errors:
         errors = check_live()
@@ -836,5 +902,5 @@ if __name__ == "__main__":
           "the mic is open, and a rotating squawk filler plays the moment an utterance ends, and a long first sentence is split in two, "
           "and Haiku gets a [voice: Name] note for a confident voice match, [voice: unknown] otherwise, "
           "and the head turns toward each utterance's speaker (DoA) before the squawk, "
-          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line (not for a known voice), and a long press of the shutdown button cuts Jack off, plays the farewell and stops, and voice shutdown needs a recognized voice and a yes right after Jack asks"
+          "and turns early, mid-utterance, by at most 50 degrees, and turns back when STT rejects the line (not for a known voice), and a long press of the shutdown button cuts Jack off, plays the farewell and stops, and voice shutdown needs a recognized voice and a yes right after Jack asks, and --boot starts Asleep (silent stretch) in quiet hours or unsynced, otherwise Off Watch with a quiet squawk and stretch, and an unreachable Haiku gets the offline line, not silence"
           + (", live Haiku replied" if live else ""))

@@ -61,6 +61,7 @@ REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to j
 ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
 SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
 SQUAWK_TILT_ID = "fx-squawk-tilt"
+STRETCH_ID = "id-neck-stretch"     # the boot greeting - see stretch()
 
 # turn_toward() - starting values, judged by eye on the bird (2026-10-21).
 MAX_TURN_DEG = 50   # furthest the head turns from center (yaw allows ~60-70)
@@ -202,6 +203,27 @@ class Motion:
                 self._one_shot.release()
 
         threading.Thread(target=run, name="squawk-tilt", daemon=True).start()
+
+    def stretch(self):
+        """The neck stretch (id-neck-stretch) once, now, as a one-shot like
+        squawk_tilt() - the boot greeting (CLAUDE.md item 11). The main
+        loop's own motion, including a pending settle-to-sleep, waits until
+        it's done. Skipped if another one-shot is running."""
+        if not self._one_shot.acquire(blocking=False):
+            return
+        moves = find_gesture_anywhere(self.catalog, STRETCH_ID)["moves"]
+
+        def run():
+            try:
+                for move in moves:
+                    if self._stop.is_set():
+                        return
+                    self._send(resolve_move(move, self.baseline))
+                    time.sleep(move["wait_ms"] / 1000.0)
+            finally:
+                self._one_shot.release()
+
+        threading.Thread(target=run, name="stretch", daemon=True).start()
 
     def fall_asleep(self, context=None):
         """Enter Asleep, settling in first (spec 4.10, "On entering

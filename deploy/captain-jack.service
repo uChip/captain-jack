@@ -1,0 +1,42 @@
+# Captain Jack at boot (CLAUDE.md item 11). Installed by deploy/install.sh.
+#
+# Runs the separate ~/jack-live checkout, never the dev tree. Dev mode:
+#   sudo systemctl stop captain-jack            (Jack holds the audio device
+#                                                and serial port exclusively)
+#   touch ~/jack-data/dev-mode                  (also skip him at boot)
+# Logs: journalctl -u captain-jack [-f]
+
+[Unit]
+Description=Captain Jack, the animatronic parrot
+Wants=network-online.target
+After=network-online.target sound.target
+# Skipped entirely (not failed) while the flag file exists.
+ConditionPathExists=!/home/chips/jack-data/dev-mode
+# Restarts are spaced by RestartSec, so no burst limit is needed.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=chips
+WorkingDirectory=/home/chips/jack-live
+EnvironmentFile=/home/chips/jack-data/jack.env
+Environment=PYTHONUNBUFFERED=1
+# Waits for the XVF3800 and Arduino (fails if they never appear, and the
+# start is retried), then gives the clock a short chance to sync.
+ExecStartPre=/home/chips/jack-live/deploy/wait-for-jack.sh
+ExecStart=/home/chips/jack-live/venv/bin/python coordinator.py --boot --port /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+# On a crash, restart - but not within seconds: an Arduino reset soon after
+# the last one snaps the head forward (CLAUDE.md "Done so far" item 45).
+Restart=on-failure
+RestartSec=30
+# Exit 42 = shutdown asked for (button or voice): a success, never
+# restarted, and the cue to power the Pi off.
+SuccessExitStatus=42
+RestartPreventExitStatus=42
+ExecStopPost=+/bin/sh -c 'if [ "$EXIT_STATUS" = 42 ]; then systemctl --no-block poweroff; fi'
+# SIGTERM runs the clean stop (head to rest); coordinator.py gives up on a
+# hung stop itself after 30s.
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target
