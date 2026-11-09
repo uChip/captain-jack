@@ -2297,7 +2297,7 @@ starts Jack (`deploy/captain-jack.service`, user `chips`). Pieces:
     `E:\captain-jack-backups` (outside the repo clone - private data),
     logging to `pull-log.txt` there. If the Pi is off, it fails and logs;
     the next day catches up. The desktop keeps every snapshot it sees.
-  - *The desktop's key is least-privilege*: its line in the Pi's
+  - *The desktop's key is least-privilege* (the `.cmd` passes `ssh -T`: no terminal is asked for, so `restrict` has none to refuse): its line in the Pi's
     `~/.ssh/authorized_keys` is
     `command="tar -C /home/chips/jack-data -cf - backups",restrict ssh-ed25519 ... jack-backup-pull`,
     so it can fetch the backups and nothing else - no shell, no

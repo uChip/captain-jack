@@ -10,13 +10,13 @@ rem The key below can only run one command on the Pi (set in its
 rem authorized_keys): send ~/jack-data/backups as a tar stream. Snapshots
 rem pile up here (the Pi keeps 30); they are tiny.
 setlocal
-set HOST=Parrot-v2-0
+set HOST=parrot-v2-0.local
 set KEY=%USERPROFILE%\.ssh\jack_backup_pull
 set DEST=E:\captain-jack-backups
 set LOG=%DEST%\pull-log.txt
 
 if not exist "%DEST%" mkdir "%DEST%"
-ssh -i "%KEY%" -o BatchMode=yes -o ConnectTimeout=15 chips@%HOST% > "%DEST%\latest.tar" 2>> "%LOG%"
+ssh -T -i "%KEY%" -o BatchMode=yes -o ConnectTimeout=15 chips@%HOST% > "%DEST%\latest.tar" 2>> "%LOG%"
 if errorlevel 1 (
     echo %date% %time% FAILED: no connection - Pi off or unreachable? >> "%LOG%"
     exit /b 1
