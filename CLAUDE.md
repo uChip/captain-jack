@@ -793,25 +793,53 @@ worked in parallel if priorities change.
 10. AEC validation against the bird's own speaker — now in its final
     mounted geometry (2026-10-06, see `docs/specification.md` section
     3.6), so this can be the real validation, not just a smoke test.
-11. Boot straight into Jack (Chip, 2026-10-19 - not started). Requirements:
-    SSH stays available; a way to stop Jack and drop into development
-    mode; a clean Linux shutdown from any Jack state. Implications
-    found so far:
+11. Boot straight into Jack (Chip, 2026-10-19; decisions made
+    2026-11-09, not yet built). Requirements: SSH stays available; a way
+    to stop Jack and drop into development mode; a clean Linux shutdown
+    from any Jack state. Decided (Chip, 2026-11-09):
     - Service: a systemd unit with restart on crash. Restarts must be
       spaced out: an Arduino reset within seconds of the last one snaps
-      the head (item 45).
+      the head (item 45). It runs a separate checkout (e.g.
+      `~/jack-live`), updated only by an explicit pull and restart, so a
+      half-finished edit in the dev tree never goes live.
     - Dev mode: stop the service from SSH. Jack holds the audio device
       and the serial port exclusively, so every dev tool needs it
       stopped. Also a "boot to dev mode" flag file, for when Jack
       misbehaves at startup.
-    - Shutdown: no SIGTERM handling yet. Only Ctrl+C runs the clean
-      stop (head to rest). The Pi 5's power button already does a clean
-      poweroff (logind default), but it isn't reachable in the enclosure,
-      and Chip is wary of an external button that can be pressed by
-      accident (2026-10-19) - open. What
-      the servos do once the Pi is off still needs checking.
+    - Boot state by time of day: quiet hours 22:00-06:00 start Asleep
+      with a silent stretch; otherwise Off Watch with a quiet squawk and
+      stretch, so you know he's up.
+    - Shutdown button: Chip added a button on the back of the
+      electronics enclosure (not yet wired), a plain closure to ground,
+      not debounced. Planned wiring: GPIO26 (header pin 37) and ground
+      (pin 39), internal pull-up, debounced in software. A press held
+      5s or more shuts down from On Watch, Off Watch or Asleep, with no
+      confirmation (the long press is its own): whatever is playing
+      stops, Jack squawks and says a short pre-rendered line (works
+      offline), the head goes to rest, the program stops cleanly, then
+      the Pi powers off. A press already held at startup doesn't count;
+      it needs a fresh 5s press. Short presses: unassigned.
+    - Shutdown by voice, On Watch only: "shut down" asks for a spoken
+      confirmation ("Are ye sure, Captain?"), and only a yes leads to a
+      farewell line and shutdown. Only for a household voice
+      (speaker-ID names someone); others get an in-character refusal.
+      Over SSH, `sudo poweroff` works as well, once the service stops
+      cleanly on SIGTERM (not built yet - only Ctrl+C runs the clean
+      stop today).
+    - What the servos do once the Pi is off still needs checking.
+    - Desktop: off - the Pi boots to the console (multi-user.target).
+      SSH, NetworkManager and the Wi-Fi connection (system-wide, stored
+      password, autoconnect) were checked to start without it.
     - No terminal: the Enter/`sleep` keyboard stand-ins go away, so the
       wake phrase is the only way in. Output goes to journald.
+    - Logs: journald holds conversation transcripts for debugging only
+      (Jack never reads them back; his only memory across conversations
+      is `memory.md`). Kept 7 days, size-capped, SD-card writes kept
+      down.
+    - Live memory: moved out of the repo (e.g. `~/jack-data/memory.md`,
+      seeded once from the repo copy, which stays as a template), and
+      written atomically (temp file + rename) to survive power cuts.
+      Backing it up is a separate question, still open.
     - Secrets: the API keys live in `~/.bashrc`, which a service doesn't
       read. They'd move to a 600-permission environment file.
     - Start-up order: wait for the XVF3800 and Arduino to appear, for the
@@ -820,20 +848,6 @@ worked in parallel if priorities change.
       with a battery fitted.
     - Internet down at boot or later: Jack should still run and say so
       in character, not crash-loop.
-    - State at boot: start Asleep, not Off Watch? (A 3 a.m. restart after
-      a power cut shouldn't start the jokes.) Maybe a squawk on startup,
-      so you know he's up.
-    - Live memory: `memory/memory.md` is tracked in git, so Jack's own
-      saves would show as uncommitted changes in the dev tree. Either
-      move live memory out of the repo or commit it periodically. Write
-      it atomically (temp file + rename) to survive power cuts.
-    - Code updates: Jack runs from the working tree, so a half-finished
-      edit goes live on the next restart. Either accept that, or run
-      from a separate checkout or tag.
-    - Logs: journald would hold household conversation transcripts, so
-      decide how long to keep them (the brief's privacy note). Cap the
-      journal size and keep SD-card writes down.
-    - The Pi boots a desktop (lightdm, graphical.target) it doesn't need.
 12. Audition every motion definition for fine tuning (Chip, 2026-10-21) -
     **sequenced last, after all major functionality is working**. Go
     through `docs/gesture-catalog.yaml` gesture by gesture on the bird,
