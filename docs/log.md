@@ -2856,6 +2856,11 @@ no errors. Powered back on, Jack came up again normally.
   dropped before the program could switch tracking off. Terminal state
   only; `printf '\e[?1000l\e[?1002l\e[?1003l\e[?1006l'`, `reset`, or a
   new tab clears it.
+- After shutdown the servos hold the rest pose (Chip watched): halting
+  the Pi removes no power from the Pi, Arduino or servo supply, and the
+  Arduino isn't reset, so it keeps holding the last command - the head
+  rest that the clean stop sends. As expected; full power-off is at the
+  mains.
 
 ### 4.16 Runtime Integration (End-to-End Turn)
 

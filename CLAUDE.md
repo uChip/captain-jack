@@ -851,7 +851,10 @@ worked in parallel if priorities change.
       Over SSH, `sudo poweroff` works as well: SIGTERM (and SIGHUP)
       now run the same clean stop as Ctrl+C, head to rest (built
       2026-11-09, `tests/test_stop_signal.py`).
-    - What the servos do once the Pi is off still needs checking.
+    - Servos once the Pi is off (Chip, 2026-11-09): they hold the rest
+      pose. Shutdown halts the Pi but cuts no power - Pi, Arduino and
+      servo supply all stay powered, and the Arduino isn't reset, so it
+      keeps holding its last command. Full power-off means the mains.
     - Desktop: off - the Pi boots to the console (multi-user.target).
       SSH, NetworkManager and the Wi-Fi connection (system-wide, stored
       password, autoconnect) were checked to start without it.
