@@ -218,6 +218,7 @@ class Coordinator:
                         if filler else {})
         self._last_filler = None
         self._shutting_down = False
+        self.wake_hint = "Press Enter to wake Jack."   # --boot has no keyboard: main() changes it
         self.button = None           # button.ShutdownButton, started/stopped with run() (main() sets it)
         self.save_dir = Path(save_dir) if save_dir else None
         self._saved = 0
@@ -468,7 +469,7 @@ class Coordinator:
         if self.motion:
             self.motion.set_mode("off_watch")
         self.deadline = time.monotonic() + OFF_WATCH_TIMEOUT_S
-        self.out(f"[Off Watch - {why}. Press Enter to wake Jack.]")
+        self.out(f"[Off Watch - {why}. {self.wake_hint}]")
 
     def boot_greeting(self, hour, synced):
         """--boot: pick the starting state by time of day (see QUIET_START_H).
@@ -486,7 +487,7 @@ class Coordinator:
             self.player.play(quiet.astype(np.int16), "boot squawk")
         if self.motion:
             self.motion.stretch()
-        self.out("[Off Watch - booted. Say the wake phrase.]")
+        self.out(f"[Off Watch - booted. {self.wake_hint}]")
 
     def start_nap(self, why, context=None):
         """context picks the settle-in line (spec 4.10): "goodnight_phrase",
@@ -496,7 +497,7 @@ class Coordinator:
         if self.motion:
             self.motion.fall_asleep(context)
         self.deadline = None   # Asleep has no further timeout - only the wake phrase ends it
-        self.out(f"[Asleep - {why}. Press Enter to wake Jack.]")
+        self.out(f"[Asleep - {why}. {self.wake_hint}]")
 
     def _begin_reply(self) -> int:
         """Starts a new tagged reply: bumps the reply counter and resets
@@ -851,6 +852,7 @@ def main():
                 coord.wake()
 
     if "--boot" in args:   # started by the service: no keyboard, greeting by time of day
+        coord.wake_hint = "Say the wake phrase."
         synced = clock_synced()
         coord.events.put(("boot", (datetime.now().hour, synced)))
     else:
@@ -858,8 +860,11 @@ def main():
     if "--wake-after" in args:
         delay = float(args[args.index("--wake-after") + 1])
         threading.Timer(delay, coord.wake).start()
-    print(f"Whisper {coord.stt.model_name}. Press Enter to wake Jack; "
-          f"type sleep + Enter for \"Goodnight, Jack\"; Ctrl+C to quit.")
+    if "--boot" in args:
+        print(f"Whisper {coord.stt.model_name}. Wake phrase or sleep phrase only (no keyboard).")
+    else:
+        print(f"Whisper {coord.stt.model_name}. Press Enter to wake Jack; "
+              f"type sleep + Enter for \"Goodnight, Jack\"; Ctrl+C to quit.")
     if "--no-button" not in args:
         try:
             coord.button = ShutdownButton(coord.long_press)
