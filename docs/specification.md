@@ -2280,7 +2280,7 @@ starts Jack (`deploy/captain-jack.service`, user `chips`). Pieces:
 - **After shutdown**: the servos hold the rest pose. Halting the Pi cuts
   no power (Pi, Arduino, servo supply), and the Arduino isn't reset, so
   it keeps the clean stop's last command. Full power-off is at the mains.
-- **Backups** (2026-11-09): two layers, for two ways to lose
+- **Backups** (2026-11-09, both layers set up and working): two layers, for two ways to lose
   `memory.md`.
   - *On the Pi, against bad saves*: `captain-jack-backup.timer` runs
     `deploy/backup-jack-data.sh` daily at 03:30 (or at the next boot if

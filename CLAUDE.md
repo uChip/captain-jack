@@ -871,7 +871,8 @@ worked in parallel if priorities change.
       Backups (2026-11-09): daily snapshots on the Pi
       (`captain-jack-backup.timer`, keep 30), pulled daily to Chip's
       desktop by a Windows task with a key that can only fetch them -
-      spec 4.17 "Backups". Built
+      spec 4.17 "Backups". Both set up and confirmed working
+      2026-11-09. Built
       2026-11-09 (`datadir.py`, `tests/test_live_memory.py`; spec 4.5):
       voiceprints moved to `~/jack-data/voiceprints/` too.
     - Secrets: the API keys live in `~/.bashrc`, which a service doesn't

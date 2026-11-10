@@ -2882,6 +2882,12 @@ snapshots can't cover. Choices:
 - Voiceprints include their enrollment WAVs (2.4MB per snapshot): kept
   whole rather than hard-linking unchanged files - 72MB on the Pi at
   most, not worth the complexity.
+- Set up the same day: Pi timer installed (first run 03:30), desktop key
+  added, scheduled task registered (daily 12:00, start-when-available)
+  and run once - `OK`. First hand run printed "PTY allocation request
+  failed": with no remote command and a console attached, ssh asks for a
+  terminal and `restrict` refuses it. Harmless (data arrived), fixed with
+  `ssh -T`. The task must be registered from PowerShell, not cmd.
 
 ### 4.16 Runtime Integration (End-to-End Turn)
 
