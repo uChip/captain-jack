@@ -106,6 +106,9 @@ class Baseline:
 def resolve_move(move, baseline) -> str:
     """Compute the real wire command for one Move against the current
     baseline - spec 4.12: deltas resolve at send time, never baked in."""
+    if "beak" in move and not any(k in move for k in ("dp", "dr", "dy", "t")):
+        # Beak only (spec 4.12): a stepped close must not restart the head's ease.
+        return f"b{clamp(int(move['beak']), *BEAK_RANGE)}"
     p = clamp(int(baseline.pitch + move.get("dp", 0)), *AXIS_RANGE["p"])
     r = clamp(int(baseline.roll + move.get("dr", 0)), *AXIS_RANGE["r"])
     y = clamp(int(baseline.yaw + move.get("dy", 0)), *AXIS_RANGE["y"])

@@ -1694,6 +1694,9 @@ single opaque `GESTURE <id>`.
     absolute `beak` value (0-48; omitted = don't touch the beak, which is
     normally RMS-driven, not gesture-driven), a duration `t` (ms), and a
     `wait_ms` before advancing to the next Move or exiting the gesture.
+    A Move with only `beak` and `wait_ms` sends the beak alone and leaves
+    any head ease running, for closing the beak in steps: the beak moves
+    at full servo speed, and a snap to fully closed clacks.
     Not a literal Arduino command string — see "Baseline and
     the ambient/excursion model" below for why.
 - **Wav Library**: one array of Wavs each for On Watch, Off Watch, and

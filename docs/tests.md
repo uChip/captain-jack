@@ -226,6 +226,20 @@ when it was last confirmed passing.
   100ms slices, dBFS) and saves each phase's audio. No pass/fail - for
   comparison: normal speech at the bird is about −15 to −20 dBFS.
 
+### Asleep gesture audition (manual, listening)
+
+- **Covers**: which Asleep gesture or beak close makes noise, with each
+  gesture split into beak-only and head-only, plus candidate softer beak
+  closes. Written 2026-11-10 for the Asleep beak clack (log.md 4.12).
+- **Script**: [`../tests/audition_asleep.py`](../tests/audition_asleep.py)
+- **Run**: `sudo systemctl stop captain-jack`, then
+  `venv/bin/python tests/audition_asleep.py [--port ...] [--only 3,5]
+  [--reps 3] [--lead-in 10]`. `--list` prints each test's serial commands
+  without touching hardware. **Needs the real bird and a quiet room.**
+- **Expected**: each test announced aloud, then a report of the loudest
+  10ms slice and highest sample per repeat, and each test's audio saved.
+  No pass/fail - judged by ear.
+
 ### Bench servo noise at the mic (manual, measurement)
 
 - **Covers**: airborne noise of a single loose servo on the bench (no

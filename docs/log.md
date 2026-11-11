@@ -2778,6 +2778,22 @@ Consequences of that fix, at the time:
 `gesture-catalog.yaml`, including its own header comments for the full
 first-pass-to-second-pass changelog.
 
+**Asleep beak clack, 2026-11-10** (Chip, first day of the boot-service
+trial): a periodic clack in Asleep, loud and startling in a quiet room.
+`tests/audition_asleep.py` split each Asleep gesture into beak-only and
+head-only: head-only +8 to +20 dB over the quiet room, anything moving the
+beak +33 to +42 dB, the close about 10 dB louder than the open. Beak
+commands ignore `t`, so the catalog's "t: 600" close was really a full-speed
+snap to `b48`. Candidates from snore's open (peak at the close, mic):
+original -15 dBFS; stepped 16->48 over 300ms or 600ms, under -38 (not
+detected); snap to `b42`, pause, then `b48`, -25 with the final step
+undetected; fast to `b40` then stepped over 400ms, -23. By ear none of the
+four clacked. Chip chose the last by look and sound (the two-stage one
+makes two servo noises). Applied to `sl-snore` and `sl-snort`, then at Chip's
+request `sl-waking-up` and `sl-settle-to-sleep`; this needed a new beak-only
+Move so the steps don't restart the head's ease. The Off Watch gestures
+still snap.
+
 ### 4.13 Pi to Arduino Serial Link
 
 **Startup head snap traced to back-to-back resets, 2026-10-15.** Chip saw

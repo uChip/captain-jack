@@ -456,7 +456,16 @@ asleep:
     name: "Snore (Asleep) — slow pitch lift with a bit of beak movement, then settle back"
     moves:
       - {dp: 8, beak: 16, t: 900, wait_ms: 930}
-      - {dp: 0, beak: 48, t: 600, wait_ms: 630}
+      # Close: fast to 40, then gently the rest of the way - a snap to 48 clacks (Chip's pick, 2026-11-10).
+      - {dp: 0, beak: 40, t: 600, wait_ms: 150}
+      - {beak: 41, wait_ms: 40}
+      - {beak: 42, wait_ms: 80}
+      - {beak: 43, wait_ms: 40}
+      - {beak: 44, wait_ms: 40}
+      - {beak: 45, wait_ms: 40}
+      - {beak: 46, wait_ms: 80}
+      - {beak: 47, wait_ms: 40}
+      - {beak: 48, wait_ms: 120}
 
   - id: sl-snort
     name: "Snort (Asleep) — revised 2026-09-20: twitch, jerk pitch up, beak flap, resettle"
@@ -464,19 +473,43 @@ asleep:
       - {dy: 2, dr: 2, t: 60, wait_ms: 90}
       - {dp: 10, t: 80, wait_ms: 110}
       - {dp: 5, beak: 12, t: 100, wait_ms: 130}
-      - {dp: 0, dy: 0, dr: 0, beak: 48, t: 150, wait_ms: 180}
+      - {dp: 0, dy: 0, dr: 0, beak: 40, t: 150, wait_ms: 150}   # same soft close as sl-snore
+      - {beak: 41, wait_ms: 40}
+      - {beak: 42, wait_ms: 80}
+      - {beak: 43, wait_ms: 40}
+      - {beak: 44, wait_ms: 40}
+      - {beak: 45, wait_ms: 40}
+      - {beak: 46, wait_ms: 80}
+      - {beak: 47, wait_ms: 40}
+      - {beak: 48, wait_ms: 40}
 
   - id: sl-waking-up
     name: "Waking Up — startle/stir then settle to alert; played on the wake phrase, before leaving Asleep"
     moves:
       - {beak: 8, dr: 5, dp: 5, dy: 5, t: 200, wait_ms: 230}
-      - {beak: 48, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 330}
+      - {beak: 40, dr: 0, dp: 0, dy: 0, t: 300, wait_ms: 150}   # same soft close as sl-snore
+      - {beak: 41, wait_ms: 40}
+      - {beak: 42, wait_ms: 80}
+      - {beak: 43, wait_ms: 40}
+      - {beak: 44, wait_ms: 40}
+      - {beak: 45, wait_ms: 40}
+      - {beak: 46, wait_ms: 80}
+      - {beak: 47, wait_ms: 40}
+      - {beak: 48, wait_ms: 40}
 
   - id: sl-settle-to-sleep
     name: "Settle to Sleep — yawn, release the stretch, tuck (head-under-wing stereotype, can't really get there), droop into a sleeping pose; played on entering Asleep, before the breath cycle starts"
     moves:   # deliberately doesn't return dp or dr to 0 at the end — see specification.md 4.10; breath continues smoothly from wherever this leaves off
       - {beak: 0, dp: 12, t: 600, wait_ms: 630}
-      - {beak: 48, dp: 5, t: 400, wait_ms: 430}
+      - {beak: 40, dp: 5, t: 400, wait_ms: 150}   # same soft close as sl-snore
+      - {beak: 41, wait_ms: 40}
+      - {beak: 42, wait_ms: 80}
+      - {beak: 43, wait_ms: 40}
+      - {beak: 44, wait_ms: 40}
+      - {beak: 45, wait_ms: 40}
+      - {beak: 46, wait_ms: 80}
+      - {beak: 47, wait_ms: 40}
+      - {beak: 48, wait_ms: 40}
       - {dr: 20, dy: -6, dp: 2, t: 600, wait_ms: 630}   # revised 2026-09-20: bigger, more deliberate roll — reads as tucking toward one side
       - {dr: 20, dy: 0, dp: -12, t: 800, wait_ms: 830}   # roll holds at the tuck; only pitch/yaw finish settling
 

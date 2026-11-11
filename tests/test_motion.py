@@ -82,6 +82,11 @@ def check_resolve_move():
     if not cmd.startswith(f"b{motion.BEAK_RANGE[1]}p"):
         errors.append(f"beak should clamp to {motion.BEAK_RANGE[1]} and lead the command, got {cmd}")
 
+    # A beak-only move sends just the beak, leaving any head ease running.
+    cmd = motion.resolve_move({"beak": 41, "wait_ms": 40}, baseline)
+    if cmd != "b41":
+        errors.append(f"a beak-only move must send only the beak, got {cmd!r}")
+
     # Omitting beak must not emit a b<N> token at all.
     cmd = motion.resolve_move({"t": 10, "wait_ms": 10}, baseline)
     if cmd.startswith("b"):
