@@ -661,7 +661,9 @@ worked in parallel if priorities change.
    at midnight" case from the brief's deferred decision) as a small design
    spec — doesn't need new hardware either.
 5. More conversational/memory test vectors as they come up — continuing the
-   joke/automation/NONE-case testing from this session.
+   joke/automation/NONE-case testing from this session. Temporary: every
+   turn's memory decision is journaled; remove after some experience
+   (`docs/captain-jack-memory-design.md` Open/TBD).
 6. Start on the mic/DoA-only half of the stack —
    wake-word/STT/speaker-ID groundwork (engines now chosen: openWakeWord;
    Whisper via `whisper.cpp` + Silero VAD; ECAPA-TDNN — see

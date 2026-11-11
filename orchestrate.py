@@ -494,6 +494,7 @@ class Turn:
     spoken: str             # what Jack says aloud
     saved: str | None       # "section: fact" if a memory was saved, else None
     mode: str | None        # "END_SESSION", "NAP", "SHUTDOWN_ASK" or "SHUTDOWN" if signaled, else None
+    memory_note: str = ""   # why nothing was saved, for the journal - temporary, see _finish_turn()
 
 
 def _finish_turn(reply: str, memory_dir: Path) -> Turn:
@@ -503,14 +504,20 @@ def _finish_turn(reply: str, memory_dir: Path) -> Turn:
     if mode == "NONE":
         mode = None
     saved = None
+    # memory_note is temporary (Chip, 2026-11-10): remove once we've seen
+    # enough real save decisions - see docs/captain-jack-memory-design.md.
+    note = "no MEMORY line"
     if raw_memory:
+        note = "NONE" if raw_memory.strip().upper() == "NONE" else f"rejected, bad tag: {raw_memory}"
         proposal = parse_memory_proposal(raw_memory)
         if proposal:
             section, name, fact = proposal
+            note = f"not saved, already listed or no such person: {raw_memory}"
             if save_memory(section, name, fact, memory_dir / "memory.md"):
                 label = f"{section}:{name}" if name else section
                 saved = f"{label}: {fact}"
-    return Turn(spoken, saved, mode)
+                note = ""
+    return Turn(spoken, saved, mode, note)
 
 
 def take_turn(

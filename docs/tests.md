@@ -55,7 +55,7 @@ when it was last confirmed passing.
 - **Script**: [`../tests/test_home_memory_save.py`](../tests/test_home_memory_save.py)
 - **Run**: `venv/bin/python tests/test_home_memory_save.py`
 - **Expected**: prints `PASS: [home] tag parses, saves, and dedups
-  correctly` and exits 0. Checks, against a scratch copy of
+  correctly; every memory decision is reported` and exits 0. Checks, against a scratch copy of
   `memory/memory.md` (the real file is never touched):
   - `parse_memory_proposal("[home] Sun Lakes, Arizona")` returns
     `("home", None, "Sun Lakes, Arizona")`.

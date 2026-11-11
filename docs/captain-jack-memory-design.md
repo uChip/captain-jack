@@ -100,7 +100,19 @@ category, dated. Dropped from `memory.md`.
   API call would reduce (not eliminate) this, at the cost of making Jack's
   in-character responses more repetitive too, since both share one call.
 
+- **How explicit to be, 2026-11-10** (from the trial): no special words are
+  needed, but a save is far likelier when one sentence holds the whole fact
+  and the voice is recognized on that line. "It's a pastrami sandwich" then,
+  two lines later, "It's my favorite sandwich" did not save; "my favorite
+  sandwich, a pastrami sandwich" did, first try. Chip's view: part of this
+  is people learning how to talk to Jack, so no prompt change for now.
+
 ## Open / TBD
+
+- **Temporary journal logging, 2026-11-10** (Chip): `coordinator.py` logs a
+  `[memory decision - ...]` line whenever a turn saves nothing. Remove it
+  (`Turn.memory_note`) once there's enough real experience with the save
+  decisions, since it adds a line to nearly every turn.
 
 - **Current location, deliberately excluded**: `home` fits this file's
   append-only pattern because it changes rarely; wherever Jack currently

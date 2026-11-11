@@ -736,6 +736,8 @@ class Coordinator:
         self.out(f"Jack: {turn.spoken}   [haiku {time.monotonic() - start:.2f}s]")
         if turn.saved:
             self.out(f"  [memory saved - {turn.saved}]")
+        elif turn.memory_note:
+            self.out(f"  [memory decision - {turn.memory_note}]")
         self._pending_mode = self._shutdown_check(turn.mode, match)
         self._finish_reply(reply, n)
 

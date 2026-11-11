@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from orchestrate import parse_memory_proposal, save_memory  # noqa: E402
+from orchestrate import _finish_turn, parse_memory_proposal, save_memory  # noqa: E402
 
 REPO_MEMORY = Path(__file__).parent.parent / "memory" / "memory.md"
 
@@ -42,7 +42,24 @@ def run():
         )
         assert dup is False, "expected a duplicate fact to be skipped"
 
-    print("PASS: [home] tag parses, saves, and dedups correctly")
+    # Every turn's memory decision is reported, saved or not.
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copy(REPO_MEMORY, Path(tmp) / "memory.md")
+        cases = [
+            ("Aye.", "no MEMORY line"),
+            ("Aye.\nMEMORY: NONE", "NONE"),
+            ("Aye.\nMEMORY: [recipe] stew", "rejected, bad tag: [recipe] stew"),
+            ("Aye.\nMEMORY: [household:Nobody] likes tea",
+             "not saved, already listed or no such person: [household:Nobody] likes tea"),
+            ("Aye.\nMEMORY: [household:Chip] likes tea", ""),
+            ("Aye.\nMEMORY: [household:Chip] likes tea",
+             "not saved, already listed or no such person: [household:Chip] likes tea"),
+        ]
+        for reply, want in cases:
+            turn = _finish_turn(reply, Path(tmp))
+            assert turn.memory_note == want, (reply, turn.memory_note)
+
+    print("PASS: [home] tag parses, saves, and dedups correctly; every memory decision is reported")
 
 
 if __name__ == "__main__":
