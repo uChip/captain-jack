@@ -1473,6 +1473,17 @@ standing in for. Amp-vs-speaker as the original clipping culprit was
 never conclusively isolated (no speaker swap test was run), but that's
 now moot: the fix works regardless of which one it was.
 
+**Later (date not recorded, noted 2026-11-10)**: Kath found Jack too quiet,
+so Chip moved the amp up one setting, to 12 dB. This change was reported at
+the time but never written down here.
+
+**Amp silent, 2026-11-10**: no sound from the speaker during the boot-service
+trial, after occasional Off Watch beak movement with no audio. Last confirmed
+speech about 12:00, then a shutdown at 12:13 and power-up at 18:45. The Pi and
+XVF3800 are good (headphones work). About 600mV of a half-scale 400Hz tone at
+the amp input, 5V at the board edge, speaker 4.1 ohm, left SD 3.6V (enabled).
+Chip's read: the TPA2012 died; cause unknown.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring

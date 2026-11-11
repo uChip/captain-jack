@@ -16,7 +16,7 @@ start from the real part. Update it whenever a part is swapped or added.
 | Pi power cabling | USB-C 90 Degree Angle Adapter | 1 | Amazon | Helps with cable routing |
 | Pi cooling | GeeekPi Aluminum Heatsink Case | 1 | Amazon | Passive cooler / heatsink |
 | Mic array / audio I/O | Seeed reSpeaker XVF3800 4-Mic Array (USB ID 2886:001a) | 1 | Amazon | Seeed's 16kHz "standard" firmware (fixed S16_LE, 16kHz, 2ch). See spec 3.2. |
-| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. 5v power fed from Arduino. Set to the lowest of its 4 strap-pin gain settings. See spec 3.3. |
+| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. 5v power fed from Arduino. Gain 12 dB, second-lowest of its 4 strap settings (raised from the lowest for Kath). Left channel only: left SD open, right SD grounded. See spec 3.3. |
 | Speaker |  40mm, 4Ω, 5W | 1 | adafruit.com | Product ID: 3968. |
 | Pi-to-XVF3800 cable | USB A to Type C, 6in | 1 | Amazon | USB, kept short. |
 | XVF3800-to-amp cable | single 22g wire | 1 | on hand | soldered to tip rung of 3.5mm connector, kept short. |

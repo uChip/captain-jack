@@ -355,9 +355,10 @@ History: [log.md#33-speaker](log.md#33-speaker), [log.md#issue-26](log.md#issue-
 ship with one). Its 5W rating matches the XVF3800's nominal 5W onboard
 amp. **Status: connected**, now via an external amp fed from the
 XVF3800's 3.5mm jack (bypassing the onboard amp's clipping, see
-[Open Issues](#5-open-issues) issue 26), set to the lowest of its 4
-strap-pin gain settings — clean and adequately loud at full digital
-scale, with 3 higher settings available if more loudness is ever needed.
+[Open Issues](#5-open-issues) issue 26), at 12 dB, the second-lowest of its 4
+strap-pin gain settings. It started at the lowest and was raised because
+Kath found Jack too quiet. Left channel only: left SD open (pulled high,
+enabled), right SD grounded (off).
 Mounted inside the bird's rebuilt electronics enclosure as of 2026-10-06
 — see [3.6](#36-physical-statue-and-perch).
 
@@ -2172,7 +2173,7 @@ lock, so threads genuinely run in parallel where it matters.
 **Output gain — decided 2026-10-06**: Playback applies `OUTPUT_GAIN_DB`
 (`0.0` — no digital attenuation) with the XVF3800's ALSA `PCM Playback
 Volume` at max (60/60); headroom is handled by the external amp (see
-[3.3](#33-speaker)) set to its lowest gain setting, not a digital cap.
+[3.3](#33-speaker)) at a fixed strap-pin gain, not a digital cap.
 [Open Issues](#5-open-issues) issue 26 is resolved; this supersedes the
 interim −10dB cap used before the amp was wired.
 
