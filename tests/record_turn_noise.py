@@ -61,7 +61,7 @@ def main():
     writer = serial_link.SerialWriter(now_fn=time.monotonic, port=args.port)
     writer.start()
     motion = Motion(writer, on_send=lambda c: None)
-    motion._next_excursion = float("inf")
+    motion.excursions = False
     motion.set_mode("still")
     motion.start()
     cap.start()

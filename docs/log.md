@@ -2590,6 +2590,19 @@ silent settle. Checked against the real catalog without hardware: each
 context picks from its own pool, ~2.5s settle. `sl-waking-up` on wake
 from Asleep (spec 4.10's loop) is still not played — a separate gap.
 
+**First Off Watch clip delayed, 2026-11-10** (Chip, boot-service trial):
+Jack played an idle clip a few seconds after his exit line. The next-excursion
+time was only ever set after an excursion, so after a long On Watch it was
+already past due on entry (and 0 at boot). Entering Off Watch now waits one
+`excursion_interval_seconds` interval first. The noise scripts'
+"no excursions" trick (an infinite next time) became `Motion.excursions`.
+
+**Pacing doubled, 2026-11-10** (Chip, from the trial): Off Watch clips and
+Asleep extras felt too frequent. `excursion_interval_seconds` 30-90s ->
+60-180s, `ASLEEP_EXTRA_CHANCE` 0.25 -> 0.125 per breath (one extra every
+48s on average, was 24s), and Off Watch's idle timeout to Asleep 15 -> 30
+minutes.
+
 ### 4.11 Sleep-Mode State Machine
 
 **`MODE:` meta-tag, 2026-10-07**: implementing the Off Watch/On
@@ -2734,6 +2747,13 @@ is for now: rejecting a doubtful yes is the safe side (Chip prefers a
 "say again" to a misread), but if short confirmations keep being
 rejected, a confirmation-specific path (e.g. accept a low-p transcript
 that is plainly yes/no while an ask is pending) is the lever.
+
+**Wake beep replaced by a squawk, 2026-11-10** (Chip, from the trial): the
+beep was left over from the keyboard stand-in. Chip's first thought was to
+remove it since Jack talks in response, but he only speaks after hearing a
+line - nothing else marks that the wake phrase was heard or when to start
+talking. A spoken line was rejected: replies often open with a greeting
+anyway. A quiet squawk (same -12dB as the boot squawk) took its place.
 
 ### 4.12 Gesture Engine and Catalog
 

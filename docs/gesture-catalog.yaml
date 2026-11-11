@@ -165,7 +165,7 @@ excursion_interval_seconds:
   # (Grew to 9 excursions later the same day — "Added 2026-09-20 (second
   # round)" below — still worth watching in practice before tightening;
   # more content alone doesn't guarantee it stops feeling repetitive.)
-  off_watch: [30, 90]
+  off_watch: [60, 180]   # doubled from [30, 90] 2026-11-10: clips felt too frequent in the trial
 
 on_watch:
   # --- Ambient (default/base state, always running) ---

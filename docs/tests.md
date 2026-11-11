@@ -470,7 +470,7 @@ when it was last confirmed passing.
 - **Run**: `venv/bin/python tests/test_coordinator.py`
 - **Expected**: the overall `PASS:` line. Boot at 23:00, 03:00, 05:00 or
   with the clock unsynced: Asleep, stretch then a silent settle-in,
-  nothing played. Boot at 06:00 or 21:00: Off Watch with the 15-minute
+  nothing played. Boot at 06:00 or 21:00: Off Watch with the 30-minute
   timeout running, one stretch, one squawk at `BOOT_SQUAWK_DB`. Haiku
   unreachable with nothing spoken: the offline line, still On Watch.
 - **Last confirmed passing**: 2026-11-09.

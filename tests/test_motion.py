@@ -110,6 +110,22 @@ def check_find_gesture_anywhere():
     return errors
 
 
+def check_off_watch_first_excursion_waits():
+    """Entering Off Watch waits a full random interval before the first
+    excursion and clip, so one doesn't follow Jack's exit line at once."""
+    errors = []
+    catalog = {**TEST_CATALOG, "excursion_interval_seconds": {"off_watch": [50, 50]}}
+    writer = FakeWriter()
+    player = FakePlayer()
+    m = motion.Motion(writer, player=player, catalog=catalog)
+    m.set_mode("off_watch")
+    m._step_off_watch()
+    if len(writer.sent) != 1 or player.played:
+        errors.append(f"expected ambient motion only right after entering Off Watch, "
+                      f"got {writer.sent}, played {player.played}")
+    return errors
+
+
 def check_off_watch_step():
     errors = []
     writer = FakeWriter()
@@ -318,7 +334,8 @@ if __name__ == "__main__":
         (motion.WAV_DIR / "drift_clip.wav").touch()
 
         errors = (check_resolve_move() + check_find_gesture_anywhere()
-                  + check_off_watch_step() + check_asleep_wav_pairing()
+                  + check_off_watch_step() + check_off_watch_first_excursion_waits()
+                  + check_asleep_wav_pairing()
                   + check_fall_asleep() + check_on_watch_uses_its_own_ambient()
                   + check_hold() + check_squawk_tilt() + check_turn_toward()
                   + check_stop_returns_to_rest())

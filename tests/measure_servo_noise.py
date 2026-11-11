@@ -89,7 +89,7 @@ def main():
     catalog = yaml.safe_load(Path(args.catalog).read_text()) if args.catalog else None
     motion = Motion(writer, catalog=catalog, on_send=lambda c: None)
     if not args.excursions:
-        motion._next_excursion = float("inf")
+        motion.excursions = False
     motion.start()
     cap.start()
     time.sleep(BOOT_S)

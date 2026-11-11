@@ -16,13 +16,13 @@ aid, see CLAUDE.md): pressing Enter stands in for "Ahoy, Captain Jack"
 (-> On Watch from Off Watch or Asleep) and typing "sleep" then Enter
 stands in for "Goodnight, Jack" (Off Watch -> Asleep only - the spotter
 never needs to listen for it while already On Watch or Asleep, per spec
-4.11). Both paths post the exact same internal event. A beep through
-the bird marks the start of listening. Transitions:
+4.11). Both paths post the exact same internal event. A quiet squawk
+through the bird marks the start of listening. Transitions:
   - On Watch -> Off Watch or Asleep: Haiku's own MODE: meta-tag
     (END_SESSION/NAP, see orchestrate.py), applied once the reply
     finishes playing - or the 2-minute no-prompt timeout (-> Off Watch).
   - Off Watch -> Asleep: the sleep-phrase stand-in above, or a
-    15-minute no-wake timeout.
+    30-minute no-wake timeout.
   - Shutdown (CLAUDE.md item 11): from any mode, a 5s press of the
     back-panel button (button.py); in On Watch, by voice - Jack asks a
     recognized voice to confirm (MODE: SHUTDOWN_ASK), and a yes
@@ -110,7 +110,7 @@ from tts import TTS, split_first_sentence, split_sentences
 from wakeword import SLEEP_NAME, WAKE_NAME, WakeSpotter
 
 ON_WATCH_TIMEOUT_S = 120       # spec 4.11: 2 minutes with no prompt -> Off Watch
-OFF_WATCH_TIMEOUT_S = 15 * 60  # spec 4.11: 15 minutes with no wake phrase -> Asleep
+OFF_WATCH_TIMEOUT_S = 30 * 60  # spec 4.11: 30 minutes with no wake phrase -> Asleep
 
 # Spec 4.2: a rejected utterance gets an in-character prompt, not silence.
 DIDNT_CATCH = "Arr, didn't catch that over the wind. Say again?"
@@ -131,8 +131,9 @@ QUIET_END_H = 6
 BOOT_SQUAWK_DB = -12.0
 
 # Distinct from any (reply, sentence) tag, so _on_playback can tell the
-# listening beep apart from a spoken reply.
-BEEP_TAG = "listening beep"
+# listening cue (the wake squawk, or a beep under --no-filler) from a reply.
+LISTEN_TAG = "listening cue"
+WAKE_SQUAWK_DB = -12.0   # starting value, as for the boot squawk
 # Shutdown (CLAUDE.md item 11): a squawk then one of these pre-rendered
 # farewells (wavFiles/manifest.yaml - pre-rendered so they play instantly
 # and with no network), then a clean stop and exit SHUTDOWN_EXIT, which
@@ -304,7 +305,7 @@ class Coordinator:
                 self.events.put(("reply_started", time.monotonic()))
         else:
             # Reopen the mic once a *whole* self-contained thing is done
-            # playing - any single-tag item (a wav filename, BEEP_TAG) is
+            # playing - any single-tag item (a wav filename, LISTEN_TAG) is
             # one on its own, but a reply's sentences share a (reply, i)
             # tuple tag and only its true last one counts, not after each
             # sentence - otherwise a stray sound in the gap between two
@@ -315,7 +316,7 @@ class Coordinator:
             # 2026-10-11: Motion's own idle/excursion/settle-in wav clips
             # play through this same Playback instance tagged with their
             # filename, which matched neither the old `_last_tag`-or-
-            # `BEEP_TAG` check nor anything else - so the mic (and, once
+            # `LISTEN_TAG` check nor anything else - so the mic (and, once
             # wired in, the WakeSpotter) went deaf after the first such
             # clip in Off Watch/Asleep and never reopened for the rest of
             # that mode. See docs/log.md's 4.11/4.16 history.
@@ -329,8 +330,8 @@ class Coordinator:
                     self.doa.jack_done()   # where Jack's own sound left the board
             if tag == self._last_tag:
                 self.events.put(("reply_done", None))
-            elif tag == BEEP_TAG:
-                self.events.put(("beep_done", None))
+            elif tag == LISTEN_TAG:
+                self.events.put(("listen_cue_done", None))
 
     def wake(self):
         """Wake-phrase event ("Ahoy, Captain Jack"), from Off Watch or
@@ -396,7 +397,7 @@ class Coordinator:
         if self.mode == "on_watch":
             self.end_session("no prompt for 2 minutes")
         elif self.mode == "off_watch":
-            self.start_nap("no wake phrase for 15 minutes", "idle_timeout")
+            self.start_nap("no wake phrase for 30 minutes", "idle_timeout")
 
     def _handle_event(self, kind, data):
         """The run() loop's event dispatch, factored out so tests can
@@ -412,7 +413,7 @@ class Coordinator:
             self._heard_at = None
         elif kind == "reply_done" and self.mode == "on_watch":
             self._apply_pending_mode()
-        elif kind == "beep_done":
+        elif kind == "listen_cue_done":
             self.out("[On Watch - speak to Jack]")
         elif kind == "shutdown":
             self.player.wait_played(timeout=15)   # let the farewell finish
@@ -455,11 +456,11 @@ class Coordinator:
         if self.motion:
             self.motion.set_mode("on_watch")
         self._hold_head(True)
-        # "speak to Jack" is printed on beep_done (below), not here - printing
-        # it immediately races ahead of the beep actually playing, inviting
+        # "speak to Jack" is printed on listen_cue_done (below), not here - printing
+        # it immediately races ahead of the cue actually playing, inviting
         # someone to start talking before the mic is open again and losing
         # the start of their sentence (see docs/log.md's 4.16 history).
-        self.player.play(beep(), BEEP_TAG)
+        self.player.play(self._listening_cue(), LISTEN_TAG)
         self.deadline = time.monotonic() + ON_WATCH_TIMEOUT_S
 
     def end_session(self, why):
@@ -611,15 +612,26 @@ class Coordinator:
         self.player.play(farewell_audio(), SHUTDOWN_TAG)
         self.events.put(("shutdown", "button"))
 
+    def _pick_filler(self) -> str:
+        """A squawk's name, never the same one twice running."""
+        names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
+        self._last_filler = random.choice(names)
+        return self._last_filler
+
+    def _listening_cue(self) -> np.ndarray:
+        """What Jack plays on waking: a quiet squawk (spec 4.11). The mic
+        opens when it ends. --no-filler has no squawks, so it keeps a beep."""
+        if not self.fillers:
+            return beep()
+        return (self.fillers[self._pick_filler()] * 10 ** (WAKE_SQUAWK_DB / 20)).astype(np.int16)
+
     def play_filler(self, toward=None):
         """Queue a squawk (see FILLER_DIR) after FILLER_DELAY_S of silence,
         never the same one twice running, with a head tilt to match -
         cocked toward the speaker's angle if known (see face_speaker())."""
         if not self.fillers or self._shutting_down:
             return
-        names = [n for n in self.fillers if n != self._last_filler] or list(self.fillers)
-        name = random.choice(names)
-        self._last_filler = name
+        name = self._pick_filler()
         lead = np.zeros(int(FILLER_DELAY_S * RATE), dtype=np.int16)
         self.player.play(np.concatenate([lead, self.fillers[name]]), name)
         if self.motion:

@@ -143,7 +143,7 @@ def check_state_machine():
     if coord.mode != "off_watch":
         errors.append(f"MODE: END_SESSION should end the session, got mode={coord.mode!r}")
     if coord.deadline is None:
-        errors.append("Off Watch should start its 15-minute nap timeout")
+        errors.append("Off Watch should start its 30-minute nap timeout")
 
     # MODE: NAP, same mechanism, -> Asleep instead.
     coord = new_coord("Sleepy now, goodnight!\nMODE: NAP\nMEMORY: NONE")
@@ -298,7 +298,7 @@ def check_nonreply_clip_reopens_mic():
     tagged with their filename, not a (reply, i) tuple) must reopen the
     mic/spotter as soon as IT finishes, same as the reply case above -
     found live, 2026-10-11: the old check only recognized a reply's true
-    last sentence or BEEP_TAG, so the mic went permanently deaf after
+    last sentence or LISTEN_TAG, so the mic went permanently deaf after
     the first such clip played in Off Watch/Asleep and the real
     WakeSpotter never heard the wake phrase again for the rest of that
     mode (see docs/log.md's 4.11/4.16 history)."""
@@ -447,7 +447,7 @@ def check_boot_greeting():
                 if abs(ratio - want) > 0.01:
                     errors.append(f"{label}: squawk at {ratio:.3f} of full, want {want:.3f}")
             if coord.deadline is None:
-                errors.append(f"{label}: Off Watch's 15-minute timeout not running")
+                errors.append(f"{label}: Off Watch's 30-minute timeout not running")
     return errors
 
 
@@ -488,7 +488,9 @@ def check_filler():
     if len(coord.fillers) < 2:
         return [f"expected 2+ filler clips in {coordinator.FILLER_DIR}, got {list(coord.fillers)}"]
     coord.start_session()
-    coord.player._queue.get_nowait()   # the listening beep
+    tag, cue = coord.player._queue.get_nowait()   # waking plays a squawk, not a beep
+    if tag != coordinator.LISTEN_TAG or len(cue) not in {len(v) for v in coord.fillers.values()}:
+        errors.append(f"waking should queue a squawk as the listening cue, got {tag!r}, {len(cue)} samples")
     played = []
     for _ in range(6):
         coord.handle_utterance(load_clip())
@@ -523,7 +525,7 @@ def check_filler():
                                      client=FakeClient("Aye.\nMODE: NONE\nMEMORY: NONE"),
                                      out=lambda *a: None, filler=False)
     quiet.start_session()
-    quiet.player._queue.get_nowait()   # the listening beep
+    quiet.player._queue.get_nowait()   # no squawks under --no-filler: still a beep
     quiet.handle_utterance(load_clip())
     if not quiet.player._queue.empty():
         errors.append("filler=False still queued audio on Playback after an utterance")
@@ -652,8 +654,8 @@ def check_face_speaker():
     if len(you) != 2 or "doa -40" not in you[0] or "doa -" not in you[1]:
         errors.append(f"DoA angle missing from console stats: {you!r}")
     before = coord.doa.jack_dones
-    coord._on_playback("started", coordinator.BEEP_TAG, 0.0)
-    coord._on_playback("finished", coordinator.BEEP_TAG, 0.1)
+    coord._on_playback("started", coordinator.LISTEN_TAG, 0.0)
+    coord._on_playback("finished", coordinator.LISTEN_TAG, 0.1)
     if coord.doa.jack_dones != before + 1:
         errors.append("the mic reopening after Jack's own sound didn't tell DoA (jack_done)")
     log = save / "utt01_doa.csv"
@@ -701,7 +703,7 @@ def check_early_turn():
     you = [line for line in out if line.startswith("You:")]
     if not you or "doa +90 (early +90)" not in you[0]:
         errors.append(f"early angle missing from console stats: {you!r}")
-    coord._on_playback("started", coordinator.BEEP_TAG, 0.0)
+    coord._on_playback("started", coordinator.LISTEN_TAG, 0.0)
     if coord.doa.jack_starts != 1:
         errors.append("Jack's own sound starting didn't tell DoA (jack_started)")
     coord.mode = "off_watch"

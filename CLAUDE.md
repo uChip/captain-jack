@@ -708,7 +708,8 @@ worked in parallel if priorities change.
      same day and left at the vanilla default - no near-miss evidence it
      needs to move (item 38). Still open: whether `PATIENCE_FRAMES`/
      `COOLDOWN_S` need any change (no data suggesting either does so
-     far). The two timeouts (2-minute On Watch, 15-minute Off Watch) are
+     far). Off Watch's timeout doubled to 30 minutes, 2026-11-10 (Chip,
+     from real use in the trial). The 2-minute On Watch timeout is
      **decided, 2026-10-12: left as-is** - Chip's call that a deliberate
      test session doesn't reproduce real social-conversation pacing, so
      "feel" from testing isn't trustworthy either way, and erring short

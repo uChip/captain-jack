@@ -1359,7 +1359,7 @@ TTS question at all):
   listening for the wake phrase. Live synthesis (`kokoro-pi` runs at
   roughly 0.37x real-time on the Pi 5 — comfortably faster than
   real-time, but still real CPU work) would repeatedly compete with that
-  always-on detection every 30-90 seconds; a pre-rendered clip costs
+  always-on detection every 1-3 minutes; a pre-rendered clip costs
   nothing at playback beyond reading bytes.
 - **Fixed duration for gesture pairing**: [Wav-Paired
   gestures](#412-gesture-engine-and-catalog) are scripted against a
@@ -1421,7 +1421,7 @@ On entering Asleep:
     if entered via the "Goodnight, Jack" phrase (Off Watch):
         play one random wav from the "goodnight acknowledgment" pool
           (context: goodnight_phrase) alongside it
-    else if entered via Off Watch's 15-minute idle timeout:
+    else if entered via Off Watch's 30-minute idle timeout:
         play one random wav from the "drifting off" pool
           (context: idle_timeout) alongside it
     else (entered via On Watch's nap-intent meta-tag):
@@ -1520,11 +1520,13 @@ the Arduino has no "stop here" command, so a move already sent finishes
 first. Off Watch, where Jack has to move and listen for the wake phrase
 at once, has no equivalent yet - open, see `docs/log.md`'s 4.2 history.
 
-**Off Watch excursion tuning**: a random interval of 30-90 seconds
+**Off Watch excursion tuning**: a random interval of 60-180 seconds
 between completed ambient-motion steps (`excursion_interval_seconds` in
 [gesture-catalog.yaml](gesture-catalog.yaml)), plus a rule never to pick
 the same excursion id twice in a row — an explicit starting point to
-tighten as the gesture library grows, not a final number.
+tighten as the gesture library grows, not a final number. Entering Off
+Watch waits one such interval before the first excursion and clip, so
+one doesn't follow Jack's exit line or boot greeting at once.
 
 **Interfaces**: outputs audio through the XVF3800; feeds
 [Beak-Sync](#48-beak-sync-rms-envelope-extraction); triggers the
@@ -1593,11 +1595,18 @@ network-for-the-LLM-turn-only principle (see `CLAUDE.md`).
     line.
   - From Off Watch: fixed phrase **"Goodnight, Jack"**, detected by the
     local spotter (no Haiku call).
-  - From Off Watch, also on an **idle timeout of 15 minutes** with no
+  - From Off Watch, also on an **idle timeout of 30 minutes** with no
     wake phrase detected.
 
-Timeout values (2 minutes On Watch, 15 minutes Off Watch) are Chip's
-initial numbers, **kept as-is, decided 2026-10-12**: a deliberate test
+**Listening cue**: entering On Watch plays one quiet macaw squawk from
+`wavFiles/fillers/` (12dB down, never the same twice running), and the mic
+opens when it ends. It is the only sign Jack heard the wake phrase, so it
+replaced the original beep rather than being removed. `--no-filler` has no
+squawks and keeps the beep.
+
+Timeout values: 2 minutes On Watch, 30 minutes Off Watch (doubled from
+15 on 2026-11-10, from real use in the trial). The On Watch value is
+Chip's initial number, **kept as-is, decided 2026-10-12**: a deliberate test
 session doesn't reproduce real social-conversation pacing, so "feel"
 from testing isn't trustworthy evidence either way — and the known
 comparable failure mode (a too-short timeout cutting off conversation

@@ -58,7 +58,7 @@ AXIS_RANGE = {"p": (0, 50), "r": (0, 50), "y": (0, 130)}
 BEAK_RANGE = (0, serial_link.BEAK_RANGE)
 REST_ON_STOP_MS = 1000   # Motion.stop()'s return to rest - slow enough not to jerk
 
-ASLEEP_EXTRA_CHANCE = 0.25   # tunable, no measured value yet - spec 4.10
+ASLEEP_EXTRA_CHANCE = 0.125  # tunable; halved from 0.25 by ear, 2026-11-10 - spec 4.10
 SETTLE_TO_SLEEP_ID = "sl-settle-to-sleep"
 SQUAWK_TILT_ID = "fx-squawk-tilt"
 STRETCH_ID = "id-neck-stretch"     # the boot greeting - see stretch()
@@ -138,6 +138,7 @@ class Motion:
         self._stop = threading.Event()
         self._thread = None
         self._next_excursion = 0.0
+        self.excursions = True         # False: Off Watch runs ambient motion only (noise tests)
         self._last_excursion_id = None
         self._last_wav = None
         self._settle_pending = False   # set by fall_asleep(), consumed by _step_asleep()
@@ -150,6 +151,9 @@ class Motion:
         self.holding = False           # a mode change always releases hold()
         if mode != "on_watch":         # the conversation's over - face front again
             self.baseline.yaw = self.catalog["resting"]["yaw"]
+        if mode == "off_watch":        # a full interval before the first clip - see spec 4.10
+            self._next_excursion = time.monotonic() + random.uniform(
+                *self.catalog["excursion_interval_seconds"]["off_watch"])
         self.mode = mode
 
     def turn_toward(self, angle):
@@ -232,7 +236,7 @@ class Motion:
         """Enter Asleep, settling in first (spec 4.10, "On entering
         Asleep"). context names how sleep was entered, picking the wav
         pool: "goodnight_phrase" (the "Goodnight, Jack" phrase),
-        "idle_timeout" (Off Watch's 15-minute timeout), or None for
+        "idle_timeout" (Off Watch's 30-minute timeout), or None for
         Haiku's MODE: NAP - no wav then, since Jack's own live reply
         already said goodnight moments earlier."""
         self.set_mode("asleep")
@@ -315,7 +319,7 @@ class Motion:
         self.play_gesture(ambient)
         if self.mode != lib:
             return
-        if time.monotonic() >= self._next_excursion:
+        if self.excursions and time.monotonic() >= self._next_excursion:
             excursions = [g for g in self.catalog[lib] if g["id"] != ambient["id"]]
             choices = [g for g in excursions if g["id"] != self._last_excursion_id] or excursions
             pick = random.choice(choices)
