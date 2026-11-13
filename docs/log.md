@@ -2852,6 +2852,30 @@ Live, the clack continued: beak-sync was overriding every gesture's beak
 move. Found and fixed 2026-11-13, see 4.8 "Beak-sync overrode gesture beak
 moves".
 
+**On Watch gestures from the reply, designed 2026-11-13** (spec 4.12, end).
+Three ways to pick a gesture were weighed: Haiku tags the reply (it knows
+what the reply means, for a few output tokens); code reads the text
+(keywords/sentiment: free and predictable, but rough - it would nod at "I
+know not" and miss irony); and code following speech rhythm (no meaning,
+just per-sentence timing). Chip chose the hybrid: Haiku for meaning, code
+for rhythm, and code enforcing every limit, like home automation's
+allowlist.
+
+Where the tag goes: `MODE:`/`MEMORY:` come at the end of a reply, after
+the speech has streamed, so a trailing tag is too late. A leading line
+(one gesture per reply, starting with the first word) was preferred over
+inline markers inside sentences. Inline markers would let a reply tilt on
+a question and nod on the answer, but they need parsing inside
+`SpeechStreamer`, which has already had two bugs (log 4.3). Revisit only
+if one gesture per reply feels flat.
+
+How often: Chip, "only when the reply calls for it" - not every reply. The
+prompt asks for restraint; no code cooldown until the journal shows
+over-use, per the usual rule of setting numbers from real data.
+
+Today's beak-sync fix (4.8) set the head-only rule: anything that moves
+the beak while Jack talks fights beak-sync.
+
 ### 4.13 Pi to Arduino Serial Link
 
 **Startup head snap traced to back-to-back resets, 2026-10-15.** Chip saw

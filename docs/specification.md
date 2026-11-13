@@ -1662,7 +1662,8 @@ History: [log.md#412-gesture-engine-and-catalog](log.md#412-gesture-engine-and-c
 **Status: Catalog content drafted; execution engine implemented
 (2026-10-07)** — `motion.py`, ported from `exercise_hardware.py`'s
 already hardware-validated ambient/excursion logic. Not yet done: On
-Watch excursions (content/DoA/emotion-triggered, ambient-only today),
+Watch excursions (content/DoA/emotion-triggered, ambient-only today;
+reply-cued gestures designed 2026-11-13, see the end of this section),
 gesture interruptibility/preemption (Open Issues issue 24), and the
 Asleep gesture subset content itself (Open Issues issue 5).
 
@@ -1811,6 +1812,52 @@ Known gaps, left for a later pass (not blocking this one):
 
 Every entry in [gesture-library.md](archive/gesture-library-2026-10-10.md) is translated
 into this structure — see [gesture-catalog.yaml](gesture-catalog.yaml).
+
+**On Watch gestures from the reply — designed 2026-11-13, not built.**
+Chip's decisions: hybrid (Haiku picks the meaning, code handles timing
+and limits), a leading tag line, and a gesture only when the reply calls
+for it. Reasoning and alternatives in log.md 4.12.
+
+- **Tag:** an optional first line, `GESTURE: <cue>`, before the spoken
+  reply. At most one per reply, by construction. No line means no
+  gesture, which should be the usual case: `identity.md` tells Haiku to
+  use it only when the reply clearly has a feeling or stance to show, not
+  out of habit.
+- **Streaming:** `SpeechStreamer` reads a leading `GESTURE:` line off
+  before any speech, hands the cue over, and then streams the reply as
+  now. A `GESTURE:` line anywhere else arrives too late to use: it ends
+  the speech the way `MODE:`/`MEMORY:` do, and the cue is dropped.
+- **Cues:** a small fixed vocabulary of plain words, recorded in the
+  catalog as a `cue:` key on each On Watch gesture. This fills the
+  "selection tag" gap listed above. Starting set: `nod`
+  (em-affirmation-nod, cv-agreement-motion), `shake` (em-negation-shake,
+  cv-disagreement-motion), `curious` (em-curious-tilt, ex-head-cock),
+  `skeptical` (em-skeptical-lean), `excited` (em-excited-bob), `thinking`
+  (em-thinking-sway), `proud` (ex-showmanship-bob), `surprised`
+  (em-alert-perk). Where a cue has several gestures, code picks one at
+  random, never the same one twice in a row. Code ignores any cue that
+  isn't in the catalog, the same allowlist-in-code rule as home
+  automation. Haiku never sees gesture IDs or servo values.
+- **Head only:** beak-sync owns the beak while Jack speaks, so a cued
+  gesture never sends a beak value. `ex-rapid-chatter`, the only On Watch
+  gesture that moves the beak, gets no cue.
+- **Timing:** the gesture starts when the reply's first sentence starts
+  playing (Playback's `started` event), relative to the current
+  baseline, so it layers on any DoA turn already made. It runs as a
+  Motion one-shot, like `squawk_tilt()`: its own short thread, with the
+  ambient sway paused until it ends. It is skipped if another one-shot is
+  still running. This is the minimum answer to issue 24 for On Watch;
+  blending stays open.
+- **Noise:** gestures run only while Jack is speaking, with the mic
+  closed (turn-taking), so servo noise can't reach recognition.
+- **Frequency:** no code cooldown at first. Every cue (or its absence) is
+  logged, and the journal review decides whether Haiku over-uses them.
+  If it does, add a cooldown; the number is set from that data.
+- **Speech rhythm (code-only, second step):** sentence-start lift and
+  end settle (`sd-*`) driven by Playback's per-sentence events, with no
+  Haiku involvement. Built after the cued gestures have been watched
+  live, since it changes how busy the head looks while he talks.
+  `sd-vowel-drift` stays out (`NEEDS-RUNTIME-PARAM`).
 
 ### 4.13 Pi to Arduino Serial Link
 

@@ -719,7 +719,9 @@ worked in parallel if priorities change.
      people off mid-conversation. Don't re-litigate without new
      information (see spec 4.11).
    - On Watch excursions (content/DoA/emotion-triggered) — `motion.py`
-     only runs ambient motion in On Watch today.
+     only runs ambient motion in On Watch today. Reply-cued gestures
+     designed 2026-11-13 (Chip: hybrid, a leading `GESTURE: <cue>` line
+     from Haiku, only when the reply calls for it; spec 4.12), not built.
    - Open refinements from the live conversation runs: `identity.md`'s
      reply-length target raised from twenty to thirty words, 2026-10-12
      (measured real replies averaging 31 words; see "Done so far" item 35);
