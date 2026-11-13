@@ -1884,7 +1884,9 @@ are large (showmanship bob +-25 pitch, negation shake +-25 yaw). Order:
    position that rubbed with the old head when turned left, and DoA turns
    reach 50 deg left. Both are also cut off at the 50 limit today, so they
    flatten; their size gets settled in step 2.
-2. **Audition the 11 cued gestures** on the bird, Chip watching: the
+2. **Audition the 11 cued gestures** (and mirroring/resting-side
+   candidates, below) on the bird with the **audition checklist** below,
+   Chip watching: the
    slice of work-list item 12 these depend on, brought forward. Each at
    rest and after a DoA turn to both sides (the baseline they'll really
    start from). Tune in the catalog; no servo-noise measurement needed,
@@ -1898,6 +1900,73 @@ are large (showmanship bob +-25 pitch, negation shake +-25 yaw). Order:
 
 Not a dependency: the amp. The head swap was being held for it only to
 do all the disassembly at once.
+
+**Mirrored gestures and resting sides — designed 2026-11-13, not built.**
+Chip: opt-in, and decided by eye at the audition - "as much artistic as
+programmatic". Two separate mechanisms:
+
+- **Mirroring (one gesture, either side):** Motion flips the signs of
+  `dr` and `dy` at play time - no duplicate catalog entries.
+  `squawk_tilt()` already does this for roll. Opt-in per gesture with a
+  `mirror: true` key; without it a gesture always plays as written (some
+  have a direction on purpose - `ex-look-away`/`ex-look-back` are a
+  pair). The side is chosen one of two ways: **toward** something (the
+  speaker's DoA side, as the squawk does - e.g. curious tilt, head cock in
+  On Watch) or **at random**, 50/50, for gestures with no reason to favor a
+  side (twitches, preening, snorts, Off Watch excursions). Which way each
+  mirrored gesture picks is recorded in the catalog with it.
+- **Resting side (posture):** a small roll lean, perhaps a little pitch
+  droop, that the ambient motion rocks around - a baseline shift, like
+  the DoA turn's on yaw. **Asleep:** settle-to-sleep picks a side; after a
+  snort or twitch (his "getting comfortable" moments) he sometimes settles
+  back on the other side, otherwise the same one. **Off Watch:** perhaps a
+  gentler version - after an excursion, sometimes a slightly different
+  rest pose instead of dead center. **On Watch:** none; the DoA turn sets
+  where he faces, and a lean on top could read as ignoring the speaker.
+  Numbers (lean size, flip chance; a starting guess is a small lean and
+  about half the snorts/twitches) are set by eye at the audition. The
+  catalog comment on `sl-settle-to-sleep` ("breath continues from wherever
+  this leaves off") isn't true today - deltas resolve against the
+  baseline, so breathing returns to it; the resting side makes it true.
+
+Independent of reply cues: the resting side needs no Haiku change and
+could be built before or after them.
+
+**Audition checklist** (the 11 reply-cued gestures, any gesture proposed
+for `mirror: true`, and the resting sides; Chip watching, after the new
+head is on):
+
+1. **Range is lopsided.** Roll rests at 30 of 0-50: 30 deg available to
+   the left, only 20 to the right. A gesture asking for more is cut off at
+   the limit and flattens. Check each one at its written size, and watch
+   for a flattened end, especially on right tips.
+2. **Mirrored is a new gesture.** Mirroring a left lean sends it right,
+   into the shorter range and onto the side that rubbed. Watch both sides
+   of every `mirror: true` candidate, not just the catalog's own.
+3. **Starting baseline.** Run each from rest and from a DoA turn about 50
+   deg each way (where On Watch gestures really start), plus the planned
+   sleeping lean for Asleep gestures. A gesture's tip adds to wherever
+   the head already is.
+4. **Rub and catch.** Full right tip with a left turn was the old head's
+   rub; listen and watch for rubbing, and for the neck catching on the
+   collar on the way back upright.
+5. **Beak stays still** in On Watch gestures - beak-sync owns it while he
+   talks (`ex-rapid-chatter` gets no cue).
+6. **Direction on purpose?** Decide per gesture: `mirror: true` (and
+   toward or random), or fixed as written.
+7. **Size and speed by eye.** Translated from the early library, never
+   watched; large ones (showmanship bob +-25 pitch, negation shake +-25
+   yaw) may need shrinking. Small, slow ones: watch for PWM stepping
+   (Open Issues issue 25).
+8. **Resting side** (Asleep, maybe Off Watch): lean size, how it looks
+   rocking around a lean, and whether a flip after a snort reads as
+   "getting comfortable" or as a jerk.
+9. **Noise only where the mic listens.** On Watch gestures play with the
+   mic closed - no measurement needed. Asleep/Off Watch changes play while
+   the wake-word spotter listens: measure any that grow with
+   `tests/measure_servo_noise.py --catalog`.
+10. **Record the outcome** in the catalog (sizes, `mirror:`, side choice)
+    and the reasons in log.md 4.12.
 
 ### 4.13 Pi to Arduino Serial Link
 

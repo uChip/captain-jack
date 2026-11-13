@@ -724,7 +724,10 @@ worked in parallel if priorities change.
      from Haiku, only when the reply calls for it; spec 4.12), not built.
      Order (Chip): new head on (item 13) -> audition the 11 cued gestures
      (a slice of item 12, brought forward) -> build -> live watch. Spec
-     4.12 "Before building".
+     4.12 "Before building". Also designed the same day, opt-in and
+     decided by eye: mirrored gestures and a resting side (Asleep
+     "getting comfortable" after a snort). Audition with spec 4.12's
+     "Audition checklist".
    - Open refinements from the live conversation runs: `identity.md`'s
      reply-length target raised from twenty to thirty words, 2026-10-12
      (measured real replies averaging 31 words; see "Done so far" item 35);
@@ -894,7 +897,8 @@ worked in parallel if priorities change.
 12. Audition every motion definition for fine tuning (Chip, 2026-10-21) -
     **sequenced last, after all major functionality is working** - except
     the 11 On Watch gestures with reply cues, brought forward ahead of
-    building them (2026-11-13, spec 4.12 "Before building"). Go
+    building them (2026-11-13, spec 4.12 "Before building"; use its
+    "Audition checklist" here too). Go
     through `docs/gesture-catalog.yaml` gesture by gesture on the bird,
     Chip watching. Measure any that grow with `tests/measure_servo_noise.py
     --catalog` before adopting them. Known candidates: Off Watch breathing

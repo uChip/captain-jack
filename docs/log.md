@@ -2888,6 +2888,26 @@ ends it like `MODE:`"), silencing the result of a home-automation turn.
 The rule now accepts the line at the start of any stretch of speech and
 otherwise strips it without ending speech.
 
+**Mirroring and resting sides, designed 2026-11-13** (spec 4.12). Chip's
+idea, from Asleep: a snort is a half wake-up, so afterward he should
+sometimes settle back on the other side, as if getting comfortable - and
+should mirroring generalize? It split into two mechanisms: mirroring a
+single gesture (flip roll/yaw signs at play time, as `squawk_tilt()`
+already does), and a resting side (a lean the ambient motion rocks
+around, a baseline shift like the DoA turn). Opt-in per gesture rather than
+mirror-everything (Chip): some gestures have a direction on purpose, and
+the choice needs visual review - "as much artistic as programmatic". No
+resting side in On Watch, where the DoA turn already sets where he faces.
+Caveats to check (they became the spec's audition checklist): the roll
+range is lopsided (30 deg left of rest, 20 right), so mirroring a left
+lean sends it toward the limit and the side that rubbed; gestures add to
+wherever the head already is (DoA turns, a sleeping lean); and Asleep/Off
+Watch changes play while the wake-word spotter listens, so growth gets
+measured. Found while checking: `sl-settle-to-sleep`'s comment says
+breathing continues from wherever it leaves off, but deltas resolve
+against the baseline, so breathing goes back to it - the resting side
+would make the comment true.
+
 Today's beak-sync fix (4.8) set the head-only rule: anything that moves
 the beak while Jack talks fights beak-sync.
 
