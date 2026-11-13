@@ -1838,6 +1838,11 @@ for it. Reasoning and alternatives in log.md 4.12.
   random, never the same one twice in a row. Code ignores any cue that
   isn't in the catalog, the same allowlist-in-code rule as home
   automation. Haiku never sees gesture IDs or servo values.
+- **Unknown cues are logged (Chip, 2026-11-13):** a cue not in the
+  catalog plays nothing, but goes to the journal on its own marked line
+  (e.g. `[gesture] unknown cue "wink" - not played`), so it's easy to pick
+  out. The journal review can then find cues Haiku reaches for that the
+  vocabulary lacks, and add a gesture for them.
 - **Head only:** beak-sync owns the beak while Jack speaks, so a cued
   gesture never sends a beak value. `ex-rapid-chatter`, the only On Watch
   gesture that moves the beak, gets no cue.

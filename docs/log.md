@@ -2873,6 +2873,10 @@ How often: Chip, "only when the reply calls for it" - not every reply. The
 prompt asks for restraint; no code cooldown until the journal shows
 over-use, per the usual rule of setting numbers from real data.
 
+Unknown cues (Chip, same day): logged on their own marked line, not
+silently dropped, so cues Haiku invents show where the vocabulary falls
+short and suggest gestures to add.
+
 Today's beak-sync fix (4.8) set the head-only rule: anything that moves
 the beak while Jack talks fights beak-sync.
 
