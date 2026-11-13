@@ -722,6 +722,9 @@ worked in parallel if priorities change.
      only runs ambient motion in On Watch today. Reply-cued gestures
      designed 2026-11-13 (Chip: hybrid, a leading `GESTURE: <cue>` line
      from Haiku, only when the reply calls for it; spec 4.12), not built.
+     Order (Chip): new head on (item 13) -> audition the 11 cued gestures
+     (a slice of item 12, brought forward) -> build -> live watch. Spec
+     4.12 "Before building".
    - Open refinements from the live conversation runs: `identity.md`'s
      reply-length target raised from twenty to thirty words, 2026-10-12
      (measured real replies averaging 31 words; see "Done so far" item 35);
@@ -889,14 +892,18 @@ worked in parallel if priorities change.
     - Internet down at boot or later: Jack should still run and say so
       in character, not crash-loop.
 12. Audition every motion definition for fine tuning (Chip, 2026-10-21) -
-    **sequenced last, after all major functionality is working**. Go
+    **sequenced last, after all major functionality is working** - except
+    the 11 On Watch gestures with reply cues, brought forward ahead of
+    building them (2026-11-13, spec 4.12 "Before building"). Go
     through `docs/gesture-catalog.yaml` gesture by gesture on the bird,
     Chip watching. Measure any that grow with `tests/measure_servo_noise.py
     --catalog` before adopting them. Known candidates: Off Watch breathing
     "a bit" bigger than +-3 (the original 41deg swing looked exaggerated
     and measured ~10dB louder; see log.md 4.2), and the small, slow
     gestures not yet checked for PWM stepping ("Done so far" item 8).
-13. Head reprint for right-tilt clearance (Chip, 2026-11-07 - deferred).
+13. Head reprint for right-tilt clearance (Chip, 2026-11-07). Reprinted
+    2026-11-13, not yet installed; Chip installs it next, ahead of the
+    amp (now the first step of the On Watch gesture work, item 8).
     With the head tipped fully right (roll 50) and turned well left, the
     neck rubs the body, and the bottom of the neck rises above the collar
     and catches on it coming back upright. Left side clean (the sculpture

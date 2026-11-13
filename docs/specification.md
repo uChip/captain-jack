@@ -1823,10 +1823,15 @@ for it. Reasoning and alternatives in log.md 4.12.
   gesture, which should be the usual case: `identity.md` tells Haiku to
   use it only when the reply clearly has a feeling or stance to show, not
   out of habit.
-- **Streaming:** `SpeechStreamer` reads a leading `GESTURE:` line off
-  before any speech, hands the cue over, and then streams the reply as
-  now. A `GESTURE:` line anywhere else arrives too late to use: it ends
-  the speech the way `MODE:`/`MEMORY:` do, and the cue is dropped.
+- **Streaming:** `SpeechStreamer` reads a `GESTURE:` line off when it
+  opens a stretch of speech - the start of the reply, or, in a
+  home-automation turn, the start of the text after a tool result (where
+  Haiku is likely to put it: the gesture belongs with "Done, lights are
+  on", not with "Leave it to me."). The cue is handed over and the reply
+  streams as now. A `GESTURE:` line anywhere else is removed from the
+  speech and logged as misplaced; unlike `MODE:`/`MEMORY:`, it never ends
+  the speech. Still at most one gesture per stretch of speech. The text
+  CLI (`take_turn()`) strips the line the same way.
 - **Cues:** a small fixed vocabulary of plain words, recorded in the
   catalog as a `cue:` key on each On Watch gesture. This fills the
   "selection tag" gap listed above. Starting set: `nod`
@@ -1863,6 +1868,32 @@ for it. Reasoning and alternatives in log.md 4.12.
   Haiku involvement. Built after the cued gestures have been watched
   live, since it changes how busy the head looks while he talks.
   `sd-vowel-drift` stays out (`NEEDS-RUNTIME-PARAM`).
+
+**Before building (Chip, 2026-11-13): audition the cued gestures
+first.** None of the 11 gestures above has ever been watched on the bird -
+they are straight translations from the early gesture library - and some
+are large (showmanship bob +-25 pitch, negation shake +-25 yaw). Order:
+
+1. **New head on** (CLAUDE.md work-list item 13), then rerun
+   `tests/exercise_yaw.py --swing 40 --roll 20`. Head cock (+30 roll) and
+   curious tilt (+25) reach roll 50, fully right, from the rest of 30 - the
+   position that rubbed with the old head when turned left, and DoA turns
+   reach 50 deg left. Both are also cut off at the 50 limit today, so they
+   flatten; their size gets settled in step 2.
+2. **Audition the 11 cued gestures** on the bird, Chip watching: the
+   slice of work-list item 12 these depend on, brought forward. Each at
+   rest and after a DoA turn to both sides (the baseline they'll really
+   start from). Tune in the catalog; no servo-noise measurement needed,
+   since they only play with the mic closed. Needs neither the amp nor
+   new code.
+3. **Build** per the design above. Then rerun the live-Haiku tag checks
+   (`tests/voice_shutdown_haiku.py` and a new gesture-cue check) after the
+   `identity.md` change, since a new leading line could disturb `MODE:` and
+   `MEMORY:` placement.
+4. **Live watch** with headphones or the replacement amp.
+
+Not a dependency: the amp. The head swap was being held for it only to
+do all the disassembly at once.
 
 ### 4.13 Pi to Arduino Serial Link
 

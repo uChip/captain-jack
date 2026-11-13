@@ -2877,6 +2877,17 @@ Unknown cues (Chip, same day): logged on their own marked line, not
 silently dropped, so cues Haiku invents show where the vocabulary falls
 short and suggest gestures to add.
 
+Dependencies reviewed before building (same day). The cued gestures had
+never been watched on the bird, and head cock/curious tilt reach roll 50
+(fully right), where the old head rubbed when turned left. Chip's call:
+audition before adding code, and install the reprinted head now rather
+than waiting for the amp - the two were only grouped to do the
+disassembly once. Also found: a `GESTURE:` line after a tool result
+would have ended the speech under the first draft's rule ("anywhere else
+ends it like `MODE:`"), silencing the result of a home-automation turn.
+The rule now accepts the line at the start of any stretch of speech and
+otherwise strips it without ending speech.
+
 Today's beak-sync fix (4.8) set the head-only rule: anything that moves
 the beak while Jack talks fights beak-sync.
 
