@@ -1126,6 +1126,13 @@ on either side (see [Open Issues](#5-open-issues) issue 8). The Arduino
 applies the `b` value it receives directly to PWM, no interpolation; see
 [Arduino Firmware](#414-arduino-firmware).
 
+**Only while audio plays** (2026-11-13): Playback's stream runs nonstop,
+silent between clips. Beak-sync sends a value only from a clip's first
+block until its envelope has closed again, then stops until the next
+clip. That leaves the beak free for gestures between clips. Sending
+"closed" every 20ms through silence used to override every gesture's
+beak move within a block - the Asleep clack (log.md 4.8).
+
 **Output-latency delay**: because the envelope is computed as a block is
 handed to the output device, not when that block's sound actually
 leaves the speaker, the beak command carries the block's `dac_time`

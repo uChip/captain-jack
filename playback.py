@@ -119,6 +119,7 @@ class Playback:
         self.on_event = on_event
         self.serial_writer = serial_writer
         self._beak_env_dbfs = BEAK_FLOOR_DBFS
+        self._beak_active = False   # a clip played, or its envelope is still closing
         self._queue = queue.Queue()
         self._current = None        # (tag, samples) now playing
         self._pos = 0
@@ -232,8 +233,16 @@ class Playback:
             level = dbfs(out)
             tau = BEAK_ATTACK_S if level > self._beak_env_dbfs else BEAK_RELEASE_S
             self._beak_env_dbfs = _approach(self._beak_env_dbfs, level, frames / RATE, tau)
-            self.serial_writer.send_beak(beak_angle(self._beak_env_dbfs),
-                                          time_info.outputBufferDacTime)
+            # Only while a clip plays and its envelope closes afterward - the
+            # stream runs nonstop, and sending "closed" through silence snapped
+            # shut every gesture's beak move (the Asleep clack, 2026-11-13).
+            if filled:
+                self._beak_active = True
+            if self._beak_active:
+                angle = beak_angle(self._beak_env_dbfs)
+                self.serial_writer.send_beak(angle, time_info.outputBufferDacTime)
+                if not filled and angle == BEAK_RANGE:
+                    self._beak_active = False
 
         outdata[:, 0] = out
         outdata[:, 1] = out

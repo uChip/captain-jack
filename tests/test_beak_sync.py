@@ -83,6 +83,36 @@ def check_callback_drives_beak():
     return errors
 
 
+def check_silent_once_closed():
+    """The stream runs nonstop. Once a clip has played and the beak has
+    closed, beak-sync must go quiet - otherwise its "closed" every 20ms
+    overrides any gesture's beak move (the Asleep clack, 2026-11-13)."""
+    errors = []
+    sent = []
+    writer = SimpleNamespace(send_beak=lambda angle, t: sent.append((angle, t)))
+    player = playback.Playback(serial_writer=writer)
+
+    run_callback(player, 10)
+    if sent:
+        errors.append(f"idle stream before any clip sent {len(sent)} beak commands, expected none")
+
+    player.play(np.full(BLOCK * 5, 20000, dtype=np.int16), "loud")
+    run_callback(player, 30, start_block=10)
+    if not sent or sent[-1][0] != playback.BEAK_RANGE:
+        errors.append(f"clip's envelope never reached closed, got {sent[-1:] or 'nothing'}")
+    n = len(sent)
+    run_callback(player, 30, start_block=40)
+    if len(sent) != n:
+        errors.append(f"kept sending after the beak closed ({len(sent) - n} extra in silence)")
+
+    sent.clear()
+    player.play(np.full(BLOCK, 20000, dtype=np.int16), "again")
+    run_callback(player, 1, start_block=70)
+    if not sent:
+        errors.append("a second clip didn't restart beak-sync")
+    return errors
+
+
 def check_no_serial_writer_is_a_noop():
     player = playback.Playback()   # serial_writer=None by default
     player.play(np.full(BLOCK, 20000, dtype=np.int16), "x")
@@ -139,7 +169,7 @@ def check_serial_writer_drops_oldest_when_backlogged():
 
 
 if __name__ == "__main__":
-    errors = (check_mapping() + check_callback_drives_beak()
+    errors = (check_mapping() + check_callback_drives_beak() + check_silent_once_closed()
               + check_no_serial_writer_is_a_noop() + check_serial_writer_fifo_and_timing()
               + check_serial_writer_drops_oldest_when_backlogged())
     if errors:

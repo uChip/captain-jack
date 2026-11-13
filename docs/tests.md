@@ -240,6 +240,26 @@ when it was last confirmed passing.
   10ms slice and highest sample per repeat, and each test's audio saved.
   No pass/fail - judged by ear.
 
+### Asleep sequence, live wiring (manual, listening)
+
+- **Covers**: Asleep run the way `coordinator.py` runs it - Playback's
+  stream open with beak-sync wired to the Serial writer, Motion in Asleep -
+  with the mic recorded and every loud moment listed against the gesture
+  playing at the time. Written 2026-11-13; found the Asleep clack's cause
+  (beak-sync overriding gesture beak moves, log.md 4.8), which
+  `audition_asleep.py` couldn't, since it runs no Playback.
+- **Script**: [`../tests/asleep_sequence.py`](../tests/asleep_sequence.py)
+- **Run**: `sudo systemctl stop captain-jack`, then
+  `venv/bin/python tests/asleep_sequence.py [--seconds 180]
+  [--extra-chance 0.5] [--old-beak-sync] [--threshold 15]`.
+  `--old-beak-sync` puts the pre-fix behavior back, to compare.
+  **Needs the real bird and a quiet room.**
+- **Expected**: each gesture printed as it starts, then the loud moments
+  (dB over the quiet room) with the gesture and offset, and the audio
+  saved. Judged by ear. 2026-11-13: old beak-sync, snort/snore/settle
+  peaks +40 to +46 dB and Chip heard the live clack; fixed, +28 to +33
+  and no clacks.
+
 ### Bench servo noise at the mic (manual, measurement)
 
 - **Covers**: airborne noise of a single loose servo on the bench (no
@@ -609,12 +629,14 @@ when it was last confirmed passing.
   and SerialWriter latest-wins/timing correct` and exits 0. Checks the
   dBFS-to-beak-angle mapping (floor/ceiling/clamping), that sustained
   loud audio opens the beak and sustained silence rests it closed, that
-  nothing is sent when no `SerialWriter` is attached, and that
+  nothing is sent when no `SerialWriter` is attached, that beak-sync
+  sends nothing on an idle stream and stops once a clip's envelope has
+  closed (the Asleep clack, 2026-11-13), and that
   `SerialWriter`'s bounded FIFO delay line sends queued beak commands in
   order once each one's `dac_time` arrives, dropping only the oldest if
   it ever backs up past `BEAK_QUEUE_MAXLEN` — all against fake
   buffers/clocks, no serial port or speaker needed.
-- **Last confirmed passing**: 2026-10-06.
+- **Last confirmed passing**: 2026-11-13.
 - **First live watch, 2026-10-06** (`playback.py wavFiles/AlignmentTone.wav
   --beak`, Chip watching the real bird): 7 of 8 tone/silence cycles
   looked well-synced by eye; the first consistently starts late

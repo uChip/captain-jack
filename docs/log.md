@@ -1870,6 +1870,29 @@ frame-by-frame look later. Verdict: "looks about right, closing does
 not seem too early" - `BEAK_RELEASE_S = 0.10` stands as-is. Closes the
 open question left above; nothing to change in `playback.py`.
 
+### Beak-sync overrode gesture beak moves (the Asleep clack)
+
+**Found and fixed 2026-11-13.** After the 2026-11-10 soft-close fix (4.12),
+Chip still heard the clack in Asleep every minute or few, sometimes double
+or triple, and saw the beak moving unlike the audition. The live checkout
+had the new catalog and had restarted since, so it wasn't a deploy step.
+`tests/audition_asleep.py` rerun: no clacks, beak as designed. The
+difference: the audition runs no Playback. Live, Playback's stream is open
+all the time, and beak-sync sent an angle every 20ms block, silence
+included - "closed" through silence. Any gesture's `b16` open was
+overridden to closed within a block at full speed, and so was each step of
+the soft close. This explains both the clack and the wrong movement, and it
+also hit Off Watch's beak gestures since build step 7.
+
+Fix (`playback.py`): send only from a clip's first block until its envelope
+reaches closed, then stop. New `tests/asleep_sequence.py` runs Asleep with
+the live wiring; A/B on the bird with extra chance 0.5: old beak-sync,
+settle/snort/snore peaks +40 to +46 dB over the room, Chip heard the live
+clack and movement; fixed, +28 to +33 dB, no clacks, beak moving as
+auditioned. Regression check in `tests/test_beak_sync.py`, failing on the
+old code. The 2026-11-10 measurements still stand: they were taken
+without Playback, so they measured the gestures themselves.
+
 ### Debounce-vs-throttle bug (first live test sent nothing at all)
 
 **Found and fixed 2026-10-06**, same first live watch session, before
@@ -2824,6 +2847,10 @@ makes two servo noises). Applied to `sl-snore` and `sl-snort`, then at Chip's
 request `sl-waking-up` and `sl-settle-to-sleep`; this needed a new beak-only
 Move so the steps don't restart the head's ease. The Off Watch gestures
 still snap.
+
+Live, the clack continued: beak-sync was overriding every gesture's beak
+move. Found and fixed 2026-11-13, see 4.8 "Beak-sync overrode gesture beak
+moves".
 
 ### 4.13 Pi to Arduino Serial Link
 
