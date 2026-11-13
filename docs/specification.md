@@ -1875,7 +1875,11 @@ they are straight translations from the early gesture library - and some
 are large (showmanship bob +-25 pitch, negation shake +-25 yaw). Order:
 
 1. **New head on** (CLAUDE.md work-list item 13), then rerun
-   `tests/exercise_yaw.py --swing 40 --roll 20`. Head cock (+30 roll) and
+   `tests/exercise_yaw.py` at both tip extremes, `--roll 20` (right, the
+   side that rubbed) and `--roll -30` (left, clean on the old head), each
+   at `--swing 40` and `--swing 50`. The reprint narrows the neck 2mm in
+   diameter inside the collar (1mm more clearance all round), so both
+   sides are rechecked. Head cock (+30 roll) and
    curious tilt (+25) reach roll 50, fully right, from the rest of 30 - the
    position that rubbed with the old head when turned left, and DoA turns
    reach 50 deg left. Both are also cut off at the 50 limit today, so they

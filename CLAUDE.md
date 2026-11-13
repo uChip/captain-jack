@@ -908,5 +908,7 @@ worked in parallel if priorities change.
     neck rubs the body, and the bottom of the neck rises above the collar
     and catches on it coming back upright. Left side clean (the sculpture
     isn't symmetrical). Reprint the head with more clearance on that side,
-    then rerun `tests/exercise_yaw.py --swing 40 --roll 20`. See
+    then rerun `tests/exercise_yaw.py` at `--roll 20` and `--roll -30`,
+    each at `--swing 40` and `--swing 50` (the reprint narrows the neck
+    2mm inside the collar, so both sides get rechecked). See
     `docs/log.md`'s 4.9 history (2026-11-07).
