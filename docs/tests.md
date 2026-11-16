@@ -698,6 +698,25 @@ when it was last confirmed passing.
 - **Not covered**: AEC, and anything automated — there's no mic-side
   check that the sound actually came out.
 
+### Audio path tone trace (manual, diagnostic)
+
+- **Covers**: [3.2](specification.md#32-seeed-respeaker-xvf3800) /
+  [3.3 Speaker](specification.md#33-speaker) — the analog path XVF3800
+  3.5mm jack → amp → speaker, for tracing a dead or intermittent
+  connection with a meter, scope or headphones.
+- **Script**: [`../tests/tone_trace.py`](../tests/tone_trace.py)
+- **Run**: `sudo systemctl stop captain-jack` first (the service holds the
+  audio device), then `venv/bin/python tests/tone_trace.py [--freq 800]
+  [--level -10] [--channel both|left|right] [--pulse SECONDS]`. Sets
+  hardware volume to max, then plays the tone until Ctrl+C. `--channel`
+  feeds one output channel only; `--pulse` alternates tone and silence.
+  **Needs a person at the bird.**
+- **Expected**: a steady tone everywhere along the path. The status line
+  flags underruns or a lost device — a Pi/USB-side problem, not wiring.
+- **Last run**: none yet (written 2026-11-16 for the replacement amp's
+  intermittent audio).
+- **Not covered**: anything automated; the person tracing judges.
+
 ### DoA walk-around (manual, measurement)
 
 - **Covers**: [Direction of Arrival (DoA) Reader](specification.md#49-direction-of-arrival-doa-reader)
