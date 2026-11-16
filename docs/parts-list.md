@@ -16,10 +16,16 @@ start from the real part. Update it whenever a part is swapped or added.
 | Pi power cabling | USB-C 90 Degree Angle Adapter | 1 | Amazon | Helps with cable routing |
 | Pi cooling | GeeekPi Aluminum Heatsink Case | 1 | Amazon | Passive cooler / heatsink |
 | Mic array / audio I/O | Seeed reSpeaker XVF3800 4-Mic Array (USB ID 2886:001a) | 1 | Amazon | Seeed's 16kHz "standard" firmware (fixed S16_LE, 16kHz, 2ch). See spec 3.2. |
-| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. 5v power fed from Arduino. Gain 12 dB, second-lowest of its 4 strap settings (raised from the lowest for Kath). Left channel only: left SD open, right SD grounded. See spec 3.3. |
+| Amplifier | Stereo 2.1W Class D Audio Amplifier - TPA2012 | 1 | adafruit.com | Fed from the XVF3800's 3.5mm jack. Left channel only: right SD grounded. Left SD must be tied to VDD - this board has no pull-up, and a floating SD gives intermittent audio. Gain 12 dB (G0 high, G1 low), second-lowest of its 4 strap settings (raised from the lowest for Kath). Two boards failed: the original (5V from the Arduino) 2026-11-10, and a replacement 2026-11-16 - suspected cause, plugging the amp header live (log.md 2026-11-16). Two replacements bought 2026-11; the second is the spare going in - bench-test it first. See spec 3.3. |
+| Amp power supply | Buck converter module, make TBD | 1 | | Separate from the servo buck, fed from the 12V servo-controller supply. Set to 4.5V; reads 4.8V at the amp pins (TPA2012 range 2.5-5.5V, absolute max 6V). |
+| Amp decoupling | 100uF electrolytic + 0.22uF ceramic | 1 each | on hand | Across the amp's VDD/GND, next to the pins. |
+| Amp VDD clamp | 5.6V zener (e.g. 1N4734A, 1W) | 1 | to order | Across amp VDD/GND, cathode to VDD, against supply overshoot. Not a 5V TVS (SMAJ5.0A etc.) - those don't conduct until ~6.4V and clamp near 9V. |
+| Amp input series resistor | 470 ohm-1k, 1/4W | 1 | on hand | In the signal line at the amp input; limits fault current if the amp's ground floats during a live plug. Costs a little gain. |
+| Amp proto board | Proto board | 1 | on hand | Carries the amp buck, amp, caps, and header; mounted in the 2026-11-16 enclosure bottom. |
+| Amp header | 3-pin header + connector (12V, GND, signal) | 1 | on hand | Only mate or unmate with the amp's 12V unplugged - live plugging is the suspected cause of both amp failures. |
 | Speaker |  40mm, 4Ω, 5W | 1 | adafruit.com | Product ID: 3968. |
 | Pi-to-XVF3800 cable | USB A to Type C, 6in | 1 | Amazon | USB, kept short. |
-| XVF3800-to-amp cable | single 22g wire | 1 | on hand | soldered to tip rung of 3.5mm connector, kept short. |
+| XVF3800-to-amp cable | single 22g wire | 1 | on hand | soldered to tip rung of 3.5mm connector, kept short; reaches the amp through the amp header's signal pin. Ground is shared through the header's GND. |
 
 ## Motion
 
@@ -30,7 +36,7 @@ start from the real part. Update it whenever a part is swapped or added.
 | Servo power supply | MP4560 DC-DC Buck Converter Module | 1 | Amazon | On continuously, driven from Arduino VIN pin (12v); servos attached at sketch startup. |
 | Pi-to-Arduino cable | USB A to Micro USB, 6in | 1 | Amazon | USB serial. |
 | Servo controller | SparkFun RedBoard Qwiic (Arduino Uno clone) | 1 | sparkfun.com | USB-serial chip is a CH340 (USB ID 1a86:7523), which shows as `/dev/ttyUSB0`. See spec 3.4. |
-| Servo controller power supply | Generic 12v 1A wall wart | 1 | on hand | technically inadequate, should be 2A, but seems to be working fine, doesn't get hot |
+| Servo controller power supply | Generic 12v 1A wall wart | 1 | on hand | technically inadequate, should be 2A, but seems to be working fine, doesn't get hot. Also feeds the amp buck since 2026-11-16. |
 | Servo controller proto board | Proto Shield Kit | 1 | Amazon | Used to mount buck converter and servo connector headers. 1 used from package of 9 |
 
 ## Structure
@@ -39,6 +45,6 @@ start from the real part. Update it whenever a part is swapped or added.
 |---|---|---|---|---|
 | Statue and perch | 3D-printed, PLA filament, ~1.5kg | 1 | Printed | See spec 3.6. |
 | Gimbal mechanism | 3D-printed, PLA filament, ~50g | 1 | Printed | Enables head pitch, roll, yaw |
-| Electronics enclosure | 3D-printed, PLA filament, ~0.25kg | 1 | Printed | Rebuilt 2026-10-06. |
+| Electronics enclosure | 3D-printed, PLA filament, ~0.25kg | 1 | Printed | Rebuilt 2026-10-06. New bottom printed 2026-11-16 to hold the amp proto board. |
 | Bird-to-base isolation mount | Sorbothane pads 1.5" x 0.25" (provisional on order) | 4 | Amazon | Temporarily a folded microfiber towel (a borrowed silicone mat was used for the 2026-10-14 tests). Pads due 2026-10-19. See spec 3.6 "Bird-to-base isolation mount". |
 | Optional base ballast | Lead shot, 2 lb (~0.9 kg) | | On hand | Only if the base is reprinted. |

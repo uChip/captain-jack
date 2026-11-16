@@ -1484,6 +1484,57 @@ XVF3800 are good (headphones work). About 600mV of a half-scale 400Hz tone at
 the amp input, 5V at the board edge, speaker 4.1 ohm, left SD 3.6V (enabled).
 Chip's read: the TPA2012 died; cause unknown.
 
+**Replacement amp dead too, 2026-11-16**: Chip bought two more Adafruit
+TPA2012 boards and fitted one on a proto board in a newly printed enclosure
+bottom. This time it had its own buck regulator from the 12V supply (set to
+4.5V; the amp pins read 4.8V), with 100uF + 0.22uF across its power pins, and
+a 3-wire header (12V, GND, signal) to the rest of the system. From the start
+the audio was intermittent. Traced with a continuous tone
+(`tests/tone_trace.py`, new):
+
+- The Pi/USB side was clean throughout: no underruns or device loss over a
+  7.5-minute run.
+- At the amp input, 400mV AC at -10dBFS (125mV at -20dBFS). The XVF3800 and
+  its cable were good.
+- VDD 4.8V. G0 low, G1 high: 18 dB, not the 12 dB the first amp ended at.
+  Right SD and the right/left- inputs grounded on purpose.
+- Left SD was floating at 3.4V: this board has no pull-up, and touching the
+  pin clicked the speaker. A floating SD likely caused the intermittent
+  audio.
+- Left outputs: 9mV AC across, about 1.5mV DC to ground, the same as the
+  disabled right channel. Unloaded, about the same. A working TPA2012 holds
+  both outputs near VDD/2 (about 2.4V) whether or not a speaker is connected,
+  so the chip was not running.
+- SD soldered to VDD (now 4.8V). On plugging the header back in, the tone
+  played for about 0.5s, then silence; re-plugging gave nothing. Outputs
+  unchanged at about 0V, with or without the speaker.
+- Speaker leads open to ground and to the speaker frame (all mounts are
+  plastic).
+
+Conclusion: the chip is dead. Two identical failures across two different
+supplies point to a common cause, not two bad chips. **Suspected cause (not
+proven):** the amp header was plugged and unplugged live several times this
+session, with the Pi up and the XVF3800 still driving the signal line. It
+died right after one such re-plug. If GND makes contact after 12V/signal, or
+breaks before them, the amp's ground floats for a moment and its input pin
+takes a large spike against the still-live signal. The first amp ran from the
+Arduino's 5V, which can't be removed without the Pi (the Arduino falls back
+to USB power), so its header was probably plugged live too. Second, less
+likely suspect: buck output overshoot on a live 12V plug-in (TPA2012 absolute
+maximum 6V).
+
+For the third board (Chip's spare):
+- Bench-test it alone first: 5V, SD tied high, outputs near VDD/2 with no
+  load.
+- Tie SD to VDD on the board.
+- Mate the header only with the buck's 12V unplugged (Chip's new rule).
+- Fit a series resistor (470 ohm-1k) on the signal input to limit fault
+  current into the input pin.
+- Clamp VDD with a 5.6V zener, to be ordered. A 5V TVS such as an SMAJ5.0A,
+  suggested first, is the wrong part: it doesn't break down until 6.4V and
+  clamps near 9V, above the chip's 6V limit.
+- Gain back to 12 dB.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
