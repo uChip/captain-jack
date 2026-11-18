@@ -41,11 +41,13 @@ DEVICE_MATCH = "XVF3800"
 ALSA_CARD = "Array"
 HW_VOLUME_MAX = 60
 
-# Open Issues issue 26 (resolved 2026-10-06): the onboard amp clipped above
-# about -10dBFS even at max hardware volume. Fixed with an external amp fed
-# from the XVF3800's 3.5mm jack, set to its lowest gain setting -- clean and
-# adequately loud across the full digital range, so no gain cap is needed here.
-OUTPUT_GAIN_DB = 0.0
+# Open Issues issue 26: the XVF3800's onboard amp clips above about -10dBFS
+# even at max hardware volume. 2026-10-06 to 2026-11-18 the speaker ran from an
+# external amp on the 3.5mm jack with no cap (0.0). Back on the onboard amp
+# (JST) as a stopgap since 2026-11-18, after three external amps failed (see
+# log.md issue 26), so the -10dB cap is back. Return to 0.0 when an external
+# amp is fitted again.
+OUTPUT_GAIN_DB = -10.0
 
 # Beak-sync (spec 4.8): maps the played audio's smoothed RMS envelope to a
 # beak angle (0=open, BEAK_RANGE=closed - ServoControl.ino; silence rests closed).
