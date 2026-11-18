@@ -353,7 +353,9 @@ History: [log.md#33-speaker](log.md#33-speaker), [log.md#issue-26](log.md#issue-
 
 **Description**: 40mm diameter, 4Ω, 5W speaker (the XVF3800 doesn't
 ship with one). Its 5W rating matches the XVF3800's nominal 5W onboard
-amp. **Status: connected**, now via an external amp fed from the
+amp. **Status: silent since 2026-11-18** - three external amps (TPA2012)
+have failed in a row, cause still unknown; see
+[log.md#issue-26](log.md#issue-26). The design, when working: connected via an external amp fed from the
 XVF3800's 3.5mm jack (bypassing the onboard amp's clipping, see
 [Open Issues](#5-open-issues) issue 26), at 12 dB, the second-lowest of its 4
 strap-pin gain settings. It started at the lowest and was raised because

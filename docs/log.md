@@ -1535,6 +1535,73 @@ For the third board (Chip's spare):
   clamps near 9V, above the chip's 6V limit.
 - Gain back to 12 dB.
 
+**Third amp dead too, 2026-11-18**: the spare TPA2012, fitted with every
+protection from the list above:
+- Buck trimmed to 4.8V before the amp was connected.
+- 100uF + 0.1uF + 5.6V zener across the amp's VDD/GND.
+- 560 ohm in series with the XVF3800 signal.
+- 1.2k pull-up from left SD to VDD (left SD read 4.7V).
+- G0 high, G1 low: 12 dB.
+
+No live plugging this time: the header was mated with everything unpowered,
+then both wall warts (Pi; 12V servo/amp supply) were plugged into an
+extension cord and the cord plugged into the wall. Boot was normal. The
+Arduino did its beak boot motion at power-up and again about a minute later
+when Jack opened the port (expected - the first open after boot resets it,
+spec 4.13). Jack played the startup squawk. About a minute later, in Off
+Watch, he started a saying, and the audio stopped about halfway through it.
+The beak kept moving, so Playback was still running.
+
+`tests/tone_trace.py` then gave no sound. Measured at the breakout's own
+pins, not at the header:
+
+| Pin | Reading |
+|---|---|
+| VDD | 4.8V DC |
+| GND | 0V |
+| SDL | 4.7V DC (enabled) |
+| SDR | 0V (right channel off, on purpose) |
+| L+ | 122mV AC (the tone arrives; matches 2026-11-16's 125mV at -20dBFS) |
+| L-, R+, R- | 0V |
+| G0 / G1 | 4.8V / 0V |
+| LOut1, LOut2 | 4mV DC each to GND; about 10mV between them |
+
+The chip was not warm to the touch. A running TPA2012 holds both outputs near
+VDD/2 (about 2.4V).
+
+The TPA2012's short-circuit protection latches: the outputs stay off until SD
+is pulled low and back high, or the power is cycled. That fits a chip that
+stops mid-clip and stays silent, so it was tested: SDL shorted to GND for
+about a second and released, with tone_trace running. Outputs stayed at about
+0V, both with the speaker connected and with it disconnected. Not a latch:
+the chip is dead, the same as the first two.
+
+What this changes:
+- **Live plugging can't explain this one**, so it's a weaker explanation for
+  the first two as well. All three failures happened during normal operation,
+  and at least the last two while the servos were moving. Amp 2 also cut out
+  partway through playback (about 0.5s of tone) rather than on plug-in.
+- **Supply spikes are less likely.** The servos and the amp each have their
+  own buck regulator, so a spike would have to pass from one to the other.
+  What the two do share is the 12V 1A wall wart, already rated as too small,
+  so servo surges can make it sag. A sag alone shouldn't kill the amp
+  (Chip's view), but it isn't ruled out. The 5.6V zener starts conducting
+  only around 5.3-5.9V and is too slow for fast spikes.
+- **Still open**: ground shifting between the amp and the XVF3800 while
+  the servos draw current (the 560 ohm limits input current but doesn't remove
+  the shift); a buck response to 12V sags or recoveries; and heavy clipping
+  at 12 dB (a full-scale clip asks for about 7V peak from a 4.8V supply).
+  The overload protection should survive clipping, so that is the least
+  likely.
+- No oscilloscope, so a direct measurement of VDD and ground during servo
+  motion isn't possible. Without a scope, the useful experiment is to run the
+  next amp from its own supply, separate from the servo supply, and see
+  whether it survives long runs with the servos moving.
+
+No spare amps left; Chip is ordering more. Next: a wider search for amp
+boards beyond Adafruit's TPA2012, and a self-powered, cased amp with a 3.5mm
+input as a stopgap.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
