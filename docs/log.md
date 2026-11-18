@@ -1602,6 +1602,15 @@ No spare amps left; Chip is ordering more. Next: a wider search for amp
 boards beyond Adafruit's TPA2012, and a self-powered, cased amp with a 3.5mm
 input as a stopgap.
 
+**Stopgap, 2026-11-18**: back on the XVF3800's onboard amp until new amps
+arrive. Speaker moved to the onboard JST connector, 3.5mm jack left empty
+(a plug there mutes the onboard amp), `OUTPUT_GAIN_DB` back to -10dB (the
+onboard amp's clean limit from the 2026-09-25 ladder). `tests/tone_trace.py`
+played through it, then Jack was restarted on the new setting. A cased amp
+with its own supply (e.g. Kinter MA170+, Nobsound) was considered and passed
+over for now: those run 18-100W, enough to destroy the 5W speaker if the
+knob is turned up.
+
 ## CLAUDE.md History
 
 ### Arduino toolchain and servo wiring
